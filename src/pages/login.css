@@ -1,0 +1,83 @@
+/* ===== Page Layout ===== */
+.login-page {
+  min-height: 100vh;
+  background-color: #000;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+}
+
+/* ===== Center Container ===== */
+.login-container {
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== Login Card ===== */
+.login-form {
+  width: 380px;
+  background-color: #111827; /* gray-900 */
+  padding: 2.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== Title ===== */
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f87171; /* red-400 */
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* ===== Inputs ===== */
+.login-input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1.2rem;
+  background-color: #1f2933; /* dark gray */
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: #9ca3af;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #facc15; /* yellow */
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.25);
+}
+
+/* ===== Button ===== */
+.login-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #facc15; /* yellow */
+  color: #000;
+  border: none;
+  border-radius: 0.7rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(250, 204, 21, 0.35);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .login-form {
+    width: 90%;
+    padding: 2rem;
+  }
+}

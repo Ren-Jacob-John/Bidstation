@@ -1,0 +1,83 @@
+
+.create-page {
+  min-height: 100vh;
+  background-color: #000;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+}
+
+/* ===== Center Container ===== */
+.create-container {
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== Card ===== */
+.create-card {
+  width: 420px;
+  background-color: #111827; /* gray-900 */
+  padding: 2.6rem;
+  border-radius: 1.2rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+}
+
+/* ===== Title ===== */
+.create-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #f87171; /* red-400 */
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* ===== Inputs ===== */
+.create-input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1.4rem;
+  background-color: #1f2933;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-input::placeholder {
+  color: #9ca3af;
+}
+
+.create-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
+}
+
+/* ===== Button ===== */
+.create-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.35);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .create-card {
+    width: 90%;
+    padding: 2rem;
+  }
+}

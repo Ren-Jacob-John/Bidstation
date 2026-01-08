@@ -1,0 +1,127 @@
+/* =========================================================
+   File Name   : Home.css
+   Component   : Home Page
+   Project     : Online Bidding Platform
+   ========================================================= */
+
+
+/* ===== Base Layout ===== */
+.home {
+  min-height: 100vh;
+  background-color: #000;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+}
+
+
+/* ===== Header / Hero Section ===== */
+.header {
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;   /* CENTER horizontally */
+  text-align: center;        /* CENTER text */
+  background: radial-gradient(
+    circle at top,
+    rgba(59, 130, 246, 0.18),
+    transparent 60%
+  );
+}
+
+.header-container {
+  width: 100%;
+  max-width: 900px;
+  padding: 0 2rem;
+}
+
+.header-content {
+  width: 100%;
+}
+
+/* ===== Header Typography ===== */
+.header-title {
+  font-size: 3.6rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 1.6rem;
+}
+
+.header-title span {
+  color: #3b82f6;
+}
+
+.header-subtitle {
+  font-size: 1.1rem;
+  color: #d1d5db;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+}
+
+/* ===== Header Buttons ===== */
+.header-actions {
+  display: flex;
+  justify-content: center;   /* CENTER buttons */
+  gap: 1.2rem;
+}
+
+.btn {
+  padding: 0.9rem 1.8rem;
+  border-radius: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.btn-join {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.btn-create {
+  background-color: #facc15;
+  color: #000000;
+}
+
+
+/* ===== Roles Section ===== */
+.roles {
+  padding: 4.5rem 2rem;
+  background-color: #111827;
+}
+
+.roles-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #60a5fa;
+  text-align: center;
+  margin-bottom: 2.8rem;
+}
+
+.roles-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 2rem;
+}
+
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .header-title {
+    font-size: 2.4rem;
+  }
+
+  .header-subtitle {
+    font-size: 1rem;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+}

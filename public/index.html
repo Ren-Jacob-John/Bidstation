@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BIDSTATION | Home</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* Tagline section outside the welcome container */
+.tagline-section {
+  max-width: 700px;
+  margin: 40px auto 20px auto; /* spacing from header */
+  text-align: center;
+}
+
+.tagline-section h2 {
+  font-size: 32px;
+  color: red; /* same as original index page headline color */
+  margin-bottom: 15px;
+}
+
+.tagline-section p {
+  font-size: 16px;
+  color: #333; /* same as original index page paragraph color */
+  line-height: 1.5;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+/* Keep existing container styles intact */
+.container{
+  max-width: 700px;
+  margin: 20px auto 0 auto;
+  text-align: center;
+}
+
+.container a button{
+  margin: 8px;
+  padding: 12px 22px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.signup-btn{
+  background-color: red;
+  color: white;
+}
+
+.create-btn{
+  background-color: black;
+  color: white;
+}
+
+.join-btn{
+  background-color: blue;
+  color: white;
+}
+
+/* Header styling */
+header{
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background-color: black;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+header h1{
+  font-size: 28px;
+  font-weight: bold;
+  color: red;
+   /* changed BIDSTATION title to orange */
+}
+
+header nav a{
+  margin-left: 20px;
+  text-decoration: none;
+  color: white; /* nav links remain white */
+  font-weight: bold;
+}
+
+header nav a:hover{
+  color: red;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>BIDSTATION</h1>
+  <nav>
+    <a href="login.html">Login</a>
+    <a href="signup.html">Signup / Register</a>
+    <a href="dashboard.html">Dashboard</a>
+  </nav>
+</header>
+
+<!-- TAGLINE SECTION OUTSIDE WELCOME CONTAINER -->
+<div class="tagline-section">
+  <h2>Bid Smart. Win Big.</h2>
+  <p>BIDSTATION is a modern online bidding platform that enables users to participate in transparent, real-time auctions with secure transactions.</p>
+</div>
+
+<!-- EXISTING WELCOME CONTAINER -->
+<div class="container">
+  <h2>Welcome to BIDSTATION</h2>
+  <p>A secure real-time online auction platform.</p>
+
+  <br>
+
+  <!-- Action Buttons -->
+  <a href="signup.html">
+    <button class="signup-btn">Get Started (Signup)</button>
+  </a>
+
+  <a href="create.html">
+    <button class="create-btn">Create Auction</button>
+  </a>
+
+  <a href="join.html">
+    <button class="join-btn">Join Auction</button>
+  </a>
+</div>
+
+</body>
+</html>

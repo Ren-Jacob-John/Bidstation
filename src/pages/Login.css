@@ -68,6 +68,38 @@
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+/* ===== Password Field Wrapper ===== */
+.password-wrapper {
+  position: relative;
+}
+
+/* ===== Show / Hide Button ===== */
+.show-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #facc15; /* yellow */
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.show-btn:hover {
+  color: #fde047; /* lighter yellow */
+}
+
+/* ===== Error Message ===== */
+.error-text {
+  color: #f87171; /* red-400 */
+  font-size: 0.8rem;
+  margin-top: -0.8rem;
+  margin-bottom: 1rem;
+}
+
 
 .login-btn:hover {
   transform: translateY(-2px);

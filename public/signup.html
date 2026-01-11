@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BIDSTATION | Signup or Register</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+.auth-wrapper{
+  min-height: calc(100vh - 80px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-card{
+  width: 320px;
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
+
+.auth-card h2{
+  text-align: center;
+  font-size: 18px;
+  color: red;
+  margin-bottom: 18px;
+}
+
+.auth-card input,
+.auth-card select{
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.auth-card button{
+  width: 100%;
+  padding: 9px;
+  font-size: 14px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.auth-card button:hover{
+  background: red;
+}
+
+.auth-card p{
+  text-align: center;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.auth-card a{
+  color: blue;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<header style="height:80px; display:flex; align-items:center; justify-content:space-between; padding:0 40px;">
+    <h1 style="color:red;">
+    <a href="index.html" style="text-decoration:none; color:red;">
+      BIDSTATION
+    </a>
+  </h1>
+ 
+    <h1>
+    <a href="index.html" style="text-decoration:none; color:black;">
+      BIDSTATION
+    </a>
+  </h1>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="login.html">Login</a>
+  </nav>
+</header>
+
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <h2>Signup or Register</h2>
+
+    <input type="text" placeholder="Full Name" required>
+    <input type="email" placeholder="Email Address" required>
+    <input type="password" placeholder="Password" required>
+    <input type="password" placeholder="Confirm Password" required>
+
+    <select required>
+      <option value="">Select Role</option>
+      <option value="auctioner">Auctioner</option>
+      <option value="bidder">Bidder</option>
+      <option value="player">Player</option>
+    </select>
+
+    <input type="text" placeholder="Phone Number">
+    <input type="text" placeholder="Address">
+
+    <button>Signup / Register</button>
+
+    <p>
+      Already have an account?
+      <a href="login.html">Login</a>
+    </p>
+
+  </div>
+</div>
+
+</body>
+</html>

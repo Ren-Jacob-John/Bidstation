@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar";
-import Navbar from "../components/Footer";
+import Footer from "../components/Footer";
 import "./Register.css";
 
 export default function Register() {

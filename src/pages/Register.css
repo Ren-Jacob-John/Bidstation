@@ -1,0 +1,83 @@
+/* ===== Page Layout ===== */
+.register-page {
+  min-height: 100vh;
+  background-color: #000;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+}
+
+/* ===== Center Container ===== */
+.register-container {
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== Form Card ===== */
+.register-form {
+  width: 400px;
+  background-color: #111827; /* gray-900 */
+  padding: 2.5rem;
+  border-radius: 1.2rem;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== Title ===== */
+.register-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #60a5fa; /* blue-400 */
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* ===== Inputs ===== */
+.register-input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1.4rem;
+  background-color: #1f2933;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-input::placeholder {
+  color: #9ca3af;
+}
+
+.register-input:focus {
+  outline: none;
+  border-color: #dc2626; /* red */
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
+}
+
+/* ===== Button ===== */
+.register-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.register-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(220, 38, 38, 0.35);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .register-form {
+    width: 90%;
+    padding: 2rem;
+  }
+}

@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import "./JoinAuction.css";
 
 export default function JoinAuction() {
@@ -22,6 +23,7 @@ export default function JoinAuction() {
           </button>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import "./Dashboard.css";
+import Footer from "../components/Footer";
 
 export default function Dashboard() {
   return (
@@ -16,6 +17,7 @@ export default function Dashboard() {
           <Card title="Completed Auctions" value="5" color="blue" />
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

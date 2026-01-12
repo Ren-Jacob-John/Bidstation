@@ -1,6 +1,7 @@
 import React from "react";
 import Navbar from "../components/Navbar";
 import "./CreateAuction.css";
+import Footer from "../components/Footer";
 
 export default function CreateAuction() {
   return (
@@ -33,6 +34,7 @@ export default function CreateAuction() {
           </button>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

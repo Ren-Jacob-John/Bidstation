@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import JoinAuction from "./pages/JoinAuction";
 import CreateAuction from "./pages/CreateAuction";
+import Auction from "./pages/Auction";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/join" element={<JoinAuction />} />
       <Route path="/create" element={<CreateAuction />} />
+      <Route path="/auction" element={<Auction />} />
     </Routes>
   );
 }

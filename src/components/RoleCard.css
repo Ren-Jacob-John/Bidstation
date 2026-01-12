@@ -1,0 +1,36 @@
+.role-card {
+  background-color: #1f2933; /* gray-800 */
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.role-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.role-red {
+  color: #f87171; /* red-400 */
+}
+
+.role-yellow {
+  color: #facc15; /* yellow-400 */
+}
+
+.role-blue {
+  color: #60a5fa; /* blue-400 */
+}
+
+.role-description {
+  font-size: 0.95rem;
+  color: #9ca3af; /* gray-400 */
+  line-height: 1.5;
+}

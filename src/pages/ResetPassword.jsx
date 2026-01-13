@@ -1,19 +1,20 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
-import { validateEmail, validatePassword } from "../services/authService";
-import "./Register.css";
+import { validatePassword } from "../services/authService";
+import "./ResetPassword.css";
 
-export default function Register() {
+export default function ResetPassword() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { resetPassword } = useAuth();
+
+  const token = searchParams.get("token");
 
   const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -22,8 +23,14 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setTokenError(true);
+    }
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,20 +50,6 @@ export default function Register() {
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Full name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = "Full name must be at least 2 characters";
-    }
-
-    // Email validation
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
 
     // Password validation
     if (!formData.password) {
@@ -89,18 +82,17 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      const result = await register(
-        formData.fullName,
-        formData.email,
-        formData.password
-      );
+      const result = await resetPassword(token, formData.password);
 
       if (result.success) {
-        setRegistrationSuccess(true);
-        setRegisteredEmail(formData.email);
-        toast.success("Registration successful! Please check your email.");
+        setResetSuccess(true);
+        toast.success("Password reset successful!");
       } else {
-        toast.error(result.error || "Registration failed");
+        // Check if token is expired or invalid
+        if (result.error?.includes("expired") || result.error?.includes("invalid")) {
+          setTokenError(true);
+        }
+        toast.error(result.error || "Password reset failed");
         setErrors({ submit: result.error });
       }
     } catch (error) {
@@ -111,50 +103,58 @@ export default function Register() {
     }
   };
 
-  // Success screen after registration
-  if (registrationSuccess) {
+  // Token error screen
+  if (tokenError) {
     return (
-      <div className="register-page">
+      <div className="reset-page">
         <Navbar />
-        <div className="register-container">
-          <div className="register-form success-card">
-            <div className="success-icon">✉️</div>
-            <h2 className="register-title">Check Your Email</h2>
-            <p className="success-message">
-              We've sent a verification link to:
+        <div className="reset-container">
+          <div className="reset-card error">
+            <div className="reset-icon">⚠️</div>
+            <h2 className="reset-title">Invalid or Expired Link</h2>
+            <p className="reset-message">
+              This password reset link is invalid or has expired.
             </p>
-            <p className="success-email">{registeredEmail}</p>
-            <p className="success-instructions">
-              Please click the link in the email to verify your account and
-              complete registration.
+            <p className="reset-submessage">
+              Please request a new password reset link.
             </p>
-            <div className="success-actions">
-              <button
-                className="register-btn secondary-btn"
-                onClick={() => navigate("/login")}
-              >
-                Go to Login
-              </button>
-              <p className="resend-text">
-                Didn't receive the email?{" "}
-                <button
-                  className="resend-link"
-                  onClick={async () => {
-                    try {
-                      const { resendVerificationEmail } = await import(
-                        "../services/authService"
-                      );
-                      await resendVerificationEmail(registeredEmail);
-                      toast.success("Verification email resent!");
-                    } catch (error) {
-                      toast.error("Failed to resend email");
-                    }
-                  }}
-                >
-                  Resend
-                </button>
-              </p>
-            </div>
+            <button
+              className="reset-btn"
+              onClick={() => navigate("/forgot-password")}
+            >
+              Request New Link
+            </button>
+            <Link to="/login" className="back-link">
+              Back to Login
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Success screen
+  if (resetSuccess) {
+    return (
+      <div className="reset-page">
+        <Navbar />
+        <div className="reset-container">
+          <div className="reset-card success">
+            <div className="reset-icon">✓</div>
+            <h2 className="reset-title">Password Reset!</h2>
+            <p className="reset-message">
+              Your password has been successfully reset.
+            </p>
+            <p className="reset-submessage">
+              You can now log in with your new password.
+            </p>
+            <button
+              className="reset-btn"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login
+            </button>
           </div>
         </div>
         <Footer />
@@ -163,57 +163,28 @@ export default function Register() {
   }
 
   return (
-    <div className="register-page">
+    <div className="reset-page">
       <Navbar />
 
-      <div className="register-container">
-        <form className="register-form" onSubmit={handleSubmit}>
-          <h2 className="register-title">Create Account</h2>
+      <div className="reset-container">
+        <form className="reset-card" onSubmit={handleSubmit}>
+          <h2 className="reset-title">Reset Password</h2>
+          <p className="reset-description">
+            Enter your new password below.
+          </p>
 
           {errors.submit && (
             <div className="error-banner">{errors.submit}</div>
           )}
 
-          {/* Full Name */}
-          <div className="input-group">
-            <input
-              type="text"
-              name="fullName"
-              className={`register-input ${errors.fullName ? "input-error" : ""}`}
-              placeholder="Full Name"
-              value={formData.fullName}
-              onChange={handleChange}
-              disabled={isLoading}
-            />
-            {errors.fullName && (
-              <span className="error-text">{errors.fullName}</span>
-            )}
-          </div>
-
-          {/* Email */}
-          <div className="input-group">
-            <input
-              type="email"
-              name="email"
-              className={`register-input ${errors.email ? "input-error" : ""}`}
-              placeholder="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              disabled={isLoading}
-            />
-            {errors.email && (
-              <span className="error-text">{errors.email}</span>
-            )}
-          </div>
-
-          {/* Password */}
+          {/* New Password */}
           <div className="input-group">
             <div className="password-wrapper">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                className={`register-input ${errors.password ? "input-error" : ""}`}
-                placeholder="Password"
+                className={`reset-input ${errors.password ? "input-error" : ""}`}
+                placeholder="New Password"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -264,8 +235,8 @@ export default function Register() {
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
-                className={`register-input ${errors.confirmPassword ? "input-error" : ""}`}
-                placeholder="Confirm Password"
+                className={`reset-input ${errors.confirmPassword ? "input-error" : ""}`}
+                placeholder="Confirm New Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -285,16 +256,16 @@ export default function Register() {
           </div>
 
           <button
-            className="register-btn"
+            className="reset-btn"
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? "Creating Account..." : "Create Account"}
+            {isLoading ? "Resetting..." : "Reset Password"}
           </button>
 
-          <p className="login-link">
-            Already have an account? <Link to="/login">Login here</Link>
-          </p>
+          <Link to="/login" className="back-link">
+            ← Back to Login
+          </Link>
         </form>
       </div>
       <Footer />

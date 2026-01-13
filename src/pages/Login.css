@@ -106,6 +106,111 @@
   box-shadow: 0 10px 25px rgba(250, 204, 21, 0.35);
 }
 
+/* ===== Input Group ===== */
+.input-group {
+  margin-bottom: 1rem;
+}
+
+.input-group .login-input {
+  margin-bottom: 0;
+}
+
+/* ===== Input Error State ===== */
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+/* ===== Error Banner ===== */
+.error-banner {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ===== Verification Notice ===== */
+.verification-notice {
+  background-color: rgba(250, 204, 21, 0.1);
+  border: 1px solid #facc15;
+  color: #facc15;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.verification-notice p {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.resend-btn {
+  background: transparent;
+  border: 1px solid #facc15;
+  color: #facc15;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.resend-btn:hover {
+  background-color: #facc15;
+  color: #000;
+}
+
+/* ===== Forgot Password ===== */
+.forgot-password {
+  text-align: right;
+  margin-bottom: 1.2rem;
+}
+
+.forgot-password a {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-password a:hover {
+  color: #facc15;
+}
+
+/* ===== Register Link ===== */
+.register-link {
+  text-align: center;
+  margin-top: 1.2rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.register-link a {
+  color: #facc15;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Loading State ===== */
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.show-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
   .login-form {

@@ -19,6 +19,19 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  // Helper function to safely parse JSON response
+  const safeJsonParse = async (response) => {
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
+
   // Login function
   const login = async (email, password) => {
     try {
@@ -31,10 +44,14 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(data?.message || "Login failed");
+      }
+
+      if (!data) {
+        throw new Error("Invalid response from server");
       }
 
       // Store user data and token
@@ -62,17 +79,17 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ fullName, email, password }),
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(data?.message || "Registration failed");
       }
 
       // Return success - user needs to verify email
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: "Registration successful. Please check your email for verification.",
-        requiresVerification: true 
+        requiresVerification: true
       };
     } catch (error) {
       return { success: false, error: error.message };
@@ -86,10 +103,10 @@ export function AuthProvider({ children }) {
         method: "GET",
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Email verification failed");
+        throw new Error(data?.message || "Email verification failed");
       }
 
       return { success: true, message: "Email verified successfully" };
@@ -109,10 +126,10 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to resend verification email");
+        throw new Error(data?.message || "Failed to resend verification email");
       }
 
       return { success: true, message: "Verification email sent" };
@@ -132,10 +149,10 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to send reset email");
+        throw new Error(data?.message || "Failed to send reset email");
       }
 
       return { success: true, message: "Password reset email sent" };
@@ -155,10 +172,10 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ token, newPassword }),
       });
 
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || "Password reset failed");
+        throw new Error(data?.message || "Password reset failed");
       }
 
       return { success: true, message: "Password reset successful" };

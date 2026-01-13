@@ -25,14 +25,37 @@ async function apiRequest(endpoint, options = {}) {
     },
   };
 
-  const response = await fetch(url, config);
-  const data = await response.json();
+  try {
+    const response = await fetch(url, config);
+    
+    // Handle empty responses
+    const text = await response.text();
+    let data = null;
+    
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        // Response is not JSON
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return { success: true, message: text };
+      }
+    }
 
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
+    if (!response.ok) {
+      throw new Error(data?.message || `Request failed with status ${response.status}`);
+    }
+
+    return data || { success: true };
+  } catch (error) {
+    // Handle network errors
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error. Please check your connection.');
+    }
+    throw error;
   }
-
-  return data;
 }
 
 // Register a new user

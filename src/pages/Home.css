@@ -1,8 +1,8 @@
 /* ===== Base Layout ===== */
 .home {
   min-height: 100vh;
-  background-color: #000;
-  color: #ffffff;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: "Inter", system-ui, sans-serif;
 }
 
@@ -44,7 +44,8 @@
 
 .header-subtitle {
   font-size: 1.1rem;
-  color: #d1d5db;
+  color: var(--text-color);
+  opacity: 0.8;
   line-height: 1.6;
   margin-bottom: 3rem;
 }
@@ -84,7 +85,7 @@
 /* ===== Roles Section ===== */
 .roles {
   padding: 4.5rem 2rem;
-  background-color: #111827;
+  background-color: var(--card-bg);
 }
 
 .roles-title {

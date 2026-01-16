@@ -2,10 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { Sun, Moon } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import "./Navbar.css";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <header className="navbar">
@@ -14,8 +16,19 @@ export default function Navbar() {
 
         <nav className="navbar-links">
           <Link to="/" className="nav-link">Home</Link>
-          <Link to="/login" className="nav-link">Login</Link>
-          <Link to="/register" className="nav-link">Register</Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/create" className="nav-link">Create</Link>
+              <Link to="/join" className="nav-link">Join</Link>
+              <Link to="/auction" className="nav-link">Auction</Link>
+              <button className="nav-link" onClick={logout}>Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="nav-link">Login</Link>
+              <Link to="/register" className="nav-link">Register</Link>
+            </>
+          )}
           <button
             onClick={toggleTheme}
             className="theme-toggle"

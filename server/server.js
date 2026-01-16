@@ -3,6 +3,8 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
+import { createServer } from 'http';
+import { Server as IOServer } from 'socket.io';
 
 const app = express();
 const port = 3000;
@@ -14,6 +16,7 @@ const users = [];
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware
+
 app.use(express.json())
 app.use(cors())
 
@@ -147,4 +150,85 @@ app.post('/auth/change-password', authenticateToken, (req, res) => {
   res.json({ message: 'Change password not implemented yet' });
 });
 
-app.listen(port, ()=> console.log(`Server Listening at http://localhost:${port}`));
+// Create HTTP server and attach Socket.IO
+const httpServer = createServer(app);
+
+const io = new IOServer(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Simple in-memory auction state for a single demo auction
+const auction = {
+  id: 'auction1',
+  name: 'Sample Auction',
+  description: 'This is a sample auction for demonstration.',
+  startingPrice: 50,
+  currentBid: 120,
+  highestBidder: null,
+  // set demo end time 5 minutes from server start
+  endTime: Date.now() + 5 * 60 * 1000
+};
+
+io.on('connection', (socket) => {
+  console.log('Socket connected', socket.id);
+
+  // Send current auction state when a client joins
+  socket.on('joinAuction', (auctionId) => {
+    if (auctionId !== auction.id) return;
+    socket.emit('auctionState', {
+      id: auction.id,
+      name: auction.name,
+      description: auction.description,
+      startingPrice: auction.startingPrice,
+      currentBid: auction.currentBid,
+      highestBidder: auction.highestBidder,
+      timeRemaining: Math.max(0, Math.floor((auction.endTime - Date.now()) / 1000))
+    });
+  });
+
+  // Handle bid placement
+  socket.on('placeBid', (data, ack) => {
+    // data: { auctionId, amount, bidder }
+    const { auctionId, amount, bidder } = data || {};
+    if (auctionId !== auction.id) {
+      return ack && ack({ success: false, message: 'Auction not found' });
+    }
+
+    const numericAmount = Number(amount) || 0;
+    if (numericAmount <= auction.currentBid) {
+      return ack && ack({ success: false, message: 'Bid must be higher than current bid' });
+    }
+
+    // Update auction
+    auction.currentBid = numericAmount;
+    auction.highestBidder = bidder || 'Anonymous';
+
+    // Broadcast new bid to all clients
+    io.emit('bidUpdate', {
+      auctionId: auction.id,
+      currentBid: auction.currentBid,
+      highestBidder: auction.highestBidder
+    });
+
+    return ack && ack({ success: true });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected', socket.id);
+  });
+});
+
+// Timer to broadcast time remaining every second
+const timerInterval = setInterval(() => {
+  const remaining = Math.max(0, Math.floor((auction.endTime - Date.now()) / 1000));
+  io.emit('timeUpdate', { auctionId: auction.id, timeRemaining: remaining });
+  if (remaining <= 0) {
+    io.emit('auctionEnded', { auctionId: auction.id });
+    clearInterval(timerInterval);
+  }
+}, 1000);
+
+httpServer.listen(port, ()=> console.log(`Server Listening at http://localhost:${port}`));

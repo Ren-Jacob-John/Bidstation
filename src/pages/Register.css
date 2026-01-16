@@ -1,8 +1,8 @@
 /* ===== Page Layout ===== */
 .register-page {
   min-height: 100vh;
-  background-color: #000;
-  color: #fff;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: "Inter", sans-serif;
 }
 
@@ -17,10 +17,10 @@
 /* ===== Form Card ===== */
 .register-form {
   width: 400px;
-  background-color: #111827; /* gray-900 */
+  background-color: var(--card-bg);
   padding: 2.5rem;
   border-radius: 1.2rem;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 20px 45px var(--shadow);
 }
 
 /* ===== Title ===== */
@@ -37,16 +37,17 @@
   width: 100%;
   padding: 0.8rem;
   margin-bottom: 1.4rem;
-  background-color: #1f2933;
+  background-color: var(--input-bg);
   border: 1px solid transparent;
   border-radius: 0.6rem;
-  color: #fff;
+  color: var(--input-text);
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .register-input::placeholder {
-  color: #9ca3af;
+  color: var(--text-color);
+  opacity: 0.6;
 }
 
 .register-input:focus {
@@ -182,7 +183,8 @@
 .login-link {
   text-align: center;
   margin-top: 1.2rem;
-  color: #9ca3af;
+  color: var(--text-color);
+  opacity: 0.7;
   font-size: 0.9rem;
 }
 

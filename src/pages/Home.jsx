@@ -33,6 +33,10 @@ export default function Home() {
               <Link to="/create" className="btn btn-secondary">
                 Create Auction
               </Link>
+              
+              <Link to="/auction" className="btn btn-outline">
+                View Live Auction
+              </Link>
             </div>
           </div>
         </div>

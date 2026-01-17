@@ -18,7 +18,6 @@ export default function Navbar() {
           <Link to="/" className="nav-link">Home</Link>
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard" className="nav-link">Dashboard</Link>
               <Link to="/create" className="nav-link">Create</Link>
               <Link to="/join" className="nav-link">Join</Link>
               <Link to="/auction" className="nav-link">Auction</Link>

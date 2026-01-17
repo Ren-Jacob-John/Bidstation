@@ -6,7 +6,7 @@ import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 
 export default function Auction() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [auction, setAuction] = useState({
     id: 'auction1',
     name: 'Sample Auction',
@@ -55,6 +55,10 @@ export default function Auction() {
   }, []);
 
   const handlePlaceBid = () => {
+    if (!isAuthenticated) {
+      setStatus('Please login to place a bid');
+      return;
+    }
     const amount = Number(bidAmount);
     if (!amount || amount <= (auction.currentBid || 0)) {
       setStatus('Enter a higher bid than current.');
@@ -99,18 +103,26 @@ export default function Auction() {
             <p><strong>Time Remaining:</strong> {formatTime(timeRemaining)}</p>
           </div>
 
-          <input
-            type="number"
-            className="auction-input"
-            placeholder="Enter your bid amount"
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            disabled={timeRemaining <= 0}
-          />
+                  <input
+                    type="number"
+                    className="auction-input"
+                    placeholder={isAuthenticated ? "Enter your bid amount" : "Login to place bids"}
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    disabled={timeRemaining <= 0 || !isAuthenticated}
+                  />
 
-          <button className="auction-btn" onClick={handlePlaceBid} disabled={timeRemaining <= 0}>
-            Place Bid
-          </button>
+                  <button
+                    className="auction-btn"
+                    onClick={handlePlaceBid}
+                    disabled={timeRemaining <= 0 || !isAuthenticated}
+                  >
+                    Place Bid
+                  </button>
+
+                  {!isAuthenticated && (
+                    <p className="auction-note">Viewing only: log in to participate in the auction.</p>
+                  )}
 
           {status && <p className="auction-status">{status}</p>}
         </div>

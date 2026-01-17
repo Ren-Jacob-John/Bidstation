@@ -95,14 +95,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/auction"
-          element={
-            <ProtectedRoute>
-              <Auction />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/auction" element={<Auction />} />
       </Routes>
     </AuthProvider>
   );

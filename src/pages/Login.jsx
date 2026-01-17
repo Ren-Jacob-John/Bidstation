@@ -12,8 +12,8 @@ export default function Login() {
   const location = useLocation();
   const { login, resendVerificationEmail } = useAuth();
 
-  // Get redirect path from location state or default to home
-  const from = location.state?.from?.pathname || "/";
+  // Get redirect path from location state or default to dashboard
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const [formData, setFormData] = useState({
     email: "",

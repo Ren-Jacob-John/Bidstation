@@ -5,12 +5,18 @@ import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Server as IOServer } from 'socket.io';
+import pool from './db/index.js';
+import {
+  createUser,
+  getUserByEmail,
+  createEmailVerificationToken,
+  createAuction,
+  generateUniqueSlug,
+  getUserStats
+} from './db/queries.js';
 
 const app = express();
 const port = 3000;
-
-// In-memory user store (replace with database in production)
-const users = [];
 
 // JWT secret (use env variable in production)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -47,7 +53,7 @@ app.post('/auth/register', async (req, res) => {
     const { fullName, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = users.find(user => user.email === email);
+    const existingUser = await getUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -55,27 +61,25 @@ app.post('/auth/register', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = {
-      id: users.length + 1,
-      fullName,
-      email,
-      password: hashedPassword,
-      isVerified: false,
-      createdAt: new Date()
-    };
+    // Create user in database
+    const userId = await createUser(fullName, email, hashedPassword);
 
-    users.push(user);
+    // Create email verification token
+    const verificationToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '24h' });
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await createEmailVerificationToken(userId, verificationToken, expiresAt);
 
-    // Generate token
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+    // Generate JWT token for immediate login (but user needs to verify email)
+    const token = jwt.sign({ id: userId, email }, JWT_SECRET, { expiresIn: '24h' });
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'User registered successfully. Please check your email for verification.',
       token,
-      user: { id: user.id, fullName: user.fullName, email: user.email, isVerified: user.isVerified }
+      user: { id: userId, fullName, email, isVerified: false },
+      requiresVerification: true
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -84,7 +88,7 @@ app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = users.find(user => user.email === email);
+    const user = await getUserByEmail(email);
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -99,25 +103,32 @@ app.post('/auth/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user.id, fullName: user.fullName, email: user.email, isVerified: user.isVerified }
+      user: { id: user.id, fullName: user.full_name, email: user.email, isVerified: user.is_verified }
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-app.get('/auth/me', authenticateToken, (req, res) => {
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+app.get('/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const { getUserById } = await import('./db/queries.js');
+    const user = await getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-  res.json({
-    id: user.id,
-    fullName: user.fullName,
-    email: user.email,
-    isVerified: user.isVerified
-  });
+    res.json({
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email,
+      isVerified: user.is_verified
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.post('/auth/logout', authenticateToken, (req, res) => {
@@ -148,6 +159,97 @@ app.put('/auth/profile', authenticateToken, (req, res) => {
 
 app.post('/auth/change-password', authenticateToken, (req, res) => {
   res.json({ message: 'Change password not implemented yet' });
+});
+
+// Dashboard API
+app.get('/api/dashboard/stats', authenticateToken, async (req, res) => {
+  try {
+    const userStats = await getUserStats(req.user.id);
+
+    // Get active auctions count
+    const { getAuctionsByUser } = await import('./db/queries.js');
+    const userAuctions = await getAuctionsByUser(req.user.id);
+    const activeAuctions = userAuctions.filter(auction =>
+      auction.status === 'active' && new Date(auction.end_time) > new Date()
+    ).length;
+
+    // Get winning auctions count
+    const winningAuctions = userAuctions.filter(auction =>
+      auction.winner_id === req.user.id
+    ).length;
+
+    res.json({
+      activeAuctions,
+      totalBids: userStats.total_bids || 0,
+      completedAuctions: winningAuctions,
+      avgRating: userStats.avg_rating || 0,
+      totalAuctions: userAuctions.length
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Auction routes
+app.post('/api/auctions', authenticateToken, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      shortDescription,
+      categoryId,
+      startPrice,
+      reservePrice,
+      buyNowPrice,
+      bidIncrement,
+      startTime,
+      endTime,
+      itemCondition,
+      quantity,
+      shippingCost,
+      shippingInfo,
+      location,
+      isPrivate,
+      inviteCode
+    } = req.body;
+
+    // Generate unique slug
+    const slug = await generateUniqueSlug(title);
+
+    // Create auction
+    const auctionId = await createAuction({
+      title,
+      slug,
+      description,
+      short_description: shortDescription,
+      category_id: categoryId,
+      start_price: startPrice,
+      reserve_price: reservePrice,
+      buy_now_price: buyNowPrice,
+      bid_increment: bidIncrement,
+      start_time: new Date(startTime),
+      end_time: new Date(endTime),
+      item_condition: itemCondition,
+      quantity: quantity || 1,
+      shipping_cost: shippingCost,
+      shipping_info: shippingInfo,
+      location,
+      created_by: req.user.id,
+      is_private: isPrivate,
+      invite_code: inviteCode,
+      status: 'draft'
+    });
+
+    res.status(201).json({
+      message: 'Auction created successfully',
+      auctionId,
+      slug
+    });
+  } catch (error) {
+    console.error('Create auction error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Create HTTP server and attach Socket.IO

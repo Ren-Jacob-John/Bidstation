@@ -1,10 +1,10 @@
 .footer {
   width: 100%;
-  background-color: #000;
-  border-top: 1px solid #374151; /* gray-700 */
+  background-color: var(--card-bg);
+  border-top: 1px solid var(--shadow);
   text-align: center;
   padding: 1.2rem 0;
-  color: #9ca3af; /* gray-400 */
+  color: var(--text-color);
   font-size: 0.95rem;
   font-weight: 500;
 }

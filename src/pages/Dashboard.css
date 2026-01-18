@@ -1,13 +1,16 @@
 /* ===== Page Layout ===== */
 .dashboard-page {
   min-height: 100vh;
-  background-color: #000;
-  color: #fff;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ===== Container ===== */
 .dashboard-container {
+  flex: 1;
   padding: 2rem 2rem 4rem;
   max-width: 1200px;
   margin: 0 auto;

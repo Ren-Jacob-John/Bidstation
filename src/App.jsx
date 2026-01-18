@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute";
 
 // Pages
@@ -15,33 +16,44 @@ import JoinAuction from "./pages/JoinAuction";
 import CreateAuction from "./pages/CreateAuction";
 import Auction from "./pages/Auction";
 
+// Theme-aware Toaster component
+const ThemeAwareToaster = () => {
+  const { theme } = useTheme();
+
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        duration: 4000,
+        style: {
+          background: theme === 'dark' ? "#1f2937" : "#ffffff",
+          color: theme === 'dark' ? "#fff" : "#213547",
+          borderRadius: "0.5rem",
+          border: `1px solid ${theme === 'dark' ? "#374151" : "#e5e7eb"}`,
+        },
+        success: {
+          iconTheme: {
+            primary: "#10b981",
+            secondary: "#fff",
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: "#ef4444",
+            secondary: "#fff",
+          },
+        },
+      }}
+    />
+  );
+};
+
 export default function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       {/* Toast notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#1f2937",
-            color: "#fff",
-            borderRadius: "0.5rem",
-          },
-          success: {
-            iconTheme: {
-              primary: "#10b981",
-              secondary: "#fff",
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: "#ef4444",
-              secondary: "#fff",
-            },
-          },
-        }}
-      />
+      <ThemeAwareToaster />
 
       <Routes>
         {/* Public routes */}
@@ -97,6 +109,7 @@ export default function App() {
         />
         <Route path="/auction" element={<Auction />} />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

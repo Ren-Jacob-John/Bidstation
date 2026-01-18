@@ -12,8 +12,9 @@ export default function Home() {
     <div className="home">
       <Navbar />
 
-      {/* ===== Hero Section ===== */}
-      <header className="header">
+      <main className="main-content">
+        {/* ===== Hero Section ===== */}
+        <header className="header">
         <div className="header-container">
           <div className="header-content">
             <h1 className="header-title">
@@ -66,6 +67,7 @@ export default function Home() {
           />
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

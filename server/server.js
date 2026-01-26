@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 
-import authRoutes from "./routes/authRoutes.js";
 import protectedRoutes from "./routes/protectedRoutes.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
@@ -14,7 +13,6 @@ const port = 3000;
 app.use(express.json());
 app.use(cors());
 
-app.use("/api/auth", authRoutes);
 app.use("/api", protectedRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

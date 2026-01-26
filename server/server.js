@@ -1,6 +1,6 @@
-import express from 'express';
-import cors from 'cors';
-import 'dotenv/config';
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
 
 const app = express();
 const port = 3000;
@@ -9,9 +9,11 @@ const port = 3000;
 app.use(express.json());
 app.use(cors());
 
-// API Routes
-app.get('/', (req, res) => res.send('Server is Live!'));
+// API route
+app.get("/api/hello", (req, res) => {
+  res.json("Server is Live!");
+});
 
-app.listen(port, () => 
-  console.log(`Server listening at http://localhost:${port}`)
-);
+app.listen(port, () => {
+  console.log(`Server listening at http://localhost:${port}`);
+});

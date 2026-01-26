@@ -2,16 +2,20 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 
+import authRoutes from "./routes/authRoutes.js";
+import protectedRoutes from "./routes/protectedRoutes.js";
+
 const app = express();
 const port = 3000;
 
-// Middleware
 app.use(express.json());
 app.use(cors());
 
-// API route
+app.use("/api/auth", authRoutes);
+app.use("/api", protectedRoutes);
+
 app.get("/api/hello", (req, res) => {
-  res.json("Server is Live!");
+  res.json({ message: "Server is Live!" });
 });
 
 app.listen(port, () => {

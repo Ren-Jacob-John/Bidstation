@@ -1,0 +1,713 @@
+.live-auction-page {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Loading ===== */
+.loading-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-spinner {
+  font-size: 1.5rem;
+  color: #f87171;
+}
+
+/* ===== Container ===== */
+.live-auction-container {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ===== Header ===== */
+.auction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #111827;
+  border-radius: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.auction-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f87171;
+  margin: 0;
+}
+
+.auction-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stat-value.sold {
+  color: #10b981;
+}
+
+.stat-value.unsold {
+  color: #ef4444;
+}
+
+/* ===== Main Layout ===== */
+.auction-main {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 1.5rem;
+}
+
+/* ===== Current Player Panel ===== */
+.current-player-panel {
+  background-color: #111827;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ===== Waiting State ===== */
+.waiting-state,
+.completed-state {
+  text-align: center;
+  padding: 3rem;
+}
+
+.waiting-state h2,
+.completed-state h2 {
+  font-size: 2rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+}
+
+.waiting-state p,
+.completed-state p {
+  color: #9ca3af;
+  margin-bottom: 2rem;
+}
+
+.start-btn,
+.new-auction-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.start-btn:hover,
+.new-auction-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+}
+
+.final-stats {
+  margin-bottom: 2rem;
+}
+
+.final-stats p {
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+}
+
+/* ===== Player Card ===== */
+.player-card {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  position: relative;
+}
+
+.player-status-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1.5rem;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.player-status-badge.bidding {
+  background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+  color: #fff;
+  animation: pulse 1.5s infinite;
+}
+
+.player-status-badge.sold {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  color: #fff;
+}
+
+.player-status-badge.unsold {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+  color: #fff;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+
+.player-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #f87171;
+  margin: 2rem 0 1rem;
+}
+
+.player-image-placeholder {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  font-weight: 700;
+  color: #f87171;
+  margin: 2rem auto 1rem;
+  border: 4px solid #f87171;
+}
+
+.player-card .player-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.player-meta {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.player-card .player-position {
+  background-color: #10b981;
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.player-card .player-team {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.player-stats {
+  color: #fbbf24;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== Bid Info ===== */
+.bid-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.bid-info > div {
+  background-color: #1f2937;
+  padding: 1rem;
+  border-radius: 0.75rem;
+}
+
+.bid-info .label {
+  display: block;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.bid-info .value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bid-info .value.highlight {
+  color: #fbbf24;
+  font-size: 1.5rem;
+}
+
+.highest-bidder {
+  grid-column: span 2;
+}
+
+/* ===== Timer ===== */
+.timer {
+  background-color: #1f2937;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.timer-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.timer-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #10b981;
+  font-family: monospace;
+}
+
+.timer.timer-warning .timer-value {
+  color: #fbbf24;
+}
+
+.timer.timer-critical .timer-value {
+  color: #ef4444;
+  animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== Bidding Controls ===== */
+.bidding-controls {
+  width: 100%;
+}
+
+.quick-bids {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.quick-bids button {
+  padding: 0.5rem 1rem;
+  background-color: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quick-bids button:hover {
+  background-color: #4b5563;
+}
+
+.custom-bid {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.custom-bid input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background-color: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.custom-bid input:focus {
+  outline: none;
+  border-color: #f87171;
+}
+
+.place-bid-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #dc2626 0%, #f87171 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.place-bid-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+}
+
+.place-bid-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.max-players-warning {
+  color: #fbbf24;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.login-prompt {
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.next-player-btn {
+  margin-top: 1.5rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.next-player-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+}
+
+/* ===== Status Message ===== */
+.status-message {
+  margin-top: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.status-message.bidding {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid #3b82f6;
+}
+
+.status-message.sold {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid #10b981;
+}
+
+.status-message.unsold {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid #ef4444;
+}
+
+/* ===== Side Panel ===== */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ===== Budget Card ===== */
+.budget-card {
+  background-color: #111827;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.budget-card h3 {
+  font-size: 1rem;
+  color: #fbbf24;
+  margin-bottom: 0.75rem;
+}
+
+.budget-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 0.75rem;
+}
+
+.budget-bar {
+  height: 8px;
+  background-color: #374151;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.budget-info {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* ===== My Team Card ===== */
+.my-team-card {
+  background-color: #111827;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  flex: 1;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.my-team-card h3 {
+  font-size: 1rem;
+  color: #60a5fa;
+  margin-bottom: 0.75rem;
+}
+
+.empty-team {
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.team-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+}
+
+.team-player-number {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #374151;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.team-player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-player-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.team-player-position {
+  font-size: 0.75rem;
+  color: #10b981;
+}
+
+.team-player-price {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+/* ===== Sold Players Card ===== */
+.sold-players-card {
+  background-color: #111827;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.sold-players-card h3 {
+  font-size: 1rem;
+  color: #10b981;
+  margin-bottom: 0.75rem;
+}
+
+.sold-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sold-player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.sold-player-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.sold-player-buyer {
+  flex: 1;
+  color: #9ca3af;
+}
+
+.sold-player-price {
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* ===== Scrollbar ===== */
+.my-team-card::-webkit-scrollbar,
+.sold-players-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.my-team-card::-webkit-scrollbar-track,
+.sold-players-card::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+.my-team-card::-webkit-scrollbar-thumb,
+.sold-players-card::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .auction-main {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .budget-card,
+  .my-team-card,
+  .sold-players-card {
+    flex: 1;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .live-auction-container {
+    padding: 1rem;
+  }
+
+  .auction-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .auction-name {
+    font-size: 1.5rem;
+  }
+
+  .player-image,
+  .player-image-placeholder {
+    width: 140px;
+    height: 140px;
+    font-size: 3rem;
+  }
+
+  .player-card .player-name {
+    font-size: 1.5rem;
+  }
+
+  .bid-info {
+    grid-template-columns: 1fr;
+  }
+
+  .highest-bidder {
+    grid-column: span 1;
+  }
+
+  .custom-bid {
+    flex-direction: column;
+  }
+
+  .quick-bids {
+    flex-wrap: wrap;
+  }
+
+  .side-panel {
+    flex-direction: column;
+  }
+
+  .budget-card,
+  .my-team-card,
+  .sold-players-card {
+    min-width: 100%;
+  }
+}

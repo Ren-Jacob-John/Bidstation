@@ -137,6 +137,19 @@ function UserDashboard({ stats }) {
           </div>
         </div>
 
+        <div className="action-card sports-auction-card">
+          <h3>🏆 Sports Player Auction</h3>
+          <p className="action-description">Create and manage live sports player auctions with random player selection</p>
+          <div className="action-buttons">
+            <Link to="/sports-auction/setup" className="action-btn sports-btn">
+              Create Sports Auction
+            </Link>
+            <Link to="/sports-auction/live" className="action-btn secondary">
+              Join Live Auction
+            </Link>
+          </div>
+        </div>
+
         <div className="stats-summary">
           <h3>Your Statistics</h3>
           <div className="stats-list">

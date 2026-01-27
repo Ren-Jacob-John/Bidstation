@@ -15,6 +15,8 @@ import ResetPassword from "./pages/ResetPassword";
 import JoinAuction from "./pages/JoinAuction";
 import CreateAuction from "./pages/CreateAuction";
 import Auction from "./pages/Auction";
+import SportsAuctionSetup from "./pages/SportsAuctionSetup";
+import LiveSportsAuction from "./pages/LiveSportsAuction";
 
 // Theme-aware Toaster component
 const ThemeAwareToaster = () => {
@@ -108,6 +110,17 @@ export default function App() {
           }
         />
         <Route path="/auction" element={<Auction />} />
+        
+        {/* Sports Auction Routes */}
+        <Route
+          path="/sports-auction/setup"
+          element={
+            <ProtectedRoute>
+              <SportsAuctionSetup />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/sports-auction/live" element={<LiveSportsAuction />} />
       </Routes>
       </AuthProvider>
     </ThemeProvider>

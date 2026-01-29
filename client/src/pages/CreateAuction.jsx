@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import "./CreateAuction.css";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 
 export default function CreateAuction() {
   const navigate = useNavigate();
@@ -98,24 +99,13 @@ export default function CreateAuction() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/auctions", {
+      const data = await api("/auctions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify(formData)
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create auction");
-      }
-
       toast.success("Auction created successfully!");
-      navigate(`/auction/${data.slug}`);
+      navigate(`/auction/${data.auctionId}`);
     } catch (error) {
       toast.error(error.message);
       setErrors({ submit: error.message });

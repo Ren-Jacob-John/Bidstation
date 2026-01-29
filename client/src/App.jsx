@@ -17,6 +17,7 @@ import CreateAuction from "./pages/CreateAuction";
 import Auction from "./pages/Auction";
 import SportsAuctionSetup from "./pages/SportsAuctionSetup";
 import LiveSportsAuction from "./pages/LiveSportsAuction";
+import CreateSportsAuction from "./pages/CreateSportsAuction";
 import BidWinning from "./pages/BidWinning";
 
 // Theme-aware Toaster component
@@ -118,6 +119,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <SportsAuctionSetup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sports-auction/create"
+          element={
+            <ProtectedRoute>
+              <CreateSportsAuction />
             </ProtectedRoute>
           }
         />

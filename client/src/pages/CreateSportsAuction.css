@@ -1,0 +1,119 @@
+.create-sports-auction-page {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Center Container ===== */
+.create-sports-auction-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+}
+
+/* ===== Card ===== */
+.create-sports-auction-card {
+  max-width: 600px;
+  width: 100%;
+  background-color: var(--card-bg);
+  padding: 2.5rem;
+  border-radius: 1.2rem;
+  box-shadow: 0 20px 45px var(--shadow);
+}
+
+/* ===== Title ===== */
+.create-sports-auction-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* ===== Form ===== */
+.create-sports-auction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ===== Input Groups ===== */
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-label {
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.create-sports-auction-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--input-bg);
+  border-radius: 0.5rem;
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-sports-auction-input:focus {
+  outline: none;
+  border-color: #facc15; /* yellow-400 */
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
+}
+
+.create-sports-auction-input::placeholder {
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+/* ===== Button ===== */
+.create-sports-auction-btn {
+  padding: 0.875rem 2rem;
+  background-color: #facc15; /* yellow-400 */
+  color: #000000;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  margin-top: 1rem;
+}
+
+.create-sports-auction-btn:hover {
+  background-color: #eab308; /* yellow-500 */
+  transform: translateY(-0.125rem);
+}
+
+.create-sports-auction-btn:active {
+  transform: translateY(0);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 640px) {
+  .create-sports-auction-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .create-sports-auction-title {
+    font-size: 1.75rem;
+  }
+
+  .create-sports-auction-input {
+    padding: 0.625rem 0.875rem;
+  }
+
+  .create-sports-auction-btn {
+    padding: 0.75rem 1.5rem;
+  }
+}

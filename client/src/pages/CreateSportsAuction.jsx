@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import api from "../services/api";
+import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";

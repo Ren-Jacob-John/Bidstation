@@ -1,0 +1,1390 @@
+/* ===== Bid Winning Page Layout ===== */
+.bid-winning-page {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.bid-winning-container {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== Back Button ===== */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.back-button:hover {
+  color: #ef4444;
+}
+
+/* ===== Loading & Error States ===== */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.loading-spinner-large {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #374151;
+  border-top-color: #ef4444;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-state svg {
+  color: #ef4444;
+}
+
+.error-state h2 {
+  color: #ef4444;
+  margin: 0;
+}
+
+.error-state p {
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ===== Winner Announcement Section ===== */
+.winner-announcement {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #1f2937 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 1.5rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 20px 40px rgba(251, 191, 36, 0.15);
+}
+
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fbbf24;
+  animation: confetti-fall 3s ease-in-out infinite;
+}
+
+.confetti:nth-child(1) {
+  left: 10%;
+  animation-delay: 0s;
+  background: #ef4444;
+}
+
+.confetti:nth-child(2) {
+  left: 30%;
+  animation-delay: 0.5s;
+  background: #10b981;
+}
+
+.confetti:nth-child(3) {
+  left: 50%;
+  animation-delay: 1s;
+  background: #3b82f6;
+}
+
+.confetti:nth-child(4) {
+  left: 70%;
+  animation-delay: 1.5s;
+  background: #fbbf24;
+}
+
+.confetti:nth-child(5) {
+  left: 90%;
+  animation-delay: 2s;
+  background: #8b5cf6;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(500%) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.winner-content {
+  position: relative;
+  z-index: 1;
+}
+
+.trophy-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.trophy-icon svg {
+  color: #1f2937;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.8);
+  }
+}
+
+.winner-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fbbf24;
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+}
+
+.winner-subtitle {
+  font-size: 1.2rem;
+  color: #d1d5db;
+  margin: 0 0 2rem;
+}
+
+.winner-subtitle strong {
+  color: #fff;
+}
+
+.winning-bid-display {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px solid #10b981;
+  border-radius: 1rem;
+  padding: 1.5rem 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.winning-label {
+  font-size: 0.9rem;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+}
+
+.winning-amount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.winner-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.share-win-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-win-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+}
+
+/* ===== Main Grid Layout ===== */
+.bid-winning-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
+}
+
+.bid-winning-left,
+.bid-winning-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ===== Card Section Base ===== */
+.card-section {
+  background-color: #111827;
+  border-radius: 1.2rem;
+  padding: 1.5rem;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ef4444;
+  margin: 0 0 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #374151;
+}
+
+.section-title svg {
+  color: #ef4444;
+}
+
+/* ===== Auction Item Details ===== */
+.item-content {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+}
+
+.item-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.main-image {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #1f2937;
+}
+
+.main-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  background: #1f2937;
+  transition: border-color 0.2s ease;
+}
+
+.thumbnail.active,
+.thumbnail:hover {
+  border-color: #ef4444;
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.item-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.meta-item svg {
+  color: #6b7280;
+}
+
+.item-description {
+  color: #d1d5db;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.price-breakdown {
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+.price-row.highlight {
+  border-top: 1px solid #374151;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.winning-price {
+  color: #10b981;
+  font-size: 1.1rem;
+}
+
+.seller-info {
+  margin-top: 1rem;
+}
+
+.seller-info h4 {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.seller-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #1f2937;
+  padding: 1rem;
+  border-radius: 0.75rem;
+}
+
+.seller-avatar {
+  width: 48px;
+  height: 48px;
+  background: #374151;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.seller-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.seller-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.verified-badge {
+  color: #3b82f6;
+}
+
+.seller-stats {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* ===== Bid History Chart ===== */
+.chart-container {
+  display: flex;
+  gap: 1rem;
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #6b7280;
+  padding: 0.5rem 0;
+  min-width: 80px;
+  text-align: right;
+}
+
+.chart-area {
+  flex: 1;
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  position: relative;
+}
+
+.chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.grid-line {
+  stroke: #374151;
+  stroke-width: 0.5;
+  stroke-dasharray: 4 4;
+}
+
+.chart-area-fill {
+  fill: rgba(239, 68, 68, 0.1);
+}
+
+.chart-line {
+  fill: none;
+  stroke: #ef4444;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-point {
+  fill: #6b7280;
+  stroke: #1f2937;
+  stroke-width: 1;
+}
+
+.chart-point.your-bid {
+  fill: #10b981;
+}
+
+.chart-point.auto-bid {
+  fill: #fbbf24;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-dot.your-bid {
+  background: #10b981;
+}
+
+.legend-dot.auto-bid {
+  background: #fbbf24;
+}
+
+.legend-dot.other-bid {
+  background: #6b7280;
+}
+
+.chart-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.stat-box {
+  background: #1f2937;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+.stat-box .stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+.stat-box .stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ===== Bid History Table ===== */
+.table-container {
+  overflow-x: auto;
+  margin: 0 -1.5rem;
+  padding: 0 1.5rem;
+}
+
+.bid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.bid-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.bid-table th:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+.bid-table th:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.bid-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #1f2937;
+  color: #d1d5db;
+}
+
+.bid-table tr:last-child td {
+  border-bottom: none;
+}
+
+.bid-table tr.winning-row {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.bid-table tr.your-row td {
+  color: #fff;
+}
+
+.bidder-cell {
+  font-weight: 500;
+}
+
+.bidder-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.winner-icon {
+  color: #fbbf24;
+}
+
+.amount-cell .winning-amount {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.time-cell {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.type-cell .bid-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.bid-type.auto {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.bid-type.manual {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+}
+
+.show-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.show-more-btn:hover {
+  background: #374151;
+  color: #fff;
+}
+
+/* ===== Auto-Bid Summary ===== */
+.auto-bid-disabled {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.auto-bid-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auto-bid-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #1f2937;
+  border-radius: 0.75rem;
+}
+
+.auto-bid-stat.highlight {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.stat-icon.info {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.stat-icon.warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-content .stat-label {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.stat-content .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.stat-content .stat-value.saved {
+  color: #10b981;
+}
+
+.auto-bid-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 0.75rem;
+}
+
+.auto-bid-message p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #d1d5db;
+  line-height: 1.5;
+}
+
+.auto-bid-message strong {
+  color: #10b981;
+}
+
+/* ===== Payment & Invoice ===== */
+.payment-status-badge {
+  margin-bottom: 1.5rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.status-badge.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.status-badge.warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.invoice-breakdown {
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.invoice-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.invoice-row.total {
+  border-top: 2px solid #374151;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+}
+
+.btn-secondary {
+  background: #374151;
+  color: #fff;
+  border: 1px solid #4b5563;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+  transform: translateY(-2px);
+}
+
+.payment-security {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  padding: 0.75rem;
+  background: #1f2937;
+  border-radius: 0.5rem;
+}
+
+.payment-security svg {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+/* ===== Order & Delivery Status ===== */
+.status-timeline {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.timeline-step.completed .step-icon {
+  background: #10b981;
+  color: #fff;
+}
+
+.timeline-step.current .step-icon {
+  background: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+}
+
+.step-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.timeline-step.completed .step-label,
+.timeline-step.current .step-label {
+  color: #d1d5db;
+}
+
+.step-connector {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #374151;
+  z-index: 0;
+}
+
+.timeline-step.completed .step-connector {
+  background: #10b981;
+}
+
+.shipping-details {
+  background: #1f2937;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.shipping-details h4 {
+  font-size: 0.9rem;
+  color: #9ca3af;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shipping-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.shipping-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.info-value {
+  font-size: 0.95rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+.info-value.tracking {
+  font-family: monospace;
+  color: #60a5fa;
+}
+
+.track-package-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.track-package-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+  color: #fff;
+}
+
+/* ===== Action Buttons Section ===== */
+.action-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+}
+
+.action-btn.contact {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.action-btn.contact:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.action-btn.share {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.action-btn.share:hover {
+  background: rgba(139, 92, 246, 0.25);
+}
+
+.action-btn.dashboard {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.action-btn.dashboard:hover {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.action-btn.browse {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.action-btn.browse:hover {
+  background: rgba(251, 191, 36, 0.25);
+}
+
+.support-info {
+  text-align: center;
+  padding: 1rem;
+  background: #1f2937;
+  border-radius: 0.75rem;
+}
+
+.support-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.support-info a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.support-info a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Light Theme Overrides ===== */
+[data-theme="light"] .bid-winning-page {
+  background-color: #f9fafb;
+}
+
+[data-theme="light"] .card-section {
+  background-color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .winner-announcement {
+  background: linear-gradient(135deg, #fff 0%, #f3f4f6 50%, #fff 100%);
+}
+
+[data-theme="light"] .winner-title {
+  color: #d97706;
+}
+
+[data-theme="light"] .winner-subtitle {
+  color: #4b5563;
+}
+
+[data-theme="light"] .winner-subtitle strong {
+  color: #111827;
+}
+
+[data-theme="light"] .item-title,
+[data-theme="light"] .stat-content .stat-value,
+[data-theme="light"] .info-value,
+[data-theme="light"] .invoice-row.total {
+  color: #111827;
+}
+
+[data-theme="light"] .item-description,
+[data-theme="light"] .auto-bid-message p {
+  color: #4b5563;
+}
+
+[data-theme="light"] .price-breakdown,
+[data-theme="light"] .seller-card,
+[data-theme="light"] .chart-area,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .auto-bid-stat,
+[data-theme="light"] .invoice-breakdown,
+[data-theme="light"] .shipping-details,
+[data-theme="light"] .support-info,
+[data-theme="light"] .payment-security {
+  background: #f3f4f6;
+}
+
+[data-theme="light"] .bid-table th {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+[data-theme="light"] .bid-table td {
+  color: #374151;
+  border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .bid-table tr.your-row td {
+  color: #111827;
+}
+
+[data-theme="light"] .show-more-btn {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .show-more-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+[data-theme="light"] .btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+[data-theme="light"] .btn-secondary:hover {
+  background: #d1d5db;
+}
+
+[data-theme="light"] .seller-name {
+  color: #111827;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .bid-winning-grid {
+    grid-template-columns: 1fr 350px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .bid-winning-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bid-winning-right {
+    order: -1;
+  }
+
+  .item-content {
+    grid-template-columns: 250px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .bid-winning-container {
+    padding: 1rem;
+  }
+
+  .winner-announcement {
+    padding: 2rem 1rem;
+  }
+
+  .winner-title {
+    font-size: 1.75rem;
+  }
+
+  .winning-amount {
+    font-size: 2rem;
+  }
+
+  .winning-bid-display {
+    padding: 1rem 2rem;
+  }
+
+  .item-content {
+    grid-template-columns: 1fr;
+  }
+
+  .item-gallery {
+    max-width: 100%;
+  }
+
+  .main-image {
+    max-height: 300px;
+  }
+
+  .chart-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .shipping-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-timeline {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .timeline-step {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .step-connector {
+    display: none;
+  }
+
+  .bid-table {
+    font-size: 0.8rem;
+  }
+
+  .bid-table th,
+  .bid-table td {
+    padding: 0.5rem;
+  }
+
+  .time-cell {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .winner-title {
+    font-size: 1.5rem;
+  }
+
+  .winning-amount {
+    font-size: 1.75rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  .winner-badges {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .chart-y-axis {
+    display: none;
+  }
+
+  .chart-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .bid-winning-page {
+    background: #fff;
+    color: #000;
+  }
+
+  .back-button,
+  .share-win-btn,
+  .action-buttons-section,
+  .confetti-container {
+    display: none;
+  }
+
+  .card-section {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    break-inside: avoid;
+  }
+
+  .winner-announcement {
+    border-color: #d97706;
+    background: #fff;
+  }
+}

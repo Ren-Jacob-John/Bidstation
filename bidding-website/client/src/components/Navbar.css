@@ -1,0 +1,68 @@
+.navbar {
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 4px var(--shadow);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-brand h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+  background-color: var(--input-bg);
+}
+
+.nav-user {
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.theme-toggle:hover {
+  background-color: var(--input-bg);
+}
+
+@media (max-width: 768px) {
+  .navbar-links {
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .nav-user {
+    display: none;
+  }
+}

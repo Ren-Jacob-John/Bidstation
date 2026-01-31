@@ -21,15 +21,22 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      console.log('Fetching dashboard data...');
       const auctionsData = await auctionService.getAllAuctions();
-      setAuctions(auctionsData);
+      console.log('Raw response from API:', auctionsData);
+      console.log('Type of auctionsData:', typeof auctionsData, Array.isArray(auctionsData) ? '(array)' : '');
+      
+      // Handle case where API returns array directly instead of {auctions: array}
+      const auctions = Array.isArray(auctionsData) ? auctionsData : (auctionsData?.auctions || []);
+      console.log('Processed auctions:', auctions);
+      setAuctions(auctions);
       
       // Calculate stats
-      const myAuctions = auctionsData.filter(a => a.creator_id === user.id);
-      const liveAuctions = auctionsData.filter(a => a.status === 'live');
+      const myAuctions = auctions.filter(a => a.creator_id === user?.id);
+      const liveAuctions = auctions.filter(a => a.status === 'live');
       
       setStats({
-        totalAuctions: auctionsData.length,
+        totalAuctions: auctions.length,
         liveAuctions: liveAuctions.length,
         myAuctions: myAuctions.length,
         myBids: 0 // TODO: Fetch from API

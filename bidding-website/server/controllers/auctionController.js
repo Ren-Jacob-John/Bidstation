@@ -3,13 +3,43 @@ const db = require('../config/db');
 // Create auction
 exports.createAuction = async (req, res) => {
   try {
+    console.log('Create auction received body:', JSON.stringify(req.body, null, 2));
     const { title, description, auctionType, sportType, startTime, endTime, teams } = req.body;
-    const creatorId = req.user.id;
-
+    console.log('Parsed values:', { title, description, auctionType, sportType, startTime, endTime, teams });
+    
+    const creatorId = req.user?.id || null;
+    
+    // Validate and convert ALL values to ensure no undefined
+    const safeTitle = title === undefined ? null : title;
+    const safeDescription = description === undefined ? null : description;
+    const safeAuctionType = auctionType === undefined ? null : auctionType;
+    const safeSportType = sportType === undefined ? null : sportType;
+    const safeStartTime = startTime === undefined ? null : startTime;
+    const safeEndTime = endTime === undefined ? null : endTime;
+    const safeTeams = teams === undefined ? null : JSON.stringify(teams);
+    const safeCreatorId = creatorId === undefined ? null : creatorId;
+    
+    console.log('Safe parameters:', { 
+      safeTitle, 
+      safeDescription, 
+      safeAuctionType, 
+      safeSportType, 
+      safeStartTime, 
+      safeEndTime, 
+      safeTeams,
+      safeCreatorId
+    });
+    
+    // Additional validation
+    if (safeCreatorId === null) {
+      console.error('ERROR: creatorId is null/undefined - auth middleware issue');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
     const [result] = await db.execute(
       `INSERT INTO auctions (title, description, auction_type, sport_type, start_time, end_time, creator_id, teams, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [title, description, auctionType, sportType || null, startTime, endTime, creatorId, JSON.stringify(teams || [])]
+      [safeTitle, safeDescription, safeAuctionType, safeSportType, safeStartTime, safeEndTime, safeCreatorId, safeTeams]
     );
 
     res.status(201).json({

@@ -9,8 +9,13 @@ const Home = () => {
     <div className="home-page">
       {/* Hero Section */}
       <section className="hero">
+        <div className="hero-bg-decoration">
+          <div className="decoration-circle circle-1"></div>
+          <div className="decoration-circle circle-2"></div>
+          <div className="decoration-circle circle-3"></div>
+        </div>
         <div className="container">
-          <h1 className="hero-title">Welcome to BidStation</h1>
+          <h1 className="hero-title">Welcome to <span className="brand-name">BidStation</span></h1>
           <p className="hero-subtitle">
             The ultimate platform for sports player auctions and item bidding
           </p>

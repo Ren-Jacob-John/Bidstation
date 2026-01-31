@@ -8,7 +8,8 @@ export const auctionService = {
 
   async getAllAuctions() {
     const response = await api.get('/auction/all');
-    return response.data.auctions;
+    // Handle both array response and {auctions: array} format
+    return response.data.auctions || response.data;
   },
 
   async getAuctionById(id) {

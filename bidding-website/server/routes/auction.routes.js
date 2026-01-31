@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const auctionController = require('../controllers/auctionController');
-const { protect } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // All routes require authentication
-router.use(protect);
+router.use(authMiddleware);
 
 // Auction CRUD
 router.post('/create', auctionController.createAuction);

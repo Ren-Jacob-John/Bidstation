@@ -69,7 +69,7 @@ const LiveAuction = () => {
       return;
     }
 
-    if (auction.auction_type === 'ipl_player' && !selectedTeam) {
+    if (auction.auction_type === 'sports_player' && !selectedTeam) {
       setError('Please select a team');
       return;
     }
@@ -152,17 +152,17 @@ const LiveAuction = () => {
             {currentItem ? (
               <div className="current-item-card card">
                 <div className="item-badge">
-                  {auction.auction_type === 'ipl_player' ? '🏏 Player' : '🛍️ Item'}
+                  {auction.auction_type === 'sports_player' ? '⚽ Player' : '🛍️ Item'}
                 </div>
                 
                 <h2>{currentItem.name}</h2>
                 <p className="item-description">{currentItem.description}</p>
                 
-                {auction.auction_type === 'ipl_player' && currentItem.player_details && (
+                {auction.auction_type === 'sports_player' && currentItem.player_details && (
                   <div className="player-stats">
                     {JSON.parse(currentItem.player_details).role && (
                       <div className="stat-item">
-                        <span className="stat-label">Role:</span>
+                        <span className="stat-label">Position:</span>
                         <span className="stat-value">
                           {JSON.parse(currentItem.player_details).role}
                         </span>
@@ -192,9 +192,9 @@ const LiveAuction = () => {
                       </div>
                     )}
 
-                    {auction.auction_type === 'ipl_player' && (
+                    {auction.auction_type === 'sports_player' && (
                       <div className="form-group">
-                        <label>Select Team</label>
+                        <label>Select Team / Franchise</label>
                         <select
                           value={selectedTeam}
                           onChange={(e) => setSelectedTeam(e.target.value)}

@@ -3,13 +3,13 @@ const db = require('../config/db');
 // Create auction
 exports.createAuction = async (req, res) => {
   try {
-    const { title, description, auctionType, startTime, endTime, teams } = req.body;
+    const { title, description, auctionType, sportType, startTime, endTime, teams } = req.body;
     const creatorId = req.user.id;
 
     const [result] = await db.execute(
-      `INSERT INTO auctions (title, description, auction_type, start_time, end_time, creator_id, teams, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [title, description, auctionType, startTime, endTime, creatorId, JSON.stringify(teams || [])]
+      `INSERT INTO auctions (title, description, auction_type, sport_type, start_time, end_time, creator_id, teams, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [title, description, auctionType, sportType || null, startTime, endTime, creatorId, JSON.stringify(teams || [])]
     );
 
     res.status(201).json({

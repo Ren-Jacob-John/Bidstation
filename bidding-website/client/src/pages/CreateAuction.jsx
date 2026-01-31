@@ -8,7 +8,8 @@ const CreateAuction = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    auctionType: 'ipl_player',
+    auctionType: 'sports_player',
+    sportType: 'Cricket',
     startTime: '',
     endTime: '',
     teams: []
@@ -48,8 +49,8 @@ const CreateAuction = () => {
     setError('');
 
     // Validation
-    if (formData.auctionType === 'ipl_player' && formData.teams.length === 0) {
-      setError('Please add at least one team for IPL auction');
+    if (formData.auctionType === 'sports_player' && formData.teams.length === 0) {
+      setError('Please add at least one team for sports player auction');
       return;
     }
 
@@ -152,10 +153,33 @@ const CreateAuction = () => {
                     onChange={handleChange}
                     required
                   >
-                    <option value="ipl_player">🏏 IPL Player Auction</option>
+                    <option value="sports_player">⚽ Sports Player Auction</option>
                     <option value="item">🛍️ Item Auction</option>
                   </select>
                 </div>
+
+                {formData.auctionType === 'sports_player' && (
+                  <div className="form-group">
+                    <label htmlFor="sportType">Sport Type *</label>
+                    <select
+                      id="sportType"
+                      name="sportType"
+                      value={formData.sportType}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="Cricket">🏏 Cricket</option>
+                      <option value="Football">⚽ Football</option>
+                      <option value="Basketball">🏀 Basketball</option>
+                      <option value="Tennis">🎾 Tennis</option>
+                      <option value="Hockey">🏑 Hockey</option>
+                      <option value="Volleyball">🏐 Volleyball</option>
+                      <option value="Baseball">⚾ Baseball</option>
+                      <option value="Badminton">🏸 Badminton</option>
+                      <option value="Other">🏅 Other</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="form-actions">
                   <button type="button" onClick={nextStep} className="btn btn-primary">
@@ -196,9 +220,9 @@ const CreateAuction = () => {
                   </div>
                 </div>
 
-                {formData.auctionType === 'ipl_player' && (
+                {formData.auctionType === 'sports_player' && (
                   <div className="form-group">
-                    <label>Teams</label>
+                    <label>Teams / Franchises</label>
                     <div className="team-input-group">
                       <input
                         type="text"
@@ -261,9 +285,16 @@ const CreateAuction = () => {
                   <div className="review-item">
                     <span className="review-label">Type:</span>
                     <span className="review-value">
-                      {formData.auctionType === 'ipl_player' ? '🏏 IPL Player' : '🛍️ Item'} Auction
+                      {formData.auctionType === 'sports_player' ? '⚽ Sports Player' : '🛍️ Item'} Auction
                     </span>
                   </div>
+                  
+                  {formData.auctionType === 'sports_player' && (
+                    <div className="review-item">
+                      <span className="review-label">Sport:</span>
+                      <span className="review-value">{formData.sportType}</span>
+                    </div>
+                  )}
                   
                   <div className="review-item">
                     <span className="review-label">Start Time:</span>
@@ -279,7 +310,7 @@ const CreateAuction = () => {
                     </span>
                   </div>
                   
-                  {formData.auctionType === 'ipl_player' && formData.teams.length > 0 && (
+                  {formData.auctionType === 'sports_player' && formData.teams.length > 0 && (
                     <div className="review-item">
                       <span className="review-label">Teams:</span>
                       <span className="review-value">{formData.teams.join(', ')}</span>

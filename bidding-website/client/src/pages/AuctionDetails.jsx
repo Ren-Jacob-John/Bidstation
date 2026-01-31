@@ -191,7 +191,7 @@ const AuctionDetails = () => {
                   {auction.status}
                 </span>
                 <span className="badge badge-secondary">
-                  {auction.auction_type === 'ipl_player' ? '🏏 IPL Player' : '🛍️ Item'} Auction
+                  {auction.auction_type === 'sports_player' ? '⚽ Sports Player' : '🛍️ Item'} Auction
                 </span>
               </div>
             </div>
@@ -258,14 +258,14 @@ const AuctionDetails = () => {
           )}
         </div>
 
-        {/* Teams Section (for IPL auctions) */}
-        {auction.auction_type === 'ipl_player' && auction.teams && (
+        {/* Teams Section (for sports player auctions) */}
+        {auction.auction_type === 'sports_player' && auction.teams && (
           <div className="teams-section card">
-            <h2>Participating Teams</h2>
+            <h2>Participating Teams / Franchises</h2>
             <div className="teams-grid">
               {JSON.parse(auction.teams).map((team, index) => (
                 <div key={index} className="team-card">
-                  <span className="team-icon">🏏</span>
+                  <span className="team-icon">⚽</span>
                   <span className="team-name">{team}</span>
                 </div>
               ))}
@@ -277,7 +277,7 @@ const AuctionDetails = () => {
         {showAddItem && canManage && (
           <div className="add-item-section card">
             <div className="section-header">
-              <h2>Add New {auction.auction_type === 'ipl_player' ? 'Player' : 'Item'}</h2>
+              <h2>Add New {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}</h2>
               <button onClick={() => setShowAddItem(false)} className="btn">
                 Cancel
               </button>
@@ -347,23 +347,19 @@ const AuctionDetails = () => {
                 </div>
               </div>
 
-              {auction.auction_type === 'ipl_player' && (
+              {auction.auction_type === 'sports_player' && (
                 <>
                   <h3>Player Details</h3>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Role</label>
-                      <select
+                      <label>Position / Role</label>
+                      <input
+                        type="text"
                         name="player_role"
                         value={itemForm.playerDetails.role}
                         onChange={handleItemFormChange}
-                      >
-                        <option value="">Select role</option>
-                        <option value="Batsman">Batsman</option>
-                        <option value="Bowler">Bowler</option>
-                        <option value="All-Rounder">All-Rounder</option>
-                        <option value="Wicket-Keeper">Wicket-Keeper</option>
-                      </select>
+                        placeholder="e.g., Forward, Batsman, Point Guard"
+                      />
                     </div>
 
                     <div className="form-group">
@@ -392,7 +388,7 @@ const AuctionDetails = () => {
               )}
 
               <button type="submit" className="btn btn-success">
-                Add {auction.auction_type === 'ipl_player' ? 'Player' : 'Item'}
+                Add {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}
               </button>
             </form>
           </div>
@@ -401,15 +397,15 @@ const AuctionDetails = () => {
         {/* Items List */}
         <div className="items-section">
           <h2>
-            {auction.auction_type === 'ipl_player' ? 'Players' : 'Items'} ({items.length})
+            {auction.auction_type === 'sports_player' ? 'Players' : 'Items'} ({items.length})
           </h2>
 
           {items.length === 0 ? (
             <div className="empty-state card">
-              <p>No {auction.auction_type === 'ipl_player' ? 'players' : 'items'} added yet</p>
+              <p>No {auction.auction_type === 'sports_player' ? 'players' : 'items'} added yet</p>
               {canManage && auction.status === 'pending' && (
                 <button onClick={() => setShowAddItem(true)} className="btn btn-primary mt-2">
-                  Add First {auction.auction_type === 'ipl_player' ? 'Player' : 'Item'}
+                  Add First {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}
                 </button>
               )}
             </div>
@@ -426,11 +422,11 @@ const AuctionDetails = () => {
 
                   <p className="item-description">{item.description}</p>
 
-                  {auction.auction_type === 'ipl_player' && item.player_details && (
+                  {auction.auction_type === 'sports_player' && item.player_details && (
                     <div className="player-info">
                       {JSON.parse(item.player_details).role && (
                         <span className="player-stat">
-                          Role: {JSON.parse(item.player_details).role}
+                          Position: {JSON.parse(item.player_details).role}
                         </span>
                       )}
                       {JSON.parse(item.player_details).age && (

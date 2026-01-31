@@ -3,83 +3,92 @@ import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Home = () => {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="home-page">
-      <div className="container">
-        <section className="hero">
-          <h1>Welcome to BidStation</h1>
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="container">
+          <h1 className="hero-title">Welcome to BidStation</h1>
           <p className="hero-subtitle">
-            Your Ultimate Platform for IPL Player Bidding & Item Auctions
+            The ultimate platform for sports player auctions and item bidding
           </p>
-          
-          <div className="hero-features">
-            <div className="feature-card card">
-              <span className="feature-icon">🏏</span>
-              <h3>IPL Player Bidding</h3>
-              <p>Create and participate in exciting IPL-style player auctions</p>
-            </div>
-            
-            <div className="feature-card card">
-              <span className="feature-icon">🛍️</span>
-              <h3>Item Auctions</h3>
-              <p>Bid on various items in real-time competitive auctions</p>
-            </div>
-            
-            <div className="feature-card card">
-              <span className="feature-icon">⚡</span>
-              <h3>Real-time Bidding</h3>
-              <p>Experience live bidding with instant updates</p>
-            </div>
-          </div>
-
-          <div className="cta-buttons">
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard" className="btn btn-primary btn-large">
-                  Go to Dashboard
-                </Link>
-                <Link to="/auctions" className="btn btn-large">
-                  Browse Auctions
-                </Link>
-              </>
+          <div className="hero-actions">
+            {user ? (
+              <Link to="/dashboard" className="btn btn-primary btn-lg">
+                Go to Dashboard
+              </Link>
             ) : (
               <>
-                <Link to="/register" className="btn btn-primary btn-large">
+                <Link to="/register" className="btn btn-primary btn-lg">
                   Get Started
                 </Link>
-                <Link to="/login" className="btn btn-large">
+                <Link to="/login" className="btn btn-lg">
                   Login
                 </Link>
               </>
             )}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="how-it-works mt-4">
-          <h2 className="text-center mb-3">How It Works</h2>
-          <div className="steps grid grid-cols-3 gap-3">
-            <div className="step card">
-              <div className="step-number">1</div>
-              <h3>Create Account</h3>
-              <p>Sign up as a bidder or auctioneer</p>
+      {/* Features Section */}
+      <section className="features">
+        <div className="container">
+          <h2 className="section-title">Features</h2>
+          <div className="features-grid">
+            <div className="feature-card card">
+              <span className="feature-icon">⚽</span>
+              <h3>Sports Player Auctions</h3>
+              <p>Create player auctions for Cricket, Football, Basketball, Tennis, and more sports tournaments</p>
             </div>
             
-            <div className="step card">
-              <div className="step-number">2</div>
-              <h3>Join or Create Auction</h3>
-              <p>Browse existing auctions or create your own</p>
+            <div className="feature-card card">
+              <span className="feature-icon">🛍️</span>
+              <h3>Item Auctions</h3>
+              <p>Auction various items with competitive bidding and real-time updates</p>
             </div>
             
-            <div className="step card">
-              <div className="step-number">3</div>
-              <h3>Start Bidding</h3>
-              <p>Place bids and win players or items</p>
+            <div className="feature-card card">
+              <span className="feature-icon">🔴</span>
+              <h3>Live Bidding</h3>
+              <p>Experience real-time auctions with instant bid updates and notifications</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🏆</span>
+              <h3>Team Management</h3>
+              <p>Manage multiple teams or franchises and build your dream squad</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">📊</span>
+              <h3>Analytics</h3>
+              <p>Track your bidding history, spending, and auction performance</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🔒</span>
+              <h3>Secure Platform</h3>
+              <p>Role-based access control and secure transactions for all users</p>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="cta">
+        <div className="container">
+          <h2>Ready to start bidding?</h2>
+          <p>Join thousands of users in exciting sports player auctions</p>
+          {!user && (
+            <Link to="/register" className="btn btn-primary btn-lg">
+              Create Account
+            </Link>
+          )}
+        </div>
+      </section>
     </div>
   );
 };

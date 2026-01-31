@@ -146,7 +146,7 @@ const AuctionList = () => {
                     {auction.status}
                   </span>
                   <span className="auction-type">
-                    {auction.auction_type === 'ipl_player' ? '🏏 IPL' : '🛍️ Item'}
+                    {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                   </span>
                 </div>
 
@@ -166,7 +166,7 @@ const AuctionList = () => {
                     </div>
                   )}
                   
-                  {auction.auction_type === 'ipl_player' && auction.teams && (
+                  {auction.auction_type === 'sports_player' && auction.teams && (
                     <div className="info-row">
                       <span className="info-label">Teams</span>
                       <span className="info-value">

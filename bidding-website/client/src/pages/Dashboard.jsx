@@ -178,7 +178,7 @@ const Dashboard = () => {
                       {auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auction_type === 'ipl_player' ? '🏏 IPL' : '🛍️ Item'}
+                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                     </span>
                   </div>
                   

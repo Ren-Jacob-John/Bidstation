@@ -140,7 +140,7 @@ const CreateAuction = () => {
       
     } catch (err) {
       console.error('Error creating auction:', err);
-      setError(err.response?.data?.message || 'Failed to create auction. Please try again.');
+      setError(err.message || 'Failed to create auction. Please try again.');
     } finally {
       setLoading(false);
     }

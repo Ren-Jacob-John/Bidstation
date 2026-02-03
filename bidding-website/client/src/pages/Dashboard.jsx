@@ -21,25 +21,24 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      console.log('Fetching dashboard data...');
+      console.log('Fetching dashboard data from Firestore...');
       const auctionsData = await auctionService.getAllAuctions();
-      console.log('Raw response from API:', auctionsData);
-      console.log('Type of auctionsData:', typeof auctionsData, Array.isArray(auctionsData) ? '(array)' : '');
+      console.log('Raw response from Firestore:', auctionsData);
       
-      // Handle case where API returns array directly instead of {auctions: array}
-      const auctions = Array.isArray(auctionsData) ? auctionsData : (auctionsData?.auctions || []);
+      // Handle Firestore response (array directly)
+      const auctions = Array.isArray(auctionsData) ? auctionsData : [];
       console.log('Processed auctions:', auctions);
       setAuctions(auctions);
       
       // Calculate stats
-      const myAuctions = auctions.filter(a => a.creator_id === user?.id);
+      const myAuctions = auctions.filter(a => a.createdBy === user?.id);
       const liveAuctions = auctions.filter(a => a.status === 'live');
       
       setStats({
         totalAuctions: auctions.length,
         liveAuctions: liveAuctions.length,
         myAuctions: myAuctions.length,
-        myBids: 0 // TODO: Fetch from API
+        myBids: 0 // TODO: Fetch from Firestore bids collection
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -58,9 +57,11 @@ const Dashboard = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Not set';
+    // Handle Firestore timestamps
+    const date = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -185,7 +186,7 @@ const Dashboard = () => {
                       {auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.auctionType === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                     </span>
                   </div>
                   
@@ -195,11 +196,11 @@ const Dashboard = () => {
                   <div className="auction-meta">
                     <div className="meta-item">
                       <span className="meta-label">Created by</span>
-                      <span className="meta-value">{auction.creator_name}</span>
+                      <span className="meta-value">{auction.createdByName || 'Unknown'}</span>
                     </div>
                     <div className="meta-item">
                       <span className="meta-label">Start Time</span>
-                      <span className="meta-value">{formatDate(auction.start_time)}</span>
+                      <span className="meta-value">{formatDate(auction.startTime)}</span>
                     </div>
                   </div>
                 </Link>

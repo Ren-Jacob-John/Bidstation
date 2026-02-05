@@ -1,0 +1,61 @@
+// ---------------------------------------------------------------------------
+// firestore.rules
+//
+// Deploy with:   firebase deploy --only firestore:rules
+// ---------------------------------------------------------------------------
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/(default)/documents {
+
+    // -----------------------------------------------------------------
+    // users/{uid}
+    //   – anyone authenticated can READ their own doc
+    //   – only the owner can WRITE
+    // -----------------------------------------------------------------
+    match /users/{uid} {
+      allow read  : if request.auth != null && request.auth.uid == uid;
+      allow write : if request.auth != null && request.auth.uid == uid;
+    }
+
+    // -----------------------------------------------------------------
+    // auctions/{auctionId}
+    //   – any authenticated user can read
+    //   – only auctioneers can create / update their own auctions
+    // -----------------------------------------------------------------
+    match /auctions/{auctionId} {
+      allow read  : if request.auth != null;
+      allow create: if request.auth != null
+                     && request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null
+                     && resource.data.createdBy == request.auth.uid;
+      allow delete: if request.auth != null
+                     && resource.data.createdBy == request.auth.uid;
+    }
+
+    // -----------------------------------------------------------------
+    // auctions/{auctionId}/bids/{bidId}
+    //   – any authenticated user can read bids on any auction
+    //   – only the bidder themselves can create their own bid
+    // -----------------------------------------------------------------
+    match /auctions/{auctionId}/bids/{bidId} {
+      allow read  : if request.auth != null;
+      allow create: if request.auth != null
+                     && request.resource.data.bidderId == request.auth.uid;
+      allow update: if request.auth != null
+                     && resource.data.bidderId == request.auth.uid;
+      allow delete: if false;   // bids are immutable once placed
+    }
+
+    // -----------------------------------------------------------------
+    // players/{playerId}   –  master player catalogue
+    //   – readable by anyone (public browse)
+    //   – writable only by admins (you can tighten this later)
+    // -----------------------------------------------------------------
+    match /players/{playerId} {
+      allow read  : if true;
+      allow write : if request.auth != null;   // tighten to admin role if needed
+    }
+
+  }
+}

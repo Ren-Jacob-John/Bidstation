@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile, changePassword } from '../services/authService';
+import api from '../services/api';
 import './Profile.css';
 
 const Profile = () => {
@@ -44,13 +44,13 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await updateProfile({ username: formData.username });
+      await api.put('/auth/update-profile', formData);
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
       // Refresh user data
       window.location.reload();
     } catch (err) {
-      setError(err.message || 'Failed to update profile');
+      setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,10 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      await api.put('/auth/update-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
       setSuccess('Password updated successfully!');
       setPasswordData({
         currentPassword: '',
@@ -83,7 +86,7 @@ const Profile = () => {
       });
       setShowPasswordForm(false);
     } catch (err) {
-      setError(err.message || 'Failed to update password');
+      setError(err.response?.data?.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }

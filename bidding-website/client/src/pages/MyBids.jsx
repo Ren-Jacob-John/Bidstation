@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { auctionService } from '../services/auctionService';
+import api from '../services/api';
 import './MyBids.css';
 
 const MyBids = () => {
@@ -17,36 +17,31 @@ const MyBids = () => {
   });
 
   useEffect(() => {
-    if (user?.id) {
-      fetchMyBids();
-    }
-  }, [user?.id]);
+    fetchMyBids();
+  }, []);
 
   const fetchMyBids = async () => {
-    if (!user?.id) return;
-    
     try {
-      const bidsData = await auctionService.getUserBids(user.id);
+      const response = await api.get('/auction/my-bids');
+      const bidsData = response.data;
       setBids(bidsData);
 
       // Calculate stats
-      const winningBids = bidsData.filter(bid => bid.isWinning).length;
+      const winningBids = bidsData.filter(bid => bid.is_winning).length;
       const totalSpent = bidsData
-        .filter(bid => bid.itemStatus === 'sold' && bid.isWinning)
-        .reduce((sum, bid) => sum + parseFloat(bid.bidAmount || 0), 0);
-      
-      // Get unique auction IDs that are still live
-      const activeAuctionIds = new Set(
+        .filter(bid => bid.item_status === 'sold' && bid.is_winning)
+        .reduce((sum, bid) => sum + parseFloat(bid.bid_amount), 0);
+      const activeAuctions = new Set(
         bidsData
-          .filter(bid => bid.auctionStatus === 'live')
-          .map(bid => bid.auctionId)
-      );
+          .filter(bid => bid.auction_status === 'live')
+          .map(bid => bid.auction_id)
+      ).size;
 
       setStats({
         totalBids: bidsData.length,
         winningBids,
         totalSpent,
-        activeAuctions: activeAuctionIds.size
+        activeAuctions
       });
     } catch (error) {
       console.error('Error fetching bids:', error);
@@ -76,11 +71,11 @@ const MyBids = () => {
   const getFilteredBids = () => {
     switch (filter) {
       case 'winning':
-        return bids.filter(bid => bid.isWinning && bid.auctionStatus === 'live');
+        return bids.filter(bid => bid.is_winning && bid.auction_status === 'live');
       case 'lost':
-        return bids.filter(bid => !bid.isWinning && bid.auctionStatus === 'live');
+        return bids.filter(bid => !bid.is_winning && bid.auction_status === 'live');
       case 'won':
-        return bids.filter(bid => bid.isWinning && bid.itemStatus === 'sold');
+        return bids.filter(bid => bid.is_winning && bid.item_status === 'sold');
       default:
         return bids;
     }
@@ -191,20 +186,20 @@ const MyBids = () => {
               <div key={bid.id} className="bid-card card">
                 <div className="bid-header">
                   <div className="bid-title-section">
-                    <h3>{bid.itemName || 'Item'}</h3>
-                    <Link to={`/auction/${bid.auctionId}`} className="auction-link">
-                      {bid.auctionTitle || 'Auction'}
+                    <h3>{bid.item_name}</h3>
+                    <Link to={`/auction/${bid.auction_id}`} className="auction-link">
+                      {bid.auction_title}
                     </Link>
                   </div>
                   <div className="bid-badges">
-                    {bid.isWinning ? (
+                    {bid.is_winning ? (
                       <span className="badge badge-success">Winning</span>
-                    ) : bid.auctionStatus === 'completed' ? (
+                    ) : bid.auction_status === 'completed' ? (
                       <span className="badge badge-secondary">Lost</span>
                     ) : (
                       <span className="badge badge-warning">Outbid</span>
                     )}
-                    {bid.itemStatus === 'sold' && bid.isWinning && (
+                    {bid.item_status === 'sold' && bid.is_winning && (
                       <span className="badge badge-success">Won</span>
                     )}
                   </div>
@@ -214,44 +209,42 @@ const MyBids = () => {
                   <div className="detail-row">
                     <span className="detail-label">Your Bid:</span>
                     <span className="detail-value highlight">
-                      {formatCurrency(bid.bidAmount || 0)}
+                      {formatCurrency(bid.bid_amount)}
                     </span>
                   </div>
 
                   <div className="detail-row">
                     <span className="detail-label">Current Price:</span>
                     <span className="detail-value">
-                      {formatCurrency(bid.currentBid || 0)}
+                      {formatCurrency(bid.current_price)}
                     </span>
                   </div>
 
-                  {bid.teamName && (
+                  {bid.team_name && (
                     <div className="detail-row">
                       <span className="detail-label">Team:</span>
-                      <span className="detail-value">{bid.teamName}</span>
+                      <span className="detail-value">{bid.team_name}</span>
                     </div>
                   )}
 
                   <div className="detail-row">
                     <span className="detail-label">Bid Placed:</span>
-                    <span className="detail-value">
-                      {bid.createdAt ? formatDate(bid.createdAt.toDate()) : 'N/A'}
-                    </span>
+                    <span className="detail-value">{formatDate(bid.created_at)}</span>
                   </div>
                 </div>
 
                 <div className="bid-footer">
-                  {bid.auctionStatus === 'live' && (
+                  {bid.auction_status === 'live' && (
                     <Link 
-                      to={`/auction/${bid.auctionId}/live`} 
+                      to={`/auction/${bid.auction_id}/live`} 
                       className="btn btn-primary"
                     >
                       View Live Auction
                     </Link>
                   )}
-                  {bid.auctionStatus !== 'live' && (
+                  {bid.auction_status !== 'live' && (
                     <Link 
-                      to={`/auction/${bid.auctionId}`} 
+                      to={`/auction/${bid.auction_id}`} 
                       className="btn"
                     >
                       View Auction

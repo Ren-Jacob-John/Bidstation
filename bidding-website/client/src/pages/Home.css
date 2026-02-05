@@ -1,151 +1,88 @@
+/* ---------------------------------------------------------------------------
+   Home.css - Landing page styles
+   --------------------------------------------------------------------------- */
+
 .home-page {
-  min-height: calc(100vh - 80px);
-  padding: 0;
+  min-height: 100vh;
 }
 
 /* Hero Section */
-.hero {
-  position: relative;
-  text-align: center;
+.hero-section {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  overflow: hidden;
+  text-align: center;
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  opacity: 0.5;
-}
-
-.hero .container {
-  position: relative;
-  z-index: 1;
+.hero-content {
   max-width: 800px;
   margin: 0 auto;
 }
 
-/* Hero Decorative Elements */
-.hero-bg-decoration {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.decoration-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
-  animation: float 6s ease-in-out infinite;
-}
-
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -100px;
-  right: -50px;
-  animation-delay: 0s;
-}
-
-.circle-2 {
-  width: 200px;
-  height: 200px;
-  bottom: -50px;
-  left: -50px;
-  animation-delay: 2s;
-}
-
-.circle-3 {
-  width: 150px;
-  height: 150px;
-  top: 50%;
-  left: 10%;
-  animation-delay: 4s;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-20px) scale(1.05);
-  }
-}
-
 .hero-title {
   font-size: 3.5rem;
+  font-weight: 800;
   margin-bottom: 1.5rem;
-  animation: fadeInUp 0.8s ease-out;
-}
-
-.brand-name {
-  background: linear-gradient(135deg, #ef4444, #f59e0b, #fbbf24);
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.2;
 }
 
 .hero-subtitle {
-  font-size: 1.35rem;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 2.5rem;
-  line-height: 1.7;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
 }
 
-.hero-actions {
+.hero-buttons {
   display: flex;
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
-  animation: fadeInUp 0.8s ease-out 0.4s both;
 }
 
-.hero-actions .btn {
-  padding: 0.875rem 2.5rem;
-  font-size: 1.1rem;
-  border-radius: 50px;
+.btn-hero {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.3s;
 }
 
-.hero-actions .btn-primary {
+.btn-primary-hero {
   background: linear-gradient(135deg, #ef4444, #f59e0b);
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
-}
-
-.hero-actions .btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.5);
-}
-
-.hero-actions .btn:not(.btn-primary) {
-  background: rgba(255, 255, 255, 0.1);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
+  border: none;
 }
 
-.hero-actions .btn:not(.btn-primary):hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+.btn-primary-hero:hover {
   transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary-hero {
+  background: white;
+  color: #ef4444;
+  border: 2px solid #ef4444;
+}
+
+.btn-secondary-hero:hover {
+  background: #ef4444;
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
 }
 
 /* Features Section */
-.features {
+.features-section {
   padding: 5rem 2rem;
-  background: var(--bg-color);
+  background: white;
 }
 
-.features .container {
+.features-container {
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -153,166 +90,173 @@
 .section-title {
   text-align: center;
   font-size: 2.5rem;
+  font-weight: 700;
   margin-bottom: 3rem;
   color: var(--text-color);
-  position: relative;
-}
-
-.section-title::after {
-  content: '';
-  display: block;
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
-  margin: 1rem auto 0;
-  border-radius: 2px;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
 }
 
 .feature-card {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
   text-align: center;
-  padding: 2.5rem 2rem;
-  background: var(--card-bg);
-  border-radius: 16px;
-  border: 1px solid transparent;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transition: all 0.3s;
 }
 
 .feature-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.feature-card:hover::before {
-  transform: scaleX(1);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-color: #ef4444;
 }
 
 .feature-icon {
   font-size: 3rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
-  border-radius: 20px;
-  margin-bottom: 1.5rem;
-  transition: transform 0.3s ease;
+  margin-bottom: 1rem;
+  display: inline-block;
 }
 
-.feature-card:hover .feature-icon {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.feature-card h3 {
-  font-size: 1.35rem;
+.feature-title {
+  font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 1rem;
   color: var(--text-color);
 }
 
-.feature-card p {
-  color: var(--text-color);
-  opacity: 0.75;
-  line-height: 1.7;
+.feature-description {
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
-/* CTA Section */
-.cta {
+/* Sports Section */
+.sports-section {
   padding: 5rem 2rem;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(245, 158, 11, 0.05));
 }
 
-.cta::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 50%);
-  animation: pulse 4s ease-in-out infinite;
-}
-
-.cta .container {
-  position: relative;
-  z-index: 1;
-  max-width: 600px;
+.sports-container {
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.cta h2 {
-  font-size: 2.25rem;
-  color: white;
-  margin-bottom: 1rem;
-  animation: fadeInUp 0.8s ease-out;
+.sports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
 }
 
-.cta p {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 2rem;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+.sport-card {
+  background: white;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s;
+  cursor: pointer;
 }
 
-.cta .btn {
-  padding: 1rem 3rem;
-  font-size: 1.15rem;
-  border-radius: 50px;
+.sport-card:hover {
+  border-color: #ef4444;
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.2);
+}
+
+.sport-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.sport-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.875rem;
+}
+
+/* CTA Section */
+.cta-section {
+  padding: 5rem 2rem;
   background: linear-gradient(135deg, #ef4444, #f59e0b);
   color: white;
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
-  animation: fadeInUp 0.8s ease-out 0.4s both;
+  text-align: center;
 }
 
-.cta .btn:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.5);
+.cta-content {
+  max-width: 700px;
+  margin: 0 auto;
 }
 
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.cta-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
+.cta-subtitle {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.95;
+}
+
+.btn-cta {
+  background: white;
+  color: #ef4444;
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s;
+}
+
+.btn-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  background: #fef2f2;
+}
+
+/* Stats Section */
+.stats-section {
+  padding: 4rem 2rem;
+  background: white;
+}
+
+.stats-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  text-align: center;
+}
+
+.stat-card {
+  padding: 1.5rem;
+}
+
+.stat-number {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  font-weight: 500;
 }
 
 /* Responsive */
@@ -320,25 +264,51 @@
   .hero-title {
     font-size: 2.5rem;
   }
-  
+
   .hero-subtitle {
-    font-size: 1.1rem;
+    font-size: 1.125rem;
   }
-  
-  .hero-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-  
+
   .section-title {
     font-size: 2rem;
   }
-  
+
+  .cta-title {
+    font-size: 2rem;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-hero {
+    width: 100%;
+  }
+
   .features-grid {
     grid-template-columns: 1fr;
   }
-  
-  .cta h2 {
-    font-size: 1.75rem;
+
+  .sports-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 4rem 1rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .stat-number {
+    font-size: 2.5rem;
   }
 }

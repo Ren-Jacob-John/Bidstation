@@ -1,68 +1,204 @@
+/* =========================================================================
+   Navbar Styles
+   ========================================================================= */
+
 .navbar {
-  background-color: var(--card-bg);
-  box-shadow: 0 2px 4px var(--shadow);
-  padding: 1rem 0;
+  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
+  padding: 0;
 }
 
-.navbar-content {
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.navbar-brand h2 {
-  margin: 0;
+/* Logo */
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: white;
   font-size: 1.5rem;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  transition: transform 0.2s;
 }
 
-.navbar-links {
+.navbar-logo:hover {
+  transform: scale(1.05);
+}
+
+.logo-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+}
+
+/* Navigation Menu */
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* User Menu */
+.navbar-user {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.nav-link {
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
 }
 
-.nav-link:hover {
-  background-color: var(--input-bg);
+.user-icon {
+  font-size: 1.2rem;
 }
 
-.nav-user {
+.username {
   font-weight: 600;
-  padding: 0.5rem 1rem;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.theme-toggle {
-  background: none;
+.unverified-badge {
+  font-size: 0.9rem;
+  cursor: help;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
   border: none;
-  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  display: inline-block;
+  text-align: center;
 }
 
-.theme-toggle:hover {
-  background-color: var(--input-bg);
+.btn-primary {
+  background: white;
+  color: #ef4444;
+}
+
+.btn-primary:hover {
+  background: #f9fafb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.btn-outline:hover {
+  background: white;
+  color: #ef4444;
+}
+
+.btn-logout {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* =========================================================================
+   Responsive Design
+   ========================================================================= */
+
+@media (max-width: 968px) {
+  .navbar-container {
+    padding: 1rem;
+  }
+
+  .navbar-menu {
+    gap: 1rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .username {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
-  .navbar-links {
-    gap: 0.5rem;
-    font-size: 0.875rem;
+  .navbar-container {
+    flex-direction: column;
+    gap: 1rem;
   }
-  
-  .nav-user {
-    display: none;
+
+  .navbar-menu {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .logo-text {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-menu {
+    width: 100%;
+  }
+
+  .nav-link,
+  .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .navbar-user {
+    width: 100%;
+    justify-content: space-between;
   }
 }

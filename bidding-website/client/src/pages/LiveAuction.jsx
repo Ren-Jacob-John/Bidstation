@@ -31,14 +31,14 @@ const LiveAuction = () => {
   const fetchAuctionData = async () => {
     try {
       const auctionData = await auctionService.getAuctionById(id);
-      setAuction(auctionData.auction);
+      setAuction(auctionData);
       
       const itemsData = await auctionService.getAuctionItems(id);
       setItems(itemsData);
       
       if (itemsData.length > 0) {
         setCurrentItem(itemsData[0]);
-        setBidAmount(itemsData[0].currentBid || itemsData[0].basePrice || 0);
+        setBidAmount(itemsData[0].current_price || itemsData[0].base_price);
       }
     } catch (error) {
       console.error('Error fetching auction data:', error);
@@ -62,14 +62,14 @@ const LiveAuction = () => {
     setError('');
 
     const amount = parseFloat(bidAmount);
-    const currentPrice = currentItem.currentBid || currentItem.basePrice || 0;
+    const currentPrice = currentItem.current_price || currentItem.base_price;
 
     if (amount <= currentPrice) {
       setError('Bid must be higher than current price');
       return;
     }
 
-    if (auction.auctionType === 'sports_player' && !selectedTeam) {
+    if (auction.auction_type === 'sports_player' && !selectedTeam) {
       setError('Please select a team');
       return;
     }
@@ -77,9 +77,6 @@ const LiveAuction = () => {
     try {
       await auctionService.placeBid({
         itemId: currentItem.id,
-        auctionId: id,
-        bidderId: user?.id,
-        bidderName: user?.username || 'Anonymous',
         bidAmount: amount,
         teamName: selectedTeam || null
       });
@@ -92,13 +89,13 @@ const LiveAuction = () => {
       setBidAmount((amount + 100000).toString());
       setError('');
     } catch (err) {
-      setError(err.message || 'Failed to place bid');
+      setError(err.response?.data?.message || 'Failed to place bid');
     }
   };
 
   const selectItem = (item) => {
     setCurrentItem(item);
-    setBidAmount((item.currentBid || item.basePrice || 0).toString());
+    setBidAmount((item.current_price || item.base_price).toString());
     setError('');
   };
 
@@ -155,19 +152,19 @@ const LiveAuction = () => {
             {currentItem ? (
               <div className="current-item-card card">
                 <div className="item-badge">
-                  {auction.auctionType === 'sports_player' ? '⚽ Player' : '🛍️ Item'}
+                  {auction.auction_type === 'sports_player' ? '⚽ Player' : '🛍️ Item'}
                 </div>
                 
                 <h2>{currentItem.name}</h2>
                 <p className="item-description">{currentItem.description}</p>
                 
-                {auction.auctionType === 'sports_player' && currentItem.playerDetails && (
+                {auction.auction_type === 'sports_player' && currentItem.player_details && (
                   <div className="player-stats">
-                    {currentItem.playerDetails.role && (
+                    {JSON.parse(currentItem.player_details).role && (
                       <div className="stat-item">
                         <span className="stat-label">Position:</span>
                         <span className="stat-value">
-                          {currentItem.playerDetails.role}
+                          {JSON.parse(currentItem.player_details).role}
                         </span>
                       </div>
                     )}
@@ -177,12 +174,12 @@ const LiveAuction = () => {
                 <div className="price-section">
                   <div className="price-item">
                     <span className="price-label">Base Price</span>
-                    <span className="price-value">{formatCurrency(currentItem.basePrice || 0)}</span>
+                    <span className="price-value">{formatCurrency(currentItem.base_price)}</span>
                   </div>
                   <div className="price-item current">
                     <span className="price-label">Current Bid</span>
                     <span className="price-value highlight">
-                      {formatCurrency(currentItem.currentBid || currentItem.basePrice || 0)}
+                      {formatCurrency(currentItem.current_price || currentItem.base_price)}
                     </span>
                   </div>
                 </div>
@@ -195,7 +192,7 @@ const LiveAuction = () => {
                       </div>
                     )}
 
-                    {auction.auctionType === 'sports_player' && (
+                    {auction.auction_type === 'sports_player' && (
                       <div className="form-group">
                         <label>Select Team / Franchise</label>
                         <select
@@ -204,7 +201,7 @@ const LiveAuction = () => {
                           required
                         >
                           <option value="">Choose a team...</option>
-                          {(typeof auction.teams === 'string' ? JSON.parse(auction.teams || '[]') : (auction.teams || [])).map(team => (
+                          {JSON.parse(auction.teams || '[]').map(team => (
                             <option key={team} value={team}>{team}</option>
                           ))}
                         </select>
@@ -245,12 +242,12 @@ const LiveAuction = () => {
                   {bids.map((bid, index) => (
                     <div key={bid.id} className={`bid-item ${index === 0 ? 'highest' : ''}`}>
                       <div className="bid-info">
-                        <span className="bidder-name">{bid.bidderName || 'Anonymous'}</span>
-                        {bid.teamName && (
-                          <span className="team-name">{bid.teamName}</span>
+                        <span className="bidder-name">{bid.bidder_name}</span>
+                        {bid.team_name && (
+                          <span className="team-name">{bid.team_name}</span>
                         )}
                       </div>
-                      <span className="bid-amount">{formatCurrency(bid.bidAmount || 0)}</span>
+                      <span className="bid-amount">{formatCurrency(bid.bid_amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -271,7 +268,7 @@ const LiveAuction = () => {
                   >
                     <h4>{item.name}</h4>
                     <div className="item-price">
-                      {formatCurrency(item.currentBid || item.basePrice || 0)}
+                      {formatCurrency(item.current_price || item.base_price)}
                     </div>
                     <span className={`item-status ${item.status}`}>
                       {item.status}

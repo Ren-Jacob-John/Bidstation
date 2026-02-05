@@ -1,3 +1,10 @@
+// ---------------------------------------------------------------------------
+// client/src/firebase/firebase.config.js
+//
+// Replace every "YOUR_…" placeholder with the real values from:
+//   Firebase Console  →  Project Settings  →  General  →  Your apps  →  Web
+// ---------------------------------------------------------------------------
+
 import { initializeApp }  from 'firebase/app';
 import { getAuth }        from 'firebase/auth';
 import { getFirestore }   from 'firebase/firestore';
@@ -10,9 +17,9 @@ const firebaseConfig = {
   messagingSenderId: "505275679910",
   appId: "1:505275679910:web:7d93ec0cc738b074d12067",
   measurementId: "G-ZQBG3PSZEX"
-};
+}
 
-const app = initializeApp(firebaseConfig);
+const app       = initializeApp(firebaseConfig);
 const fireAuth  = getAuth(app);
 const firestore = getFirestore(app);
 

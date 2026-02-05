@@ -58,11 +58,9 @@ const AuctionList = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'Not set';
-    // Handle Firestore timestamps
-    const date = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -148,7 +146,7 @@ const AuctionList = () => {
                     {auction.status}
                   </span>
                   <span className="auction-type">
-                    {auction.auctionType === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                    {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                   </span>
                 </div>
 
@@ -158,21 +156,21 @@ const AuctionList = () => {
                 <div className="auction-info">
                   <div className="info-row">
                     <span className="info-label">Created by</span>
-                    <span className="info-value">{auction.createdByName || 'Unknown'}</span>
+                    <span className="info-value">{auction.creator_name}</span>
                   </div>
                   
-                  {auction.startTime && (
+                  {auction.start_time && (
                     <div className="info-row">
                       <span className="info-label">Starts</span>
-                      <span className="info-value">{formatDate(auction.startTime)}</span>
+                      <span className="info-value">{formatDate(auction.start_time)}</span>
                     </div>
                   )}
                   
-                  {auction.auctionType === 'sports_player' && auction.teams && (
+                  {auction.auction_type === 'sports_player' && auction.teams && (
                     <div className="info-row">
                       <span className="info-label">Teams</span>
                       <span className="info-value">
-                        {(typeof auction.teams === 'string' ? JSON.parse(auction.teams) : auction.teams).length} teams
+                        {JSON.parse(auction.teams || '[]').length} teams
                       </span>
                     </div>
                   )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { auctionService } from '../services/auctionService';
+import api from '../services/api';
 import './MyAuctions.css';
 
 const MyAuctions = () => {
@@ -17,16 +17,13 @@ const MyAuctions = () => {
   });
 
   useEffect(() => {
-    if (user?.id) {
-      fetchMyAuctions();
-    }
-  }, [user?.id]);
+    fetchMyAuctions();
+  }, []);
 
   const fetchMyAuctions = async () => {
-    if (!user?.id) return;
-    
     try {
-      const auctionsData = await auctionService.getUserAuctions(user.id);
+      const response = await api.get('/auction/my-auctions');
+      const auctionsData = response.data;
       setAuctions(auctionsData);
 
       // Calculate stats
@@ -35,7 +32,7 @@ const MyAuctions = () => {
       
       // Calculate total revenue from sold items
       const totalRevenue = auctionsData.reduce((sum, auction) => {
-        return sum + parseFloat(auction.totalRevenue || auction.lastBidAmount || 0);
+        return sum + parseFloat(auction.total_revenue || 0);
       }, 0);
 
       setStats({
@@ -72,11 +69,9 @@ const MyAuctions = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'Not set';
-    // Handle Firestore timestamps
-    const date = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -209,7 +204,7 @@ const MyAuctions = () => {
                       {auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auctionType === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                     </span>
                   </div>
                 </div>
@@ -220,17 +215,17 @@ const MyAuctions = () => {
                 <div className="auction-stats">
                   <div className="stat-item">
                     <span className="stat-label">Items</span>
-                    <span className="stat-value">{auction.itemCount || 0}</span>
+                    <span className="stat-value">{auction.item_count || 0}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">Bids</span>
-                    <span className="stat-value">{auction.bidCount || 0}</span>
+                    <span className="stat-value">{auction.bid_count || 0}</span>
                   </div>
-                  {auction.totalRevenue > 0 && (
+                  {auction.total_revenue > 0 && (
                     <div className="stat-item">
                       <span className="stat-label">Revenue</span>
                       <span className="stat-value highlight">
-                        {formatCurrency(auction.totalRevenue)}
+                        {formatCurrency(auction.total_revenue)}
                       </span>
                     </div>
                   )}
@@ -239,12 +234,12 @@ const MyAuctions = () => {
                 <div className="auction-meta">
                   <div className="meta-row">
                     <span className="meta-label">Starts</span>
-                    <span className="meta-value">{formatDate(auction.startTime)}</span>
+                    <span className="meta-value">{formatDate(auction.start_time)}</span>
                   </div>
-                  {auction.endTime && (
+                  {auction.end_time && (
                     <div className="meta-row">
                       <span className="meta-label">Ends</span>
-                      <span className="meta-value">{formatDate(auction.endTime)}</span>
+                      <span className="meta-value">{formatDate(auction.end_time)}</span>
                     </div>
                   )}
                 </div>

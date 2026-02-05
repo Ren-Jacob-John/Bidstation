@@ -21,24 +21,18 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      console.log('Fetching dashboard data from Firestore...');
       const auctionsData = await auctionService.getAllAuctions();
-      console.log('Raw response from Firestore:', auctionsData);
-      
-      // Handle Firestore response (array directly)
-      const auctions = Array.isArray(auctionsData) ? auctionsData : [];
-      console.log('Processed auctions:', auctions);
-      setAuctions(auctions);
+      setAuctions(auctionsData);
       
       // Calculate stats
-      const myAuctions = auctions.filter(a => a.createdBy === user?.id);
-      const liveAuctions = auctions.filter(a => a.status === 'live');
+      const myAuctions = auctionsData.filter(a => a.creator_id === user.id);
+      const liveAuctions = auctionsData.filter(a => a.status === 'live');
       
       setStats({
-        totalAuctions: auctions.length,
+        totalAuctions: auctionsData.length,
         liveAuctions: liveAuctions.length,
         myAuctions: myAuctions.length,
-        myBids: 0 // TODO: Fetch from Firestore bids collection
+        myBids: 0 // TODO: Fetch from API
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -57,11 +51,9 @@ const Dashboard = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'Not set';
-    // Handle Firestore timestamps
-    const date = dateValue.toDate ? dateValue.toDate() : new Date(dateValue);
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -186,7 +178,7 @@ const Dashboard = () => {
                       {auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auctionType === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
                     </span>
                   </div>
                   
@@ -196,11 +188,11 @@ const Dashboard = () => {
                   <div className="auction-meta">
                     <div className="meta-item">
                       <span className="meta-label">Created by</span>
-                      <span className="meta-value">{auction.createdByName || 'Unknown'}</span>
+                      <span className="meta-value">{auction.creator_name}</span>
                     </div>
                     <div className="meta-item">
                       <span className="meta-label">Start Time</span>
-                      <span className="meta-value">{formatDate(auction.startTime)}</span>
+                      <span className="meta-value">{formatDate(auction.start_time)}</span>
                     </div>
                   </div>
                 </Link>

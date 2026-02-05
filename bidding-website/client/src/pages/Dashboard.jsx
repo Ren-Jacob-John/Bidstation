@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auctionService } from '../services/auctionService';
+import { bidService } from '../services/bidService';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -25,14 +26,14 @@ const Dashboard = () => {
       setAuctions(auctionsData);
       
       // Calculate stats
-      const myAuctions = auctionsData.filter(a => a.creator_id === user.id);
+      const myAuctions = auctionsData.filter(a => a.createdBy === user.id);
       const liveAuctions = auctionsData.filter(a => a.status === 'live');
       
       setStats({
         totalAuctions: auctionsData.length,
         liveAuctions: liveAuctions.length,
         myAuctions: myAuctions.length,
-        myBids: 0 // TODO: Fetch from API
+        myBids: 0 // Will be updated when bidService is fully integrated
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -43,6 +44,7 @@ const Dashboard = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
+      upcoming: 'badge-warning',
       pending: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
@@ -126,7 +128,7 @@ const Dashboard = () => {
           <h2>Quick Actions</h2>
           <div className="actions-grid">
             {user?.role === 'auctioneer' && (
-              <Link to="/create-auction" className="action-card card">
+              <Link to="/auction/create" className="action-card card">
                 <span className="action-icon">➕</span>
                 <h3>Create Auction</h3>
                 <p>Start a new IPL or Item auction</p>
@@ -160,7 +162,7 @@ const Dashboard = () => {
             <div className="empty-state card">
               <p>No auctions available yet</p>
               {user?.role === 'auctioneer' && (
-                <Link to="/create-auction" className="btn btn-primary mt-2">
+                <Link to="/auction/create" className="btn btn-primary mt-2">
                   Create Your First Auction
                 </Link>
               )}
@@ -178,7 +180,7 @@ const Dashboard = () => {
                       {auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.sport ? `⚽ ${auction.sport}` : '🛍️ Auction'}
                     </span>
                   </div>
                   
@@ -188,11 +190,11 @@ const Dashboard = () => {
                   <div className="auction-meta">
                     <div className="meta-item">
                       <span className="meta-label">Created by</span>
-                      <span className="meta-value">{auction.creator_name}</span>
+                      <span className="meta-value">{auction.createdBy || 'Unknown'}</span>
                     </div>
                     <div className="meta-item">
                       <span className="meta-label">Start Time</span>
-                      <span className="meta-value">{formatDate(auction.start_time)}</span>
+                      <span className="meta-value">{formatDate(auction.startDate)}</span>
                     </div>
                   </div>
                 </Link>

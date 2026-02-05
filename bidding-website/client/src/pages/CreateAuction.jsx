@@ -104,8 +104,16 @@ const CreateAuction = () => {
     try {
       // Step 1: Create the auction
       console.log('Creating auction with data:', formData);
-      const auctionResponse = await auctionService.createAuction(formData);
-      const auctionId = auctionResponse.auctionId;
+      const auctionResponse = await auctionService.createAuction({
+        title: formData.title,
+        description: formData.description,
+        sport: formData.sportType,
+        auctionType: formData.auctionType,
+        teams: formData.teams,
+        startDate: formData.startTime,
+        endDate: formData.endTime
+      });
+      const auctionId = auctionResponse.id;
       
       console.log('Auction created with ID:', auctionId);
 
@@ -115,21 +123,16 @@ const CreateAuction = () => {
         
         for (const player of players) {
           const playerData = {
-            auctionId: auctionId,
             name: player.name,
             description: player.description || '',
             basePrice: parseFloat(player.basePrice),
-            category: formData.sportType,
-            imageUrl: player.imageUrl || '',
-            playerDetails: {
-              role: player.position || '',
-              age: player.age || '',
-              nationality: player.nationality || ''
-            }
+            role: player.position || '',
+            age: player.age ? parseInt(player.age) : null,
+            nationality: player.nationality || ''
           };
 
           console.log('Adding player:', playerData);
-          await auctionService.addAuctionItem(playerData);
+          await auctionService.addPlayerToAuction(auctionId, playerData);
         }
         
         console.log('All players added successfully');

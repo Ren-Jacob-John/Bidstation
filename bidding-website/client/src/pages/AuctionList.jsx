@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auctionService } from '../services/auctionService';
+import { formatCurrency } from '../services/helpers';
 import './AuctionList.css';
 
 const AuctionList = () => {
@@ -34,14 +35,19 @@ const AuctionList = () => {
 
     // Filter by status
     if (filter !== 'all') {
-      filtered = filtered.filter(auction => auction.status === filter);
+      if (filter === 'upcoming') {
+        filtered = filtered.filter(auction => auction.status === 'upcoming' || auction.status === 'pending');
+      } else {
+        filtered = filtered.filter(auction => auction.status === filter);
+      }
     }
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(auction =>
-        auction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        auction.description.toLowerCase().includes(searchTerm.toLowerCase())
+        auction.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auction.sport?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -50,6 +56,7 @@ const AuctionList = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
+      upcoming: 'badge-warning',
       pending: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
@@ -112,8 +119,8 @@ const AuctionList = () => {
               🔴 Live
             </button>
             <button
-              className={`filter-tab ${filter === 'pending' ? 'active' : ''}`}
-              onClick={() => setFilter('pending')}
+              className={`filter-tab ${filter === 'upcoming' ? 'active' : ''}`}
+              onClick={() => setFilter('upcoming')}
             >
               ⏳ Upcoming
             </button>
@@ -146,7 +153,7 @@ const AuctionList = () => {
                     {auction.status}
                   </span>
                   <span className="auction-type">
-                    {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                    {auction.sport ? `⚽ ${auction.sport}` : '🛍️ Auction'}
                   </span>
                 </div>
 
@@ -156,21 +163,21 @@ const AuctionList = () => {
                 <div className="auction-info">
                   <div className="info-row">
                     <span className="info-label">Created by</span>
-                    <span className="info-value">{auction.creator_name}</span>
+                    <span className="info-value">{auction.createdBy || 'Unknown'}</span>
                   </div>
                   
-                  {auction.start_time && (
+                  {auction.startDate && (
                     <div className="info-row">
                       <span className="info-label">Starts</span>
-                      <span className="info-value">{formatDate(auction.start_time)}</span>
+                      <span className="info-value">{formatDate(auction.startDate)}</span>
                     </div>
                   )}
                   
-                  {auction.auction_type === 'sports_player' && auction.teams && (
+                  {auction.teams && auction.teams.length > 0 && (
                     <div className="info-row">
                       <span className="info-label">Teams</span>
                       <span className="info-value">
-                        {JSON.parse(auction.teams || '[]').length} teams
+                        {auction.teams.length} teams
                       </span>
                     </div>
                   )}

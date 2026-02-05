@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { bidService } from '../services/bidService';
+import { formatCurrency } from '../services/helpers';
 import './MyBids.css';
 
 const MyBids = () => {
@@ -21,26 +23,25 @@ const MyBids = () => {
 
   const fetchMyBids = async () => {
     try {
-      const response = await api.get('/auction/my-bids');
-      const bidsData = response.data;
+      const bidsData = await bidService.getMyBids();
       setBids(bidsData);
 
       // Calculate stats
-      const winningBids = bidsData.filter(bid => bid.is_winning).length;
+      const winningBids = bidsData.filter(bid => bid.status === 'active').length;
       const totalSpent = bidsData
-        .filter(bid => bid.item_status === 'sold' && bid.is_winning)
-        .reduce((sum, bid) => sum + parseFloat(bid.bid_amount), 0);
-      const activeAuctions = new Set(
+        .filter(bid => bid.status === 'won')
+        .reduce((sum, bid) => sum + (bid.amount || 0), 0);
+      const activeAuctionIds = new Set(
         bidsData
-          .filter(bid => bid.auction_status === 'live')
-          .map(bid => bid.auction_id)
-      ).size;
+          .filter(bid => bid.status === 'active')
+          .map(bid => bid.auctionId)
+      );
 
       setStats({
         totalBids: bidsData.length,
         winningBids,
         totalSpent,
-        activeAuctions
+        activeAuctions: activeAuctionIds.size
       });
     } catch (error) {
       console.error('Error fetching bids:', error);
@@ -49,15 +50,8 @@ const MyBids = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -69,15 +63,27 @@ const MyBids = () => {
 
   const getFilteredBids = () => {
     switch (filter) {
-      case 'winning':
-        return bids.filter(bid => bid.is_winning && bid.auction_status === 'live');
-      case 'lost':
-        return bids.filter(bid => !bid.is_winning && bid.auction_status === 'live');
+      case 'active':
+        return bids.filter(bid => bid.status === 'active');
+      case 'outbid':
+        return bids.filter(bid => bid.status === 'outbid');
       case 'won':
-        return bids.filter(bid => bid.is_winning && bid.item_status === 'sold');
+        return bids.filter(bid => bid.status === 'won');
+      case 'lost':
+        return bids.filter(bid => bid.status === 'lost');
       default:
         return bids;
     }
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      active: 'badge-success',
+      outbid: 'badge-warning',
+      won: 'badge-success',
+      lost: 'badge-secondary'
+    };
+    return badges[status] || 'badge-secondary';
   };
 
   const filteredBids = getFilteredBids();
@@ -145,14 +151,14 @@ const MyBids = () => {
               All Bids
             </button>
             <button
-              className={`filter-tab ${filter === 'winning' ? 'active' : ''}`}
-              onClick={() => setFilter('winning')}
+              className={`filter-tab ${filter === 'active' ? 'active' : ''}`}
+              onClick={() => setFilter('active')}
             >
               🏆 Winning
             </button>
             <button
-              className={`filter-tab ${filter === 'lost' ? 'active' : ''}`}
-              onClick={() => setFilter('lost')}
+              className={`filter-tab ${filter === 'outbid' ? 'active' : ''}`}
+              onClick={() => setFilter('outbid')}
             >
               ⏳ Outbid
             </button>
@@ -161,6 +167,12 @@ const MyBids = () => {
               onClick={() => setFilter('won')}
             >
               ✓ Won
+            </button>
+            <button
+              className={`filter-tab ${filter === 'lost' ? 'active' : ''}`}
+              onClick={() => setFilter('lost')}
+            >
+              ✗ Lost
             </button>
           </div>
         </div>
@@ -185,22 +197,15 @@ const MyBids = () => {
               <div key={bid.id} className="bid-card card">
                 <div className="bid-header">
                   <div className="bid-title-section">
-                    <h3>{bid.item_name}</h3>
-                    <Link to={`/auction/${bid.auction_id}`} className="auction-link">
-                      {bid.auction_title}
+                    <h3>{bid.playerName}</h3>
+                    <Link to={`/auction/${bid.auctionId}`} className="auction-link">
+                      {bid.auctionTitle || 'Auction'}
                     </Link>
                   </div>
                   <div className="bid-badges">
-                    {bid.is_winning ? (
-                      <span className="badge badge-success">Winning</span>
-                    ) : bid.auction_status === 'completed' ? (
-                      <span className="badge badge-secondary">Lost</span>
-                    ) : (
-                      <span className="badge badge-warning">Outbid</span>
-                    )}
-                    {bid.item_status === 'sold' && bid.is_winning && (
-                      <span className="badge badge-success">Won</span>
-                    )}
+                    <span className={`badge ${getStatusBadge(bid.status)}`}>
+                      {bid.status}
+                    </span>
                   </div>
                 </div>
 
@@ -208,42 +213,35 @@ const MyBids = () => {
                   <div className="detail-row">
                     <span className="detail-label">Your Bid:</span>
                     <span className="detail-value highlight">
-                      {formatCurrency(bid.bid_amount)}
+                      {formatCurrency(bid.amount)}
                     </span>
                   </div>
 
-                  <div className="detail-row">
-                    <span className="detail-label">Current Price:</span>
-                    <span className="detail-value">
-                      {formatCurrency(bid.current_price)}
-                    </span>
-                  </div>
-
-                  {bid.team_name && (
+                  {bid.teamName && (
                     <div className="detail-row">
                       <span className="detail-label">Team:</span>
-                      <span className="detail-value">{bid.team_name}</span>
+                      <span className="detail-value">{bid.teamName}</span>
                     </div>
                   )}
 
                   <div className="detail-row">
                     <span className="detail-label">Bid Placed:</span>
-                    <span className="detail-value">{formatDate(bid.created_at)}</span>
+                    <span className="detail-value">{formatDate(bid.timestamp)}</span>
                   </div>
                 </div>
 
                 <div className="bid-footer">
-                  {bid.auction_status === 'live' && (
+                  {bid.status === 'active' && (
                     <Link 
-                      to={`/auction/${bid.auction_id}/live`} 
+                      to={`/auction/live/${bid.auctionId}`} 
                       className="btn btn-primary"
                     >
                       View Live Auction
                     </Link>
                   )}
-                  {bid.auction_status !== 'live' && (
+                  {bid.status !== 'active' && (
                     <Link 
-                      to={`/auction/${bid.auction_id}`} 
+                      to={`/auction/${bid.auctionId}`} 
                       className="btn"
                     >
                       View Auction

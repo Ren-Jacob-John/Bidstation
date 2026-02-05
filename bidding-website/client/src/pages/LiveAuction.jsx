@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auctionService } from '../services/auctionService';
+import { bidService } from '../services/bidService';
+import { formatCurrency, formatTimeRemaining } from '../services/helpers';
 import './LiveAuction.css';
 
 const LiveAuction = () => {
@@ -10,8 +12,8 @@ const LiveAuction = () => {
   const navigate = useNavigate();
   
   const [auction, setAuction] = useState(null);
-  const [items, setItems] = useState([]);
-  const [currentItem, setCurrentItem] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState(null);
   const [bids, setBids] = useState([]);
   const [bidAmount, setBidAmount] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');
@@ -23,22 +25,22 @@ const LiveAuction = () => {
   }, [id]);
 
   useEffect(() => {
-    if (currentItem) {
-      fetchItemBids(currentItem.id);
+    if (currentPlayer) {
+      fetchPlayerBids(currentPlayer.id);
     }
-  }, [currentItem]);
+  }, [currentPlayer]);
 
   const fetchAuctionData = async () => {
     try {
-      const auctionData = await auctionService.getAuctionById(id);
+      const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
       
-      const itemsData = await auctionService.getAuctionItems(id);
-      setItems(itemsData);
+      const playersData = await auctionService.getAuctionPlayers(id);
+      setPlayers(playersData);
       
-      if (itemsData.length > 0) {
-        setCurrentItem(itemsData[0]);
-        setBidAmount(itemsData[0].current_price || itemsData[0].base_price);
+      if (playersData.length > 0) {
+        setCurrentPlayer(playersData[0]);
+        setBidAmount(playersData[0].currentBid || playersData[0].basePrice);
       }
     } catch (error) {
       console.error('Error fetching auction data:', error);
@@ -48,9 +50,9 @@ const LiveAuction = () => {
     }
   };
 
-  const fetchItemBids = async (itemId) => {
+  const fetchPlayerBids = async (playerId) => {
     try {
-      const bidsData = await auctionService.getItemBids(itemId);
+      const bidsData = await bidService.getPlayerBids(id, playerId);
       setBids(bidsData);
     } catch (error) {
       console.error('Error fetching bids:', error);
@@ -62,49 +64,46 @@ const LiveAuction = () => {
     setError('');
 
     const amount = parseFloat(bidAmount);
-    const currentPrice = currentItem.current_price || currentItem.base_price;
+    const currentPrice = currentPlayer?.currentBid || currentPlayer?.basePrice;
 
     if (amount <= currentPrice) {
-      setError('Bid must be higher than current price');
+      setError('Bid must be higher than current bid');
       return;
     }
 
-    if (auction.auction_type === 'sports_player' && !selectedTeam) {
+    if (auction.sport && !selectedTeam) {
       setError('Please select a team');
       return;
     }
 
     try {
-      await auctionService.placeBid({
-        itemId: currentItem.id,
-        bidAmount: amount,
-        teamName: selectedTeam || null
-      });
+      await bidService.placeBid(id, currentPlayer.id, amount);
 
       // Refresh data
       await fetchAuctionData();
-      await fetchItemBids(currentItem.id);
+      await fetchPlayerBids(currentPlayer.id);
       
       // Increment bid amount
       setBidAmount((amount + 100000).toString());
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place bid');
+      setError(err.message || 'Failed to place bid');
     }
   };
 
-  const selectItem = (item) => {
-    setCurrentItem(item);
-    setBidAmount((item.current_price || item.base_price).toString());
+  const selectPlayer = (player) => {
+    setCurrentPlayer(player);
+    setBidAmount((player.currentBid || player.basePrice).toString());
     setError('');
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount);
+  const getStatusBadge = (status) => {
+    const badges = {
+      available: 'badge-success',
+      sold: 'badge-secondary',
+      unsold: 'badge-warning'
+    };
+    return badges[status] || 'badge-secondary';
   };
 
   if (loading) {
@@ -144,28 +143,35 @@ const LiveAuction = () => {
             </span>
           </div>
           <p>{auction.description}</p>
+          {auction.endDate && (
+            <div className="auction-timer">
+              {formatTimeRemaining(auction.endDate)}
+            </div>
+          )}
         </div>
 
         <div className="auction-content">
-          {/* Current Item Section */}
-          <div className="current-item-section">
-            {currentItem ? (
-              <div className="current-item-card card">
-                <div className="item-badge">
-                  {auction.auction_type === 'sports_player' ? '⚽ Player' : '🛍️ Item'}
+          {/* Current Player Section */}
+          <div className="current-player-section">
+            {currentPlayer ? (
+              <div className="current-player-card card">
+                <div className="player-badge">
+                  {auction.sport ? `⚽ ${auction.sport} Player` : '🛍️ Item'}
                 </div>
                 
-                <h2>{currentItem.name}</h2>
-                <p className="item-description">{currentItem.description}</p>
+                <h2>{currentPlayer.name}</h2>
+                <p className="player-description">{currentPlayer.description}</p>
                 
-                {auction.auction_type === 'sports_player' && currentItem.player_details && (
+                {auction.sport && currentPlayer.role && (
                   <div className="player-stats">
-                    {JSON.parse(currentItem.player_details).role && (
+                    <div className="stat-item">
+                      <span className="stat-label">Position:</span>
+                      <span className="stat-value">{currentPlayer.role}</span>
+                    </div>
+                    {currentPlayer.nationality && (
                       <div className="stat-item">
-                        <span className="stat-label">Position:</span>
-                        <span className="stat-value">
-                          {JSON.parse(currentItem.player_details).role}
-                        </span>
+                        <span className="stat-label">Nationality:</span>
+                        <span className="stat-value">{currentPlayer.nationality}</span>
                       </div>
                     )}
                   </div>
@@ -174,12 +180,12 @@ const LiveAuction = () => {
                 <div className="price-section">
                   <div className="price-item">
                     <span className="price-label">Base Price</span>
-                    <span className="price-value">{formatCurrency(currentItem.base_price)}</span>
+                    <span className="price-value">{formatCurrency(currentPlayer.basePrice)}</span>
                   </div>
                   <div className="price-item current">
                     <span className="price-label">Current Bid</span>
                     <span className="price-value highlight">
-                      {formatCurrency(currentItem.current_price || currentItem.base_price)}
+                      {formatCurrency(currentPlayer.currentBid || currentPlayer.basePrice)}
                     </span>
                   </div>
                 </div>
@@ -192,7 +198,7 @@ const LiveAuction = () => {
                       </div>
                     )}
 
-                    {auction.auction_type === 'sports_player' && (
+                    {auction.sport && auction.teams && (
                       <div className="form-group">
                         <label>Select Team / Franchise</label>
                         <select
@@ -201,7 +207,7 @@ const LiveAuction = () => {
                           required
                         >
                           <option value="">Choose a team...</option>
-                          {JSON.parse(auction.teams || '[]').map(team => (
+                          {auction.teams?.map(team => (
                             <option key={team} value={team}>{team}</option>
                           ))}
                         </select>
@@ -228,7 +234,7 @@ const LiveAuction = () => {
               </div>
             ) : (
               <div className="card">
-                <p className="text-center">No items in this auction</p>
+                <p className="text-center">No players in this auction</p>
               </div>
             )}
 
@@ -242,12 +248,12 @@ const LiveAuction = () => {
                   {bids.map((bid, index) => (
                     <div key={bid.id} className={`bid-item ${index === 0 ? 'highest' : ''}`}>
                       <div className="bid-info">
-                        <span className="bidder-name">{bid.bidder_name}</span>
-                        {bid.team_name && (
-                          <span className="team-name">{bid.team_name}</span>
+                        <span className="bidder-name">{bid.bidderName}</span>
+                        {bid.teamName && (
+                          <span className="team-name">{bid.teamName}</span>
                         )}
                       </div>
-                      <span className="bid-amount">{formatCurrency(bid.bid_amount)}</span>
+                      <span className="bid-amount">{formatCurrency(bid.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -255,23 +261,23 @@ const LiveAuction = () => {
             </div>
           </div>
 
-          {/* Items List Sidebar */}
-          <div className="items-sidebar">
-            <div className="items-list card">
-              <h3>All Items ({items.length})</h3>
-              <div className="items-scroll">
-                {items.map(item => (
+          {/* Players List Sidebar */}
+          <div className="players-sidebar">
+            <div className="players-list card">
+              <h3>All Players ({players.length})</h3>
+              <div className="players-scroll">
+                {players.map(player => (
                   <div
-                    key={item.id}
-                    className={`item-card ${currentItem?.id === item.id ? 'active' : ''}`}
-                    onClick={() => selectItem(item)}
+                    key={player.id}
+                    className={`player-card ${currentPlayer?.id === player.id ? 'active' : ''}`}
+                    onClick={() => selectPlayer(player)}
                   >
-                    <h4>{item.name}</h4>
-                    <div className="item-price">
-                      {formatCurrency(item.current_price || item.base_price)}
+                    <h4>{player.name}</h4>
+                    <div className="player-price">
+                      {formatCurrency(player.currentBid || player.basePrice)}
                     </div>
-                    <span className={`item-status ${item.status}`}>
-                      {item.status}
+                    <span className={`player-status ${player.status}`}>
+                      {player.status}
                     </span>
                   </div>
                 ))}

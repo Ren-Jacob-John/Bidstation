@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { updateProfile, changePassword } from '../services/authService';
 import './Profile.css';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -21,6 +22,15 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({
@@ -43,13 +53,12 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await api.put('/auth/update-profile', formData);
+      await updateProfile({ username: formData.username });
+      await refreshUser();
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
-      // Refresh user data
-      window.location.reload();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      setError(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -73,10 +82,7 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await api.put('/auth/update-password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
       setSuccess('Password updated successfully!');
       setPasswordData({
         currentPassword: '',
@@ -85,7 +91,7 @@ const Profile = () => {
       });
       setShowPasswordForm(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      setError(err.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }
@@ -115,7 +121,7 @@ const Profile = () => {
           <div className="profile-card card">
             <div className="profile-header">
               <div className="profile-avatar">
-                {user?.username?.charAt(0).toUpperCase()}
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="profile-info">
                 <h2>{user?.username}</h2>
@@ -123,6 +129,11 @@ const Profile = () => {
                 <span className={`role-badge ${getRoleBadgeClass(user?.role)}`}>
                   {user?.role}
                 </span>
+                {!user?.emailVerified && (
+                  <span className="email-warning">
+                    ⚠️ Email not verified
+                  </span>
+                )}
               </div>
             </div>
 
@@ -162,9 +173,10 @@ const Profile = () => {
                     id="email"
                     name="email"
                     value={formData.email}
-                    onChange={handleChange}
-                    required
+                    disabled
+                    title="Email cannot be changed"
                   />
+                  <small>Email cannot be changed</small>
                 </div>
 
                 <div className="form-actions">
@@ -266,17 +278,6 @@ const Profile = () => {
               <button onClick={handleLogout} className="action-btn logout-btn">
                 🚪 Logout
               </button>
-              <button 
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                    // Implement account deletion
-                    alert('Account deletion feature coming soon!');
-                  }
-                }} 
-                className="action-btn delete-btn"
-              >
-                🗑️ Delete Account
-              </button>
             </div>
           </div>
 
@@ -289,7 +290,7 @@ const Profile = () => {
                 <div className="stat-content">
                   <span className="stat-label">Member Since</span>
                   <span className="stat-value">
-                    {new Date(user?.created_at || Date.now()).toLocaleDateString('en-US', {
+                    {new Date().toLocaleDateString('en-US', {
                       month: 'long',
                       year: 'numeric'
                     })}

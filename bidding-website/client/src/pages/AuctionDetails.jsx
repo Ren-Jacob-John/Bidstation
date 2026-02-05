@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auctionService } from '../services/auctionService';
+import { formatCurrency } from '../services/helpers';
 import './AuctionDetails.css';
 
 const AuctionDetails = () => {
@@ -10,23 +11,19 @@ const AuctionDetails = () => {
   const navigate = useNavigate();
   
   const [auction, setAuction] = useState(null);
-  const [items, setItems] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  // Add item form
-  const [showAddItem, setShowAddItem] = useState(false);
-  const [itemForm, setItemForm] = useState({
+  // Add player form
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [playerForm, setPlayerForm] = useState({
     name: '',
     description: '',
     basePrice: '',
-    category: '',
-    imageUrl: '',
-    playerDetails: {
-      role: '',
-      age: '',
-      nationality: ''
-    }
+    role: '',
+    age: '',
+    nationality: ''
   });
 
   useEffect(() => {
@@ -35,11 +32,11 @@ const AuctionDetails = () => {
 
   const fetchAuctionData = async () => {
     try {
-      const auctionData = await auctionService.getAuctionById(id);
+      const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
       
-      const itemsData = await auctionService.getAuctionItems(id);
-      setItems(itemsData);
+      const playersData = await auctionService.getAuctionPlayers(id);
+      setPlayers(playersData);
     } catch (error) {
       console.error('Error fetching auction data:', error);
       setError('Failed to load auction details');
@@ -53,9 +50,9 @@ const AuctionDetails = () => {
     
     try {
       await auctionService.startAuction(id);
-      navigate(`/auction/${id}/live`);
+      navigate(`/auction/live/${id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to start auction');
+      setError(err.message || 'Failed to start auction');
     }
   };
 
@@ -66,77 +63,57 @@ const AuctionDetails = () => {
       await auctionService.endAuction(id);
       await fetchAuctionData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to end auction');
+      setError(err.message || 'Failed to end auction');
     }
   };
 
-  const handleItemFormChange = (e) => {
+  const handlePlayerFormChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name.startsWith('player_')) {
-      const playerField = name.replace('player_', '');
-      setItemForm({
-        ...itemForm,
-        playerDetails: {
-          ...itemForm.playerDetails,
-          [playerField]: value
-        }
-      });
-    } else {
-      setItemForm({
-        ...itemForm,
-        [name]: value
-      });
-    }
+    setPlayerForm({
+      ...playerForm,
+      [name]: value
+    });
   };
 
-  const handleAddItem = async (e) => {
+  const handleAddPlayer = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      await auctionService.addItem({
-        auctionId: id,
-        name: itemForm.name,
-        description: itemForm.description,
-        basePrice: parseFloat(itemForm.basePrice),
-        category: itemForm.category,
-        imageUrl: itemForm.imageUrl,
-        playerDetails: auction.auction_type === 'ipl_player' ? itemForm.playerDetails : null
+      await auctionService.addPlayerToAuction(id, {
+        name: playerForm.name,
+        description: playerForm.description,
+        basePrice: parseFloat(playerForm.basePrice),
+        role: playerForm.role,
+        age: parseInt(playerForm.age) || null,
+        nationality: playerForm.nationality
       });
 
-      // Reset form and refresh items
-      setItemForm({
+      // Reset form and refresh players
+      setPlayerForm({
         name: '',
         description: '',
         basePrice: '',
-        category: '',
-        imageUrl: '',
-        playerDetails: { role: '', age: '', nationality: '' }
+        role: '',
+        age: '',
+        nationality: ''
       });
-      setShowAddItem(false);
+      setShowAddPlayer(false);
       await fetchAuctionData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add item');
+      setError(err.message || 'Failed to add player');
     }
   };
 
   const getStatusBadge = (status) => {
     const badges = {
+      upcoming: 'badge-warning',
       pending: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
       cancelled: 'badge-error'
     };
     return badges[status] || 'badge-secondary';
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount);
   };
 
   const formatDate = (dateString) => {
@@ -175,7 +152,7 @@ const AuctionDetails = () => {
     );
   }
 
-  const isCreator = user?.id === auction.creator_id;
+  const isCreator = user?.id === auction.createdBy;
   const canManage = isCreator || user?.role === 'admin';
 
   return (
@@ -191,7 +168,7 @@ const AuctionDetails = () => {
                   {auction.status}
                 </span>
                 <span className="badge badge-secondary">
-                  {auction.auction_type === 'sports_player' ? '⚽ Sports Player' : '🛍️ Item'} Auction
+                  {auction.sport ? `⚽ ${auction.sport}` : '🛍️'} Auction
                 </span>
               </div>
             </div>
@@ -201,33 +178,35 @@ const AuctionDetails = () => {
           <div className="auction-info-grid">
             <div className="info-card">
               <span className="info-label">Created by</span>
-              <span className="info-value">{auction.creator_name}</span>
+              <span className="info-value">{auction.createdBy || 'Unknown'}</span>
             </div>
             <div className="info-card">
-              <span className="info-label">Start Time</span>
-              <span className="info-value">{formatDate(auction.start_time)}</span>
+              <span className="info-label">Start Date</span>
+              <span className="info-value">{formatDate(auction.startDate)}</span>
             </div>
             <div className="info-card">
-              <span className="info-label">End Time</span>
-              <span className="info-value">{formatDate(auction.end_time)}</span>
+              <span className="info-label">End Date</span>
+              <span className="info-value">{formatDate(auction.endDate)}</span>
             </div>
             <div className="info-card">
-              <span className="info-label">Total Items</span>
-              <span className="info-value">{items.length}</span>
+              <span className="info-label">Total Players</span>
+              <span className="info-value">{players.length}</span>
             </div>
           </div>
 
           {/* Action Buttons */}
           {canManage && (
             <div className="action-buttons">
-              {auction.status === 'pending' && items.length > 0 && (
-                <button onClick={handleStartAuction} className="btn btn-success">
-                  🚀 Start Auction
-                </button>
-              )}
+              {auction.status === 'upcoming' || auction.status === 'pending' ? (
+                players.length > 0 && (
+                  <button onClick={handleStartAuction} className="btn btn-success">
+                    🚀 Start Auction
+                  </button>
+                )
+              ) : null}
               {auction.status === 'live' && (
                 <>
-                  <button onClick={() => navigate(`/auction/${id}/live`)} className="btn btn-primary">
+                  <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
                     📺 View Live Auction
                   </button>
                   <button onClick={handleEndAuction} className="btn btn-error">
@@ -235,9 +214,9 @@ const AuctionDetails = () => {
                   </button>
                 </>
               )}
-              {auction.status === 'pending' && (
-                <button onClick={() => setShowAddItem(true)} className="btn btn-primary">
-                  ➕ Add Item
+              {(auction.status === 'upcoming' || auction.status === 'pending') && (
+                <button onClick={() => setShowAddPlayer(true)} className="btn btn-primary">
+                  ➕ Add Player
                 </button>
               )}
             </div>
@@ -245,7 +224,7 @@ const AuctionDetails = () => {
 
           {!canManage && auction.status === 'live' && (
             <div className="action-buttons">
-              <button onClick={() => navigate(`/auction/${id}/live`)} className="btn btn-primary">
+              <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
                 🔴 Join Live Auction
               </button>
             </div>
@@ -258,12 +237,12 @@ const AuctionDetails = () => {
           )}
         </div>
 
-        {/* Teams Section (for sports player auctions) */}
-        {auction.auction_type === 'sports_player' && auction.teams && (
+        {/* Teams Section (for sports auctions) */}
+        {auction.sport && auction.teams && (
           <div className="teams-section card">
             <h2>Participating Teams / Franchises</h2>
             <div className="teams-grid">
-              {JSON.parse(auction.teams).map((team, index) => (
+              {auction.teams.map((team, index) => (
                 <div key={index} className="team-card">
                   <span className="team-icon">⚽</span>
                   <span className="team-name">{team}</span>
@@ -273,26 +252,26 @@ const AuctionDetails = () => {
           </div>
         )}
 
-        {/* Add Item Form */}
-        {showAddItem && canManage && (
-          <div className="add-item-section card">
+        {/* Add Player Form */}
+        {showAddPlayer && canManage && (
+          <div className="add-player-section card">
             <div className="section-header">
-              <h2>Add New {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}</h2>
-              <button onClick={() => setShowAddItem(false)} className="btn">
+              <h2>Add New Player</h2>
+              <button onClick={() => setShowAddPlayer(false)} className="btn">
                 Cancel
               </button>
             </div>
 
-            <form onSubmit={handleAddItem} className="item-form">
+            <form onSubmit={handleAddPlayer} className="player-form">
               <div className="form-row">
                 <div className="form-group">
                   <label>Name *</label>
                   <input
                     type="text"
                     name="name"
-                    value={itemForm.name}
-                    onChange={handleItemFormChange}
-                    placeholder="Enter name"
+                    value={playerForm.name}
+                    onChange={handlePlayerFormChange}
+                    placeholder="Enter player name"
                     required
                   />
                 </div>
@@ -302,8 +281,8 @@ const AuctionDetails = () => {
                   <input
                     type="number"
                     name="basePrice"
-                    value={itemForm.basePrice}
-                    onChange={handleItemFormChange}
+                    value={playerForm.basePrice}
+                    onChange={handlePlayerFormChange}
                     placeholder="Enter base price"
                     step="100000"
                     required
@@ -315,39 +294,15 @@ const AuctionDetails = () => {
                 <label>Description *</label>
                 <textarea
                   name="description"
-                  value={itemForm.description}
-                  onChange={handleItemFormChange}
-                  placeholder="Enter description"
+                  value={playerForm.description}
+                  onChange={handlePlayerFormChange}
+                  placeholder="Enter player description"
                   rows="3"
                   required
                 ></textarea>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Category</label>
-                  <input
-                    type="text"
-                    name="category"
-                    value={itemForm.category}
-                    onChange={handleItemFormChange}
-                    placeholder="Enter category"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Image URL</label>
-                  <input
-                    type="url"
-                    name="imageUrl"
-                    value={itemForm.imageUrl}
-                    onChange={handleItemFormChange}
-                    placeholder="Enter image URL"
-                  />
-                </div>
-              </div>
-
-              {auction.auction_type === 'sports_player' && (
+              {auction.sport && (
                 <>
                   <h3>Player Details</h3>
                   <div className="form-row">
@@ -355,9 +310,9 @@ const AuctionDetails = () => {
                       <label>Position / Role</label>
                       <input
                         type="text"
-                        name="player_role"
-                        value={itemForm.playerDetails.role}
-                        onChange={handleItemFormChange}
+                        name="role"
+                        value={playerForm.role}
+                        onChange={handlePlayerFormChange}
                         placeholder="e.g., Forward, Batsman, Point Guard"
                       />
                     </div>
@@ -366,9 +321,9 @@ const AuctionDetails = () => {
                       <label>Age</label>
                       <input
                         type="number"
-                        name="player_age"
-                        value={itemForm.playerDetails.age}
-                        onChange={handleItemFormChange}
+                        name="age"
+                        value={playerForm.age}
+                        onChange={handlePlayerFormChange}
                         placeholder="Enter age"
                       />
                     </div>
@@ -377,9 +332,9 @@ const AuctionDetails = () => {
                       <label>Nationality</label>
                       <input
                         type="text"
-                        name="player_nationality"
-                        value={itemForm.playerDetails.nationality}
-                        onChange={handleItemFormChange}
+                        name="nationality"
+                        value={playerForm.nationality}
+                        onChange={handlePlayerFormChange}
                         placeholder="Enter nationality"
                       />
                     </div>
@@ -388,64 +343,65 @@ const AuctionDetails = () => {
               )}
 
               <button type="submit" className="btn btn-success">
-                Add {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}
+                Add Player
               </button>
             </form>
           </div>
         )}
 
-        {/* Items List */}
-        <div className="items-section">
-          <h2>
-            {auction.auction_type === 'sports_player' ? 'Players' : 'Items'} ({items.length})
-          </h2>
+        {/* Players List */}
+        <div className="players-section">
+          <h2>Players ({players.length})</h2>
 
-          {items.length === 0 ? (
+          {players.length === 0 ? (
             <div className="empty-state card">
-              <p>No {auction.auction_type === 'sports_player' ? 'players' : 'items'} added yet</p>
-              {canManage && auction.status === 'pending' && (
-                <button onClick={() => setShowAddItem(true)} className="btn btn-primary mt-2">
-                  Add First {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}
+              <p>No players added yet</p>
+              {canManage && (auction.status === 'upcoming' || auction.status === 'pending') && (
+                <button onClick={() => setShowAddPlayer(true)} className="btn btn-primary mt-2">
+                  Add First Player
                 </button>
               )}
             </div>
           ) : (
-            <div className="items-grid">
-              {items.map(item => (
-                <div key={item.id} className="item-card card">
-                  <div className="item-header">
-                    <h3>{item.name}</h3>
-                    <span className={`item-status ${item.status}`}>
-                      {item.status}
+            <div className="players-grid">
+              {players.map(player => (
+                <div key={player.id} className="player-card card">
+                  <div className="player-header">
+                    <h3>{player.name}</h3>
+                    <span className={`player-status ${player.status}`}>
+                      {player.status}
                     </span>
                   </div>
 
-                  <p className="item-description">{item.description}</p>
+                  <p className="player-description">{player.description}</p>
 
-                  {auction.auction_type === 'sports_player' && item.player_details && (
+                  {player.role && (
                     <div className="player-info">
-                      {JSON.parse(item.player_details).role && (
+                      <span className="player-stat">
+                        Position: {player.role}
+                      </span>
+                      {player.age && (
                         <span className="player-stat">
-                          Position: {JSON.parse(item.player_details).role}
+                          Age: {player.age}
                         </span>
                       )}
-                      {JSON.parse(item.player_details).age && (
+                      {player.nationality && (
                         <span className="player-stat">
-                          Age: {JSON.parse(item.player_details).age}
+                          {player.nationality}
                         </span>
                       )}
                     </div>
                   )}
 
-                  <div className="item-pricing">
+                  <div className="player-pricing">
                     <div className="price-info">
                       <span className="price-label">Base Price</span>
-                      <span className="price-value">{formatCurrency(item.base_price)}</span>
+                      <span className="price-value">{formatCurrency(player.basePrice)}</span>
                     </div>
-                    {item.current_price && item.current_price > item.base_price && (
+                    {player.currentBid && player.currentBid > player.basePrice && (
                       <div className="price-info highlight">
-                        <span className="price-label">Current Price</span>
-                        <span className="price-value">{formatCurrency(item.current_price)}</span>
+                        <span className="price-label">Current Bid</span>
+                        <span className="price-value">{formatCurrency(player.currentBid)}</span>
                       </div>
                     )}
                   </div>

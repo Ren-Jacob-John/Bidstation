@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { auctionService } from '../services/auctionService';
-import { bidService } from '../services/bidService';
+import auctionService from '../services/auctionService';
+import bidService from '../services/bidService';
 import { formatCurrency, formatTimeRemaining } from '../services/helpers';
 import './LiveAuction.css';
 

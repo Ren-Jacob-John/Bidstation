@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { auctionService } from '../services/auctionService';
+import auctionService from '../services/auctionService';
 import { formatCurrency } from '../services/helpers';
 import './AuctionList.css';
 

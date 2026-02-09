@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { authService } from '../services/authService';
+import authService from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import './VerifyEmail.css';
 

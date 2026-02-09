@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auctionService } from '../services/auctionService';
+import auctionService from '../services/auctionService';
 import './CreateAuction.css';
 
 const CreateAuction = () => {

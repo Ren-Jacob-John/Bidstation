@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { bidService } from '../services/bidService';
+import bidService from '../services/bidService';
 import { formatCurrency } from '../services/helpers';
 import './MyBids.css';
 

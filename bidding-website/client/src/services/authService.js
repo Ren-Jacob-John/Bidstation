@@ -5,7 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendVerificationEmail,
+  sendEmailVerification,
   sendPasswordResetEmail,
   applyActionCode,
   onAuthStateChanged,
@@ -47,7 +47,7 @@ export const registerUser = async ({ username, email, password, role }) => {
   });
 
   // 3. Kick off verification email (non-blocking – never crashes registration)
-  sendVerificationEmail(user).catch(() => {});
+  sendEmailVerification(user).catch(() => {});
 
   return {
     user: {
@@ -122,7 +122,7 @@ export const resendVerification = async () => {
   const user = fireAuth.currentUser;
   if (!user) throw new Error('Not logged in');
   if (user.emailVerified) throw new Error('Email already verified');
-  await sendVerificationEmail(user);
+  await sendEmailVerification(user);
 };
 
 // ---------------------------------------------------------------------------

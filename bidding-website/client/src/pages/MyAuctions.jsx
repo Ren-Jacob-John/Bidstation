@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { auctionService } from '../services/auctionService';
+import auctionService from '../services/auctionService';
 import { formatCurrency } from '../services/helpers';
 import './MyAuctions.css';
 

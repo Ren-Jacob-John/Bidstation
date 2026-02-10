@@ -47,7 +47,7 @@ export const registerUser = async ({ username, email, password, role }) => {
   });
 
   // 3. Kick off verification email (non-blocking – never crashes registration)
-  sendEmailVerificationn(user).catch(() => {});
+  sendEmailVerification(user).catch(() => {});
 
   return {
     user: {

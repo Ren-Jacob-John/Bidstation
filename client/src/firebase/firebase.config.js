@@ -11,7 +11,7 @@ import { getFirestore }   from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBEk6gtz8OlftPrsRvzYGn0KyoYWYjLGLc",
-  authDomain: "bidstation-c3582.firebaseapp.com",
+  authDomain: "https://bidstation-c3582-default-rtdb.firebaseio.com",
   projectId: "bidstation-c3582",
   storageBucket: "bidstation-c3582.firebasestorage.app",
   messagingSenderId: "505275679910",

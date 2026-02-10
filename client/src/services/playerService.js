@@ -1,44 +1,37 @@
 // ---------------------------------------------------------------------------
-// client/src/services/playerService.js - Firestore Player Operations
+// client/src/services/playerService.js - Realtime Database Player Operations
 // ---------------------------------------------------------------------------
 import { 
-  collection, 
-  doc, 
-  getDoc,
-  getDocs, 
-  addDoc, 
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp
-} from 'firebase/firestore';
-import { firestore, fireAuth } from '../firebase/firebase.config';
+  ref, 
+  push,
+  set,
+  get,
+  update,
+  remove
+} from 'firebase/database';
+import { database, fireAuth } from '../firebase/firebase.config';
 
 // ---------------------------------------------------------------------------
-// Create a new player in the catalogue
+// Create a new player
 // ---------------------------------------------------------------------------
 export const createPlayer = async (playerData) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
+    const playersRef = ref(database, 'players');
+    const newPlayerRef = push(playersRef);
+
     const player = {
+      id: newPlayerRef.key,
       ...playerData,
       createdBy: user.uid,
-      createdAt: serverTimestamp(),
-      status: 'available', // available, in_auction, sold
+      createdAt: Date.now(),
+      status: 'available',
     };
 
-    const playersRef = collection(firestore, 'players');
-    const docRef = await addDoc(playersRef, player);
-
-    return {
-      id: docRef.id,
-      ...player,
-    };
+    await set(newPlayerRef, player);
+    return player;
   } catch (error) {
     console.error('Error creating player:', error);
     throw error;
@@ -50,17 +43,16 @@ export const createPlayer = async (playerData) => {
 // ---------------------------------------------------------------------------
 export const getPlayer = async (playerId) => {
   try {
-    const playerRef = doc(firestore, 'players', playerId);
-    const playerDoc = await getDoc(playerRef);
+    const playerRef = ref(database, `players/${playerId}`);
+    const snapshot = await get(playerRef);
 
-    if (!playerDoc.exists()) {
+    if (!snapshot.exists()) {
       throw new Error('Player not found');
     }
 
     return {
-      id: playerDoc.id,
-      ...playerDoc.data(),
-      createdAt: playerDoc.data().createdAt?.toDate(),
+      id: playerId,
+      ...snapshot.val(),
     };
   } catch (error) {
     console.error('Error getting player:', error);
@@ -73,41 +65,42 @@ export const getPlayer = async (playerId) => {
 // ---------------------------------------------------------------------------
 export const getAllPlayers = async (filters = {}) => {
   try {
-    const playersRef = collection(firestore, 'players');
-    let q = query(playersRef);
+    const playersRef = ref(database, 'players');
+    const snapshot = await get(playersRef);
+
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    let players = [];
+    snapshot.forEach((childSnapshot) => {
+      players.push({
+        id: childSnapshot.key,
+        ...childSnapshot.val(),
+      });
+    });
 
     // Apply filters
     if (filters.sport) {
-      q = query(q, where('sport', '==', filters.sport));
+      players = players.filter(p => p.sport === filters.sport);
     }
     if (filters.role) {
-      q = query(q, where('role', '==', filters.role));
+      players = players.filter(p => p.role === filters.role);
     }
     if (filters.nationality) {
-      q = query(q, where('nationality', '==', filters.nationality));
+      players = players.filter(p => p.nationality === filters.nationality);
     }
     if (filters.status) {
-      q = query(q, where('status', '==', filters.status));
+      players = players.filter(p => p.status === filters.status);
     }
 
-    // Order by name
-    q = query(q, orderBy('name', 'asc'));
+    // Sort by name
+    players.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
-    // Apply limit if specified
+    // Apply limit
     if (filters.limit) {
-      q = query(q, limit(filters.limit));
+      players = players.slice(0, filters.limit);
     }
-
-    const snapshot = await getDocs(q);
-    const players = [];
-
-    snapshot.forEach((doc) => {
-      players.push({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-      });
-    });
 
     return players;
   } catch (error) {
@@ -147,19 +140,18 @@ export const getPlayersByRole = async (role, sport = null) => {
 // ---------------------------------------------------------------------------
 export const updatePlayer = async (playerId, updates) => {
   try {
-    const playerRef = doc(firestore, 'players', playerId);
-    
-    // Check if player exists
-    const playerDoc = await getDoc(playerRef);
-    if (!playerDoc.exists()) {
+    const playerRef = ref(database, `players/${playerId}`);
+    const snapshot = await get(playerRef);
+
+    if (!snapshot.exists()) {
       throw new Error('Player not found');
     }
 
-    await updateDoc(playerRef, updates);
+    await update(playerRef, updates);
 
     return {
       id: playerId,
-      ...playerDoc.data(),
+      ...snapshot.val(),
       ...updates,
     };
   } catch (error) {
@@ -176,20 +168,19 @@ export const deletePlayer = async (playerId) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const playerRef = doc(firestore, 'players', playerId);
-    
-    // Check if player exists
-    const playerDoc = await getDoc(playerRef);
-    if (!playerDoc.exists()) {
+    const playerRef = ref(database, `players/${playerId}`);
+    const snapshot = await get(playerRef);
+
+    if (!snapshot.exists()) {
       throw new Error('Player not found');
     }
 
-    // Only creator can delete (or implement admin check)
-    if (playerDoc.data().createdBy !== user.uid) {
+    const player = snapshot.val();
+    if (player.createdBy !== user.uid) {
       throw new Error('Unauthorized: You can only delete your own players');
     }
 
-    await deleteDoc(playerRef);
+    await remove(playerRef);
     return { success: true };
   } catch (error) {
     console.error('Error deleting player:', error);
@@ -202,8 +193,6 @@ export const deletePlayer = async (playerId) => {
 // ---------------------------------------------------------------------------
 export const searchPlayers = async (searchTerm, filters = {}) => {
   try {
-    // Note: Firestore doesn't support full-text search natively
-    // This is a simple implementation - for production, use Algolia or similar
     const allPlayers = await getAllPlayers(filters);
     
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -217,7 +206,7 @@ export const searchPlayers = async (searchTerm, filters = {}) => {
 };
 
 // ---------------------------------------------------------------------------
-// Get available players (not in auction, not sold)
+// Get available players
 // ---------------------------------------------------------------------------
 export const getAvailablePlayers = async (sport = null) => {
   try {
@@ -231,7 +220,7 @@ export const getAvailablePlayers = async (sport = null) => {
 };
 
 // ---------------------------------------------------------------------------
-// Player role definitions by sport
+// Get player roles by sport
 // ---------------------------------------------------------------------------
 export const getPlayerRolesBySport = (sport) => {
   const roles = {
@@ -250,7 +239,7 @@ export const getPlayerRolesBySport = (sport) => {
 };
 
 // ---------------------------------------------------------------------------
-// Get all supported sports
+// Get supported sports
 // ---------------------------------------------------------------------------
 export const getSupportedSports = () => {
   return [
@@ -267,76 +256,19 @@ export const getSupportedSports = () => {
 };
 
 // ---------------------------------------------------------------------------
-// Get default player stats template by sport
+// Get default stats by sport
 // ---------------------------------------------------------------------------
 export const getDefaultStatsBySport = (sport) => {
   const statsTemplates = {
-    IPL: {
-      matches: 0,
-      runs: 0,
-      wickets: 0,
-      catches: 0,
-      average: 0,
-      strikeRate: 0,
-      economy: 0,
-    },
-    PKL: {
-      matches: 0,
-      raids: 0,
-      tackles: 0,
-      points: 0,
-      successfulRaids: 0,
-      successfulTackles: 0,
-    },
-    ISL: {
-      matches: 0,
-      goals: 0,
-      assists: 0,
-      cleanSheets: 0,
-      yellowCards: 0,
-      redCards: 0,
-    },
-    HIL: {
-      matches: 0,
-      goals: 0,
-      assists: 0,
-      saves: 0,
-      penaltyCorners: 0,
-    },
-    PBL: {
-      matches: 0,
-      wins: 0,
-      losses: 0,
-      ranking: null,
-    },
-    UTT: {
-      matches: 0,
-      wins: 0,
-      losses: 0,
-      ranking: null,
-    },
-    PVL: {
-      matches: 0,
-      points: 0,
-      spikes: 0,
-      blocks: 0,
-      aces: 0,
-    },
-    IBL: {
-      matches: 0,
-      points: 0,
-      rebounds: 0,
-      assists: 0,
-      steals: 0,
-      blocks: 0,
-    },
-    PWL: {
-      matches: 0,
-      wins: 0,
-      losses: 0,
-      points: 0,
-      weightCategory: '',
-    },
+    IPL: { matches: 0, runs: 0, wickets: 0, catches: 0, average: 0, strikeRate: 0, economy: 0 },
+    PKL: { matches: 0, raids: 0, tackles: 0, points: 0, successfulRaids: 0, successfulTackles: 0 },
+    ISL: { matches: 0, goals: 0, assists: 0, cleanSheets: 0, yellowCards: 0, redCards: 0 },
+    HIL: { matches: 0, goals: 0, assists: 0, saves: 0, penaltyCorners: 0 },
+    PBL: { matches: 0, wins: 0, losses: 0, ranking: null },
+    UTT: { matches: 0, wins: 0, losses: 0, ranking: null },
+    PVL: { matches: 0, points: 0, spikes: 0, blocks: 0, aces: 0 },
+    IBL: { matches: 0, points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0 },
+    PWL: { matches: 0, wins: 0, losses: 0, points: 0, weightCategory: '' },
   };
 
   return statsTemplates[sport] || { matches: 0, points: 0 };
@@ -350,24 +282,23 @@ export const bulkImportPlayers = async (playersArray) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const promises = playersArray.map(async (playerData) => {
+    const playersRef = ref(database, 'players');
+    const results = [];
+
+    for (const playerData of playersArray) {
+      const newPlayerRef = push(playersRef);
       const player = {
+        id: newPlayerRef.key,
         ...playerData,
         createdBy: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: Date.now(),
         status: 'available',
       };
 
-      const playersRef = collection(firestore, 'players');
-      const docRef = await addDoc(playersRef, player);
+      await set(newPlayerRef, player);
+      results.push(player);
+    }
 
-      return {
-        id: docRef.id,
-        ...player,
-      };
-    });
-
-    const results = await Promise.all(promises);
     return {
       success: true,
       count: results.length,
@@ -380,7 +311,7 @@ export const bulkImportPlayers = async (playersArray) => {
 };
 
 // ---------------------------------------------------------------------------
-// Get player statistics summary
+// Get player catalogue stats
 // ---------------------------------------------------------------------------
 export const getPlayerCatalogueStats = async () => {
   try {
@@ -396,7 +327,6 @@ export const getPlayerCatalogueStats = async () => {
       byNationality: {},
     };
 
-    // Count by sport
     players.forEach(player => {
       stats.bySport[player.sport] = (stats.bySport[player.sport] || 0) + 1;
       stats.byRole[player.role] = (stats.byRole[player.role] || 0) + 1;
@@ -411,7 +341,7 @@ export const getPlayerCatalogueStats = async () => {
 };
 
 // ---------------------------------------------------------------------------
-// Generate sample players for testing
+// Generate sample players
 // ---------------------------------------------------------------------------
 export const generateSamplePlayers = (sport, count = 10) => {
   const roles = getPlayerRolesBySport(sport);
@@ -424,7 +354,7 @@ export const generateSamplePlayers = (sport, count = 10) => {
       sport,
       role: roles[Math.floor(Math.random() * roles.length)],
       nationality: nationalities[Math.floor(Math.random() * nationalities.length)],
-      basePrice: Math.floor(Math.random() * 10000000) + 1000000, // 1M to 11M
+      basePrice: Math.floor(Math.random() * 10000000) + 1000000,
       imageUrl: '',
       stats: getDefaultStatsBySport(sport),
       bio: `Professional ${sport} player with ${i} years of experience`,

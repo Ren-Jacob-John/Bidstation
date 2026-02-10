@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// client/src/services/authService.js   (Firebase version)
+// client/src/services/authService.js - Authentication with Realtime Database
 // ---------------------------------------------------------------------------
 import {
   createUserWithEmailAndPassword,
@@ -8,185 +8,233 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   applyActionCode,
-  onAuthStateChanged,
   updatePassword,
-  reauthenticateWithCredential,
   EmailAuthProvider,
+  reauthenticateWithCredential,
 } from 'firebase/auth';
-
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-} from 'firebase/firestore';
-
-import { fireAuth, firestore } from '../firebase/firebase.config';
+import { ref, set, get, update } from 'firebase/database';
+import { fireAuth, database } from '../firebase/firebase.config';
 
 // ---------------------------------------------------------------------------
-// helpers
+// Register a new user
 // ---------------------------------------------------------------------------
-const usersCol = (uid) => doc(firestore, 'users', uid);
+export const registerUser = async (email, password, username, role = 'bidder') => {
+  try {
+    // Create Firebase Auth user
+    const userCredential = await createUserWithEmailAndPassword(fireAuth, email, password);
+    const user = userCredential.user;
 
-// ---------------------------------------------------------------------------
-// REGISTER  –  creates Firebase Auth user + writes profile to Firestore
-// ---------------------------------------------------------------------------
-export const registerUser = async ({ username, email, password, role }) => {
-  // 1. Create the Auth account (Firebase sends a verification email
-  //    automatically if we call sendVerificationEmail right after)
-  const { user } = await createUserWithEmailAndPassword(fireAuth, email, password);
+    // Create user profile in Realtime Database
+    const userRef = ref(database, `users/${user.uid}`);
+    await set(userRef, {
+      uid: user.uid,
+      username: username,
+      email: email,
+      role: role,
+      emailVerified: false,
+      createdAt: Date.now(),
+    });
 
-  // 2. Write the extra profile fields into Firestore  users/{uid}
-  await setDoc(usersCol(user.uid), {
-    uid:           user.uid,
-    username,
-    email,
-    role:          role || 'bidder',
-    emailVerified: false,
-    createdAt:     new Date(),
-  });
+    // Send verification email
+    await sendEmailVerification(user);
 
-  // 3. Kick off verification email (non-blocking – never crashes registration)
-  sendEmailVerification(user).catch(() => {});
-
-  return {
-    user: {
-      id:            user.uid,
-      username,
-      email,
-      role:          role || 'bidder',
-      emailVerified: user.emailVerified,
-    },
-  };
+    return {
+      uid: user.uid,
+      email: user.email,
+      username: username,
+      role: role,
+      emailVerified: false,
+    };
+  } catch (error) {
+    console.error('Error registering user:', error);
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------
-// LOGIN
+// Login user
 // ---------------------------------------------------------------------------
 export const loginUser = async (email, password) => {
-  const { user } = await signInWithEmailAndPassword(fireAuth, email, password);
+  try {
+    const userCredential = await signInWithEmailAndPassword(fireAuth, email, password);
+    const user = userCredential.user;
 
-  // Pull the extra profile data from Firestore
-  const snap = await getDoc(usersCol(user.uid));
-  const profile = snap.exists() ? snap.data() : {};
+    // Get user profile from Realtime Database
+    const userRef = ref(database, `users/${user.uid}`);
+    const snapshot = await get(userRef);
 
-  // Keep Firestore's emailVerified in sync with Firebase Auth
-  if (user.emailVerified && !profile.emailVerified) {
-    await updateDoc(usersCol(user.uid), { emailVerified: true });
+    if (snapshot.exists()) {
+      return {
+        uid: user.uid,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        ...snapshot.val(),
+      };
+    } else {
+      throw new Error('User profile not found');
+    }
+  } catch (error) {
+    console.error('Error logging in:', error);
+    throw error;
   }
-
-  return {
-    user: {
-      id:            user.uid,
-      username:      profile.username || '',
-      email:         user.email,
-      role:          profile.role || 'bidder',
-      emailVerified: user.emailVerified,
-    },
-  };
 };
 
 // ---------------------------------------------------------------------------
-// LOGOUT
+// Logout user
 // ---------------------------------------------------------------------------
-export const logoutUser = () => signOut(fireAuth);
+export const logoutUser = async () => {
+  try {
+    await signOut(fireAuth);
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw error;
+  }
+};
 
 // ---------------------------------------------------------------------------
-// GET CURRENT USER  –  reads Firestore profile for the signed-in user
+// Get current user profile
 // ---------------------------------------------------------------------------
 export const getCurrentUser = async () => {
-  const user = fireAuth.currentUser;
-  if (!user) return null;
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) return null;
 
-  const snap = await getDoc(usersCol(user.uid));
-  const profile = snap.exists() ? snap.data() : {};
+    const userRef = ref(database, `users/${user.uid}`);
+    const snapshot = await get(userRef);
 
-  return {
-    id:            user.uid,
-    username:      profile.username || '',
-    email:         user.email,
-    role:          profile.role || 'bidder',
-    emailVerified: user.emailVerified,
-  };
+    if (snapshot.exists()) {
+      return {
+        uid: user.uid,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        ...snapshot.val(),
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------
-// LISTEN to auth-state changes  (used by AuthContext)
-// ---------------------------------------------------------------------------
-export const onAuthChange = (callback) => onAuthStateChanged(fireAuth, callback);
-
-// ---------------------------------------------------------------------------
-// SEND verification email  (resend)
+// Resend verification email
 // ---------------------------------------------------------------------------
 export const resendVerification = async () => {
-  const user = fireAuth.currentUser;
-  if (!user) throw new Error('Not logged in');
-  if (user.emailVerified) throw new Error('Email already verified');
-  await sendEmailVerification(user);
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) throw new Error('No user logged in');
+
+    await sendEmailVerification(user);
+    return { success: true };
+  } catch (error) {
+    console.error('Error resending verification:', error);
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------
-// VERIFY email via action code  (the ?oobCode= from the link)
+// Verify email with action code
 // ---------------------------------------------------------------------------
 export const verifyEmail = async (actionCode) => {
-  await applyActionCode(fireAuth, actionCode);
+  try {
+    // Apply the action code
+    await applyActionCode(fireAuth, actionCode);
 
-  // Refresh the token so .emailVerified updates immediately
-  const user = fireAuth.currentUser;
-  if (user) {
-    await user.reload();
-    // Sync flag to Firestore
-    await updateDoc(usersCol(user.uid), { emailVerified: true });
+    // Reload the user to get updated emailVerified status
+    await fireAuth.currentUser.reload();
+
+    // Update emailVerified in Realtime Database
+    const user = fireAuth.currentUser;
+    if (user) {
+      const userRef = ref(database, `users/${user.uid}`);
+      await update(userRef, {
+        emailVerified: true,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    throw error;
   }
 };
 
 // ---------------------------------------------------------------------------
-// FORGOT PASSWORD  –  Firebase sends the reset email for us
+// Send password reset email
 // ---------------------------------------------------------------------------
-export const forgotPassword = (email) => sendPasswordResetEmail(fireAuth, email);
+export const forgotPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(fireAuth, email);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw error;
+  }
+};
 
 // ---------------------------------------------------------------------------
-// RESET PASSWORD via action code  (the ?oobCode= from the reset link)
+// Reset password with action code
 // ---------------------------------------------------------------------------
 export const resetPassword = async (actionCode, newPassword) => {
-  // 1. Apply the action code to authorise the reset
-  await applyActionCode(fireAuth, actionCode);
+  try {
+    // Verify the action code is valid
+    await applyActionCode(fireAuth, actionCode);
 
-  // 2. Re-sign in so we have an active session to call updatePassword
-  //    (Firebase requires a recent auth – applyActionCode gives us that)
-  const user = fireAuth.currentUser;
-  if (user) {
-    await updatePassword(user, newPassword);
-  } else {
-    // Edge-case: user session expired; tell them to log in and change pw there
-    throw new Error(
-      'Session expired. Please log in with your new password directly.'
-    );
+    // Get the user's email from the action code
+    const email = fireAuth.currentUser?.email;
+
+    // Update the password
+    if (fireAuth.currentUser) {
+      await updatePassword(fireAuth.currentUser, newPassword);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    throw error;
   }
 };
 
 // ---------------------------------------------------------------------------
-// CHANGE PASSWORD  (from profile page – requires recent login)
+// Change password (requires re-authentication)
 // ---------------------------------------------------------------------------
 export const changePassword = async (currentPassword, newPassword) => {
-  const user = fireAuth.currentUser;
-  if (!user) throw new Error('Not logged in');
+  try {
+    const user = fireAuth.currentUser;
+    if (!user || !user.email) throw new Error('No user logged in');
 
-  // Re-authenticate first (Firebase security requirement)
-  const credential = EmailAuthProvider.credential(user.email, currentPassword);
-  await reauthenticateWithCredential(user, credential);
+    // Re-authenticate user
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
 
-  // Then update
-  await updatePassword(user, newPassword);
+    // Update password
+    await updatePassword(user, newPassword);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error changing password:', error);
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------
-// UPDATE PROFILE (username / role)
+// Update user profile
 // ---------------------------------------------------------------------------
 export const updateProfile = async (updates) => {
-  const user = fireAuth.currentUser;
-  if (!user) throw new Error('Not logged in');
-  await updateDoc(usersCol(user.uid), updates);
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) throw new Error('No user logged in');
+
+    const userRef = ref(database, `users/${user.uid}`);
+    await update(userRef, updates);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
 };
 
 export default {
@@ -194,7 +242,6 @@ export default {
   loginUser,
   logoutUser,
   getCurrentUser,
-  onAuthChange,
   resendVerification,
   verifyEmail,
   forgotPassword,

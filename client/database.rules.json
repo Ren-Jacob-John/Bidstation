@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "auctions": {
+      ".read": "auth != null",
+      "$auctionId": {
+        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid)",
+        "players": {
+          "$playerId": {
+            ".read": "auth != null",
+            ".write": "auth != null && root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid"
+          }
+        }
+      }
+    },
+    "bids": {
+      "$auctionId": {
+        ".read": "auth != null",
+        "$bidId": {
+          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid)"
+        }
+      }
+    },
+    "players": {
+      ".read": true,
+      "$playerId": {
+        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid)"
+      }
+    }
+  }
+}

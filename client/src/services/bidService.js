@@ -1,24 +1,23 @@
 // ---------------------------------------------------------------------------
-// client/src/services/bidService.js - Firestore Bid Operations
+// client/src/services/bidService.js - Realtime Database Bid Operations
 // ---------------------------------------------------------------------------
 import { 
-  collection, 
-  doc, 
-  getDoc,
-  getDocs, 
-  addDoc, 
-  updateDoc,
+  ref, 
+  push,
+  set,
+  get,
+  update,
   query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp,
-  runTransaction
-} from 'firebase/firestore';
-import { firestore, fireAuth } from '../firebase/firebase.config';
+  orderByChild,
+  equalTo,
+  runTransaction,
+  onValue,
+  off
+} from 'firebase/database';
+import { database, fireAuth } from '../firebase/firebase.config';
 
 // ---------------------------------------------------------------------------
-// Place a bid on a player
+// Place a bid on a player (with transaction for atomicity)
 // ---------------------------------------------------------------------------
 export const placeBid = async (auctionId, playerId, bidAmount) => {
   try {
@@ -26,72 +25,76 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     if (!user) throw new Error('User not authenticated');
 
     // Get user profile for bidder name
-    const userRef = doc(firestore, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
-    const bidderName = userDoc.data()?.username || user.email;
+    const userRef = ref(database, `users/${user.uid}`);
+    const userSnapshot = await get(userRef);
+    const bidderName = userSnapshot.val()?.username || user.email;
 
     // Use transaction to ensure atomic updates
-    const bidData = await runTransaction(firestore, async (transaction) => {
-      // Get current player data
-      const playerRef = doc(firestore, 'auctions', auctionId, 'players', playerId);
-      const playerDoc = await transaction.get(playerRef);
+    const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
+    
+    let newBid = null;
 
-      if (!playerDoc.exists()) {
+    await runTransaction(playerRef, (player) => {
+      if (player === null) {
         throw new Error('Player not found');
       }
 
-      const playerData = playerDoc.data();
-      const currentBid = playerData.currentBid || playerData.basePrice;
+      const currentBid = player.currentBid || player.basePrice;
 
       // Validate bid amount
       if (bidAmount <= currentBid) {
         throw new Error(`Bid must be higher than current bid of ₹${currentBid.toLocaleString()}`);
       }
 
-      // Create bid document
-      const bidsRef = collection(firestore, 'auctions', auctionId, 'bids');
-      const newBidRef = doc(bidsRef);
+      // Update player data
+      player.currentBid = bidAmount;
+      player.currentBidderId = user.uid;
+      player.currentBidderName = bidderName;
+      player.lastBidAt = Date.now();
 
-      const bid = {
-        id: newBidRef.id,
-        auctionId,
-        playerId,
-        playerName: playerData.name,
-        bidderId: user.uid,
-        bidderName,
-        amount: bidAmount,
-        timestamp: serverTimestamp(),
-        status: 'active', // active, outbid, won, lost
-      };
+      return player;
+    });
 
-      transaction.set(newBidRef, bid);
+    // Create bid record
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const newBidRef = push(bidsRef);
 
-      // Update player's current bid
-      transaction.update(playerRef, {
-        currentBid: bidAmount,
-        currentBidderId: user.uid,
-        currentBidderName: bidderName,
-        lastBidAt: serverTimestamp(),
-      });
+    const playerSnapshot = await get(playerRef);
+    const playerData = playerSnapshot.val();
 
-      // Mark previous bids as outbid
-      const previousBidsRef = query(
-        collection(firestore, 'auctions', auctionId, 'bids'),
-        where('playerId', '==', playerId),
-        where('status', '==', 'active')
-      );
-      const previousBidsSnapshot = await getDocs(previousBidsRef);
-      
-      previousBidsSnapshot.forEach((doc) => {
-        if (doc.id !== newBidRef.id) {
-          transaction.update(doc.ref, { status: 'outbid' });
+    newBid = {
+      id: newBidRef.key,
+      auctionId,
+      playerId,
+      playerName: playerData.name,
+      bidderId: user.uid,
+      bidderName,
+      amount: bidAmount,
+      timestamp: Date.now(),
+      status: 'active',
+    };
+
+    await set(newBidRef, newBid);
+
+    // Mark previous active bids for this player as outbid
+    const allBidsRef = ref(database, `bids/${auctionId}`);
+    const allBidsSnapshot = await get(allBidsRef);
+
+    if (allBidsSnapshot.exists()) {
+      const updates = {};
+      allBidsSnapshot.forEach((bidSnapshot) => {
+        const bid = bidSnapshot.val();
+        if (bid.playerId === playerId && bid.status === 'active' && bid.id !== newBid.id) {
+          updates[`${bidSnapshot.key}/status`] = 'outbid';
         }
       });
 
-      return bid;
-    });
+      if (Object.keys(updates).length > 0) {
+        await update(allBidsRef, updates);
+      }
+    }
 
-    return bidData;
+    return newBid;
   } catch (error) {
     console.error('Error placing bid:', error);
     throw error;
@@ -103,42 +106,39 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
 // ---------------------------------------------------------------------------
 export const getAuctionBids = async (auctionId, options = {}) => {
   try {
-    const bidsRef = collection(firestore, 'auctions', auctionId, 'bids');
-    let q = query(bidsRef);
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const snapshot = await get(bidsRef);
 
-    // Filter by player if specified
-    if (options.playerId) {
-      q = query(q, where('playerId', '==', options.playerId));
+    if (!snapshot.exists()) {
+      return [];
     }
 
-    // Filter by bidder if specified
-    if (options.bidderId) {
-      q = query(q, where('bidderId', '==', options.bidderId));
-    }
-
-    // Filter by status if specified
-    if (options.status) {
-      q = query(q, where('status', '==', options.status));
-    }
-
-    // Order by timestamp (newest first)
-    q = query(q, orderBy('timestamp', 'desc'));
-
-    // Apply limit if specified
-    if (options.limit) {
-      q = query(q, limit(options.limit));
-    }
-
-    const snapshot = await getDocs(q);
-    const bids = [];
-
-    snapshot.forEach((doc) => {
+    let bids = [];
+    snapshot.forEach((childSnapshot) => {
       bids.push({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
+        id: childSnapshot.key,
+        ...childSnapshot.val(),
       });
     });
+
+    // Apply filters
+    if (options.playerId) {
+      bids = bids.filter(b => b.playerId === options.playerId);
+    }
+    if (options.bidderId) {
+      bids = bids.filter(b => b.bidderId === options.bidderId);
+    }
+    if (options.status) {
+      bids = bids.filter(b => b.status === options.status);
+    }
+
+    // Sort by timestamp (newest first)
+    bids.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Apply limit
+    if (options.limit) {
+      bids = bids.slice(0, options.limit);
+    }
 
     return bids;
   } catch (error) {
@@ -167,41 +167,45 @@ export const getMyBids = async () => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    // Get all auctions
-    const auctionsRef = collection(firestore, 'auctions');
-    const auctionsSnapshot = await getDocs(auctionsRef);
+    const allBidsRef = ref(database, 'bids');
+    const snapshot = await get(allBidsRef);
+
+    if (!snapshot.exists()) {
+      return [];
+    }
 
     const allBids = [];
 
-    // For each auction, get user's bids
-    for (const auctionDoc of auctionsSnapshot.docs) {
-      const auctionId = auctionDoc.id;
-      const bidsRef = collection(firestore, 'auctions', auctionId, 'bids');
-      const q = query(
-        bidsRef,
-        where('bidderId', '==', user.uid),
-        orderBy('timestamp', 'desc')
-      );
+    snapshot.forEach((auctionSnapshot) => {
+      const auctionId = auctionSnapshot.key;
       
-      const bidsSnapshot = await getDocs(q);
-      
-      bidsSnapshot.forEach((bidDoc) => {
-        allBids.push({
-          id: bidDoc.id,
-          auctionId,
-          auctionTitle: auctionDoc.data().title,
-          ...bidDoc.data(),
-          timestamp: bidDoc.data().timestamp?.toDate(),
-        });
+      auctionSnapshot.forEach((bidSnapshot) => {
+        const bid = bidSnapshot.val();
+        if (bid.bidderId === user.uid) {
+          allBids.push({
+            id: bidSnapshot.key,
+            auctionId,
+            ...bid,
+          });
+        }
+      });
+    });
+
+    // Sort by timestamp (newest first)
+    allBids.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Get auction titles
+    const auctionsRef = ref(database, 'auctions');
+    const auctionsSnapshot = await get(auctionsRef);
+    
+    if (auctionsSnapshot.exists()) {
+      allBids.forEach(bid => {
+        const auction = auctionsSnapshot.child(bid.auctionId).val();
+        if (auction) {
+          bid.auctionTitle = auction.title;
+        }
       });
     }
-
-    // Sort all bids by timestamp
-    allBids.sort((a, b) => {
-      const timeA = a.timestamp?.getTime() || 0;
-      const timeB = b.timestamp?.getTime() || 0;
-      return timeB - timeA;
-    });
 
     return allBids;
   } catch (error) {
@@ -211,7 +215,7 @@ export const getMyBids = async () => {
 };
 
 // ---------------------------------------------------------------------------
-// Get active bids by current user (bids they're currently winning)
+// Get active bids by current user
 // ---------------------------------------------------------------------------
 export const getMyActiveBids = async () => {
   try {
@@ -237,12 +241,12 @@ export const getMyWinningBids = async () => {
 };
 
 // ---------------------------------------------------------------------------
-// Update bid status (used when auction ends)
+// Update bid status
 // ---------------------------------------------------------------------------
 export const updateBidStatus = async (auctionId, bidId, status) => {
   try {
-    const bidRef = doc(firestore, 'auctions', auctionId, 'bids', bidId);
-    await updateDoc(bidRef, { status });
+    const bidRef = ref(database, `bids/${auctionId}/${bidId}`);
+    await update(bidRef, { status });
     return { success: true };
   } catch (error) {
     console.error('Error updating bid status:', error);
@@ -251,41 +255,50 @@ export const updateBidStatus = async (auctionId, bidId, status) => {
 };
 
 // ---------------------------------------------------------------------------
-// Mark winning bids when auction ends
+// Finalize auction bids
 // ---------------------------------------------------------------------------
 export const finalizeAuctionBids = async (auctionId) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    // Get auction to verify ownership
-    const auctionRef = doc(firestore, 'auctions', auctionId);
-    const auctionDoc = await getDoc(auctionRef);
+    // Verify ownership
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnapshot = await get(auctionRef);
 
-    if (!auctionDoc.exists()) {
+    if (!auctionSnapshot.exists()) {
       throw new Error('Auction not found');
     }
-    if (auctionDoc.data().createdBy !== user.uid) {
+
+    const auction = auctionSnapshot.val();
+    if (auction.createdBy !== user.uid) {
       throw new Error('Unauthorized: Only auction creator can finalize bids');
     }
 
-    // Get all active bids
-    const activeBids = await getAuctionBids(auctionId, { status: 'active' });
+    // Get all bids
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const bidsSnapshot = await get(bidsRef);
 
-    // Mark active bids as won
-    const updatePromises = activeBids.map(bid => 
-      updateBidStatus(auctionId, bid.id, 'won')
-    );
+    if (!bidsSnapshot.exists()) {
+      return { success: true, winningBids: 0 };
+    }
 
-    // Mark all other bids as lost
-    const allBids = await getAuctionBids(auctionId);
-    const lostBidPromises = allBids
-      .filter(bid => bid.status === 'outbid')
-      .map(bid => updateBidStatus(auctionId, bid.id, 'lost'));
+    const updates = {};
+    let winningCount = 0;
 
-    await Promise.all([...updatePromises, ...lostBidPromises]);
+    bidsSnapshot.forEach((bidSnapshot) => {
+      const bid = bidSnapshot.val();
+      if (bid.status === 'active') {
+        updates[`${bidSnapshot.key}/status`] = 'won';
+        winningCount++;
+      } else if (bid.status === 'outbid') {
+        updates[`${bidSnapshot.key}/status`] = 'lost';
+      }
+    });
 
-    return { success: true, winningBids: activeBids.length };
+    await update(bidsRef, updates);
+
+    return { success: true, winningBids: winningCount };
   } catch (error) {
     console.error('Error finalizing auction bids:', error);
     throw error;
@@ -300,9 +313,24 @@ export const getUserBidStats = async (userId = null) => {
     const targetUserId = userId || fireAuth.currentUser?.uid;
     if (!targetUserId) throw new Error('User not authenticated');
 
-    const allBids = userId ? 
-      await getAuctionBids(null, { bidderId: userId }) : 
-      await getMyBids();
+    const allBids = userId ? [] : await getMyBids();
+    
+    // If getting stats for another user, fetch their bids
+    if (userId) {
+      const allBidsRef = ref(database, 'bids');
+      const snapshot = await get(allBidsRef);
+
+      if (snapshot.exists()) {
+        snapshot.forEach((auctionSnapshot) => {
+          auctionSnapshot.forEach((bidSnapshot) => {
+            const bid = bidSnapshot.val();
+            if (bid.bidderId === userId) {
+              allBids.push(bid);
+            }
+          });
+        });
+      }
+    }
 
     const stats = {
       totalBids: allBids.length,
@@ -331,17 +359,13 @@ export const hasActiveBidOnPlayer = async (auctionId, playerId) => {
     const user = fireAuth.currentUser;
     if (!user) return false;
 
-    const bidsRef = collection(firestore, 'auctions', auctionId, 'bids');
-    const q = query(
-      bidsRef,
-      where('playerId', '==', playerId),
-      where('bidderId', '==', user.uid),
-      where('status', '==', 'active'),
-      limit(1)
-    );
+    const bids = await getAuctionBids(auctionId, { 
+      playerId,
+      bidderId: user.uid,
+      status: 'active'
+    });
 
-    const snapshot = await getDocs(q);
-    return !snapshot.empty;
+    return bids.length > 0;
   } catch (error) {
     console.error('Error checking active bid:', error);
     return false;
@@ -367,7 +391,7 @@ export const getHighestBid = async (auctionId, playerId) => {
 };
 
 // ---------------------------------------------------------------------------
-// Get leaderboard (top bidders by amount or count)
+// Get leaderboard
 // ---------------------------------------------------------------------------
 export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
   try {
@@ -410,6 +434,28 @@ export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Listen to auction bids (real-time)
+// ---------------------------------------------------------------------------
+export const listenToAuctionBids = (auctionId, callback) => {
+  const bidsRef = ref(database, `bids/${auctionId}`);
+  
+  const unsubscribe = onValue(bidsRef, (snapshot) => {
+    const bids = [];
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        bids.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val(),
+        });
+      });
+    }
+    callback(bids);
+  });
+
+  return () => off(bidsRef);
+};
+
 export default {
   placeBid,
   getAuctionBids,
@@ -423,4 +469,5 @@ export default {
   hasActiveBidOnPlayer,
   getHighestBid,
   getBidLeaderboard,
+  listenToAuctionBids,
 };

@@ -1,22 +1,21 @@
 // ---------------------------------------------------------------------------
-// client/src/services/auctionService.js - Firestore Auction Operations
+// client/src/services/auctionService.js - Realtime Database Auction Operations
 // ---------------------------------------------------------------------------
 import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc,
+  ref, 
+  push, 
+  set, 
+  get, 
+  update, 
+  remove,
   query,
-  where,
-  orderBy,
-  limit,
-  Timestamp,
-  serverTimestamp
-} from 'firebase/firestore';
-import { firestore, fireAuth } from '../firebase/firebase.config';
+  orderByChild,
+  equalTo,
+  limitToLast,
+  onValue,
+  off
+} from 'firebase/database';
+import { database, fireAuth } from '../firebase/firebase.config';
 
 // ---------------------------------------------------------------------------
 // Create a new auction
@@ -26,24 +25,23 @@ export const createAuction = async (auctionData) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
+    const auctionsRef = ref(database, 'auctions');
+    const newAuctionRef = push(auctionsRef);
+
     const auction = {
+      id: newAuctionRef.key,
       ...auctionData,
       createdBy: user.uid,
-      createdAt: serverTimestamp(),
-      status: 'upcoming', // upcoming, live, completed
+      createdAt: Date.now(),
+      status: 'upcoming',
       playerCount: auctionData.players?.length || 0,
       totalBudget: auctionData.totalBudget || 0,
-      startDate: Timestamp.fromDate(new Date(auctionData.startDate)),
-      endDate: Timestamp.fromDate(new Date(auctionData.endDate)),
+      startDate: new Date(auctionData.startDate).getTime(),
+      endDate: new Date(auctionData.endDate).getTime(),
     };
 
-    const auctionsRef = collection(firestore, 'auctions');
-    const docRef = await addDoc(auctionsRef, auction);
-
-    return {
-      id: docRef.id,
-      ...auction,
-    };
+    await set(newAuctionRef, auction);
+    return auction;
   } catch (error) {
     console.error('Error creating auction:', error);
     throw error;
@@ -55,20 +53,14 @@ export const createAuction = async (auctionData) => {
 // ---------------------------------------------------------------------------
 export const getAuction = async (auctionId) => {
   try {
-    const auctionRef = doc(firestore, 'auctions', auctionId);
-    const auctionDoc = await getDoc(auctionRef);
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const snapshot = await get(auctionRef);
 
-    if (!auctionDoc.exists()) {
+    if (!snapshot.exists()) {
       throw new Error('Auction not found');
     }
 
-    return {
-      id: auctionDoc.id,
-      ...auctionDoc.data(),
-      startDate: auctionDoc.data().startDate?.toDate(),
-      endDate: auctionDoc.data().endDate?.toDate(),
-      createdAt: auctionDoc.data().createdAt?.toDate(),
-    };
+    return snapshot.val();
   } catch (error) {
     console.error('Error getting auction:', error);
     throw error;
@@ -80,40 +72,39 @@ export const getAuction = async (auctionId) => {
 // ---------------------------------------------------------------------------
 export const getAllAuctions = async (filters = {}) => {
   try {
-    const auctionsRef = collection(firestore, 'auctions');
-    let q = query(auctionsRef);
+    const auctionsRef = ref(database, 'auctions');
+    const snapshot = await get(auctionsRef);
 
-    // Apply filters
-    if (filters.status) {
-      q = query(q, where('status', '==', filters.status));
-    }
-    if (filters.sport) {
-      q = query(q, where('sport', '==', filters.sport));
-    }
-    if (filters.createdBy) {
-      q = query(q, where('createdBy', '==', filters.createdBy));
+    if (!snapshot.exists()) {
+      return [];
     }
 
-    // Order by start date (newest first)
-    q = query(q, orderBy('startDate', 'desc'));
-
-    // Apply limit if specified
-    if (filters.limit) {
-      q = query(q, limit(filters.limit));
-    }
-
-    const snapshot = await getDocs(q);
-    const auctions = [];
-
-    snapshot.forEach((doc) => {
+    let auctions = [];
+    snapshot.forEach((childSnapshot) => {
       auctions.push({
-        id: doc.id,
-        ...doc.data(),
-        startDate: doc.data().startDate?.toDate(),
-        endDate: doc.data().endDate?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
+        id: childSnapshot.key,
+        ...childSnapshot.val(),
       });
     });
+
+    // Apply client-side filters
+    if (filters.status) {
+      auctions = auctions.filter(a => a.status === filters.status);
+    }
+    if (filters.sport) {
+      auctions = auctions.filter(a => a.sport === filters.sport);
+    }
+    if (filters.createdBy) {
+      auctions = auctions.filter(a => a.createdBy === filters.createdBy);
+    }
+
+    // Sort by start date (newest first)
+    auctions.sort((a, b) => b.startDate - a.startDate);
+
+    // Apply limit
+    if (filters.limit) {
+      auctions = auctions.slice(0, filters.limit);
+    }
 
     return auctions;
   } catch (error) {
@@ -157,31 +148,32 @@ export const updateAuction = async (auctionId, updates) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const auctionRef = doc(firestore, 'auctions', auctionId);
-    
-    // Verify ownership
-    const auctionDoc = await getDoc(auctionRef);
-    if (!auctionDoc.exists()) {
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const snapshot = await get(auctionRef);
+
+    if (!snapshot.exists()) {
       throw new Error('Auction not found');
     }
-    if (auctionDoc.data().createdBy !== user.uid) {
+
+    const auction = snapshot.val();
+    if (auction.createdBy !== user.uid) {
       throw new Error('Unauthorized: You can only update your own auctions');
     }
 
     // Convert dates if present
     const updateData = { ...updates };
     if (updates.startDate) {
-      updateData.startDate = Timestamp.fromDate(new Date(updates.startDate));
+      updateData.startDate = new Date(updates.startDate).getTime();
     }
     if (updates.endDate) {
-      updateData.endDate = Timestamp.fromDate(new Date(updates.endDate));
+      updateData.endDate = new Date(updates.endDate).getTime();
     }
 
-    await updateDoc(auctionRef, updateData);
+    await update(auctionRef, updateData);
 
     return {
       id: auctionId,
-      ...auctionDoc.data(),
+      ...auction,
       ...updateData,
     };
   } catch (error) {
@@ -203,7 +195,7 @@ export const updateAuctionStatus = async (auctionId, status) => {
 };
 
 // ---------------------------------------------------------------------------
-// Start an auction (change status to live)
+// Start an auction
 // ---------------------------------------------------------------------------
 export const startAuction = async (auctionId) => {
   try {
@@ -215,7 +207,7 @@ export const startAuction = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
-// End an auction (change status to completed)
+// End an auction
 // ---------------------------------------------------------------------------
 export const endAuction = async (auctionId) => {
   try {
@@ -234,18 +226,19 @@ export const deleteAuction = async (auctionId) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const auctionRef = doc(firestore, 'auctions', auctionId);
-    
-    // Verify ownership
-    const auctionDoc = await getDoc(auctionRef);
-    if (!auctionDoc.exists()) {
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const snapshot = await get(auctionRef);
+
+    if (!snapshot.exists()) {
       throw new Error('Auction not found');
     }
-    if (auctionDoc.data().createdBy !== user.uid) {
+
+    const auction = snapshot.val();
+    if (auction.createdBy !== user.uid) {
       throw new Error('Unauthorized: You can only delete your own auctions');
     }
 
-    await deleteDoc(auctionRef);
+    await remove(auctionRef);
     return { success: true };
   } catch (error) {
     console.error('Error deleting auction:', error);
@@ -261,28 +254,27 @@ export const addPlayerToAuction = async (auctionId, playerData) => {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    const auctionRef = doc(firestore, 'auctions', auctionId);
-    const playersRef = collection(auctionRef, 'players');
+    const playersRef = ref(database, `auctions/${auctionId}/players`);
+    const newPlayerRef = push(playersRef);
 
     const player = {
+      id: newPlayerRef.key,
       ...playerData,
-      addedAt: serverTimestamp(),
+      addedAt: Date.now(),
       addedBy: user.uid,
       currentBid: playerData.basePrice,
-      status: 'available', // available, sold, unsold
+      status: 'available',
     };
 
-    const docRef = await addDoc(playersRef, player);
+    await set(newPlayerRef, player);
 
     // Update player count in auction
-    const auctionDoc = await getDoc(auctionRef);
-    const currentCount = auctionDoc.data().playerCount || 0;
-    await updateDoc(auctionRef, { playerCount: currentCount + 1 });
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnapshot = await get(auctionRef);
+    const currentCount = auctionSnapshot.val()?.playerCount || 0;
+    await update(auctionRef, { playerCount: currentCount + 1 });
 
-    return {
-      id: docRef.id,
-      ...player,
-    };
+    return player;
   } catch (error) {
     console.error('Error adding player to auction:', error);
     throw error;
@@ -294,15 +286,18 @@ export const addPlayerToAuction = async (auctionId, playerData) => {
 // ---------------------------------------------------------------------------
 export const getAuctionPlayers = async (auctionId) => {
   try {
-    const playersRef = collection(firestore, 'auctions', auctionId, 'players');
-    const snapshot = await getDocs(playersRef);
-    const players = [];
+    const playersRef = ref(database, `auctions/${auctionId}/players`);
+    const snapshot = await get(playersRef);
 
-    snapshot.forEach((doc) => {
+    if (!snapshot.exists()) {
+      return [];
+    }
+
+    const players = [];
+    snapshot.forEach((childSnapshot) => {
       players.push({
-        id: doc.id,
-        ...doc.data(),
-        addedAt: doc.data().addedAt?.toDate(),
+        id: childSnapshot.key,
+        ...childSnapshot.val(),
       });
     });
 
@@ -314,12 +309,10 @@ export const getAuctionPlayers = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
-// Search auctions by title or sport
+// Search auctions
 // ---------------------------------------------------------------------------
 export const searchAuctions = async (searchTerm) => {
   try {
-    // Note: Firestore doesn't support full-text search natively
-    // This is a simple implementation - for production, use Algolia or similar
     const allAuctions = await getAllAuctions();
     
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -343,10 +336,15 @@ export const getAuctionStats = async (auctionId) => {
   try {
     const auction = await getAuction(auctionId);
     const players = await getAuctionPlayers(auctionId);
-    const bidsRef = collection(firestore, 'auctions', auctionId, 'bids');
-    const bidsSnapshot = await getDocs(bidsRef);
+    
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const bidsSnapshot = await get(bidsRef);
 
-    const totalBids = bidsSnapshot.size;
+    let totalBids = 0;
+    if (bidsSnapshot.exists()) {
+      bidsSnapshot.forEach(() => totalBids++);
+    }
+
     const soldPlayers = players.filter(p => p.status === 'sold').length;
     const unsoldPlayers = players.filter(p => p.status === 'unsold').length;
     const totalRevenue = players
@@ -367,6 +365,22 @@ export const getAuctionStats = async (auctionId) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Listen to auction updates (real-time)
+// ---------------------------------------------------------------------------
+export const listenToAuction = (auctionId, callback) => {
+  const auctionRef = ref(database, `auctions/${auctionId}`);
+  
+  const unsubscribe = onValue(auctionRef, (snapshot) => {
+    if (snapshot.exists()) {
+      callback(snapshot.val());
+    }
+  });
+
+  // Return unsubscribe function
+  return () => off(auctionRef);
+};
+
 export default {
   createAuction,
   getAuction,
@@ -382,4 +396,5 @@ export default {
   getAuctionPlayers,
   searchAuctions,
   getAuctionStats,
+  listenToAuction,
 };

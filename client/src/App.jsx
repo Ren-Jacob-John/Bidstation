@@ -1,148 +1,98 @@
-import { Routes, Route } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "./context/AuthContext";
-import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import ProtectedRoute, { PublicRoute } from "./components/ProtectedRoute";
+// ---------------------------------------------------------------------------
+// client/src/App.jsx   (Firebase version)
+// ---------------------------------------------------------------------------
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 
-// Pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import VerifyEmail from "./pages/VerifyEmail";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import JoinAuction from "./pages/JoinAuction";
-import CreateAuction from "./pages/CreateAuction";
-import Auction from "./pages/Auction";
-import SportsAuctionSetup from "./pages/SportsAuctionSetup";
-import LiveSportsAuction from "./pages/LiveSportsAuction";
-import CreateSportsAuction from "./pages/CreateSportsAuction";
-import BidWinning from "./pages/BidWinning";
+// ── pages ──────────────────────────────────────────────────────────────────
+import Home             from './pages/Home';
+import Login            from './pages/Login';
+import Register         from './pages/Register';
+import Dashboard        from './pages/Dashboard';
+import CreateAuction    from './pages/CreateAuction';
+import LiveAuction      from './pages/LiveAuction';
+import AuctionDetails   from './pages/AuctionDetails';
+import AuctionList      from './pages/AuctionList';
+import MyBids           from './pages/MyBids';
+import MyAuctions       from './pages/MyAuctions';
+import Profile          from './pages/Profile';
+import VerifyEmail      from './pages/VerifyEmail';
+import ForgotPassword   from './pages/ForgotPassword';
+import ResetPassword    from './pages/ResetPassword';
 
-// Theme-aware Toaster component
-const ThemeAwareToaster = () => {
-  const { theme } = useTheme();
+// ── shared ─────────────────────────────────────────────────────────────────
+import Navbar           from './components/Navbar';
 
-  return (
-    <Toaster
-      position="top-right"
-      toastOptions={{
-        duration: 4000,
-        style: {
-          background: theme === 'dark' ? "#1f2937" : "#ffffff",
-          color: theme === 'dark' ? "#fff" : "#213547",
-          borderRadius: "0.5rem",
-          border: `1px solid ${theme === 'dark' ? "#374151" : "#e5e7eb"}`,
-        },
-        success: {
-          iconTheme: {
-            primary: "#10b981",
-            secondary: "#fff",
-          },
-        },
-        error: {
-          iconTheme: {
-            primary: "#ef4444",
-            secondary: "#fff",
-          },
-        },
-      }}
-    />
-  );
+// ---------------------------------------------------------------------------
+// Firebase email-action router
+// ---------------------------------------------------------------------------
+// Firebase's verification & password-reset emails point the user to a single
+// URL by default (often <yourapp>.firebaseapp.com/__/auth/action?…).
+// We configure that URL to be  /auth/action  on OUR domain.
+// This tiny component reads the query-string and redirects to the real page.
+// ---------------------------------------------------------------------------
+const FirebaseActionRouter = () => {
+  const [params] = useSearchParams();
+  const mode     = params.get('mode');
+
+  if (mode === 'verifyEmail') {
+    // Forward ALL query params so oobCode arrives intact
+    return <Navigate to={`/verify-email?${params.toString()}`} replace />;
+  }
+  if (mode === 'resetPassword') {
+    return <Navigate to={`/reset-password?${params.toString()}`} replace />;
+  }
+  // Unknown mode – go home
+  return <Navigate to="/" replace />;
 };
 
-export default function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-      {/* Toast notifications */}
-      <ThemeAwareToaster />
+// ---------------------------------------------------------------------------
+// Route guards
+// ---------------------------------------------------------------------------
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading)  return <div className="loading-page"><div className="spinner" /></div>;
+  if (!user)    return <Navigate to="/login" replace />;
+  return children;
+};
 
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Home />} />
+const AuthRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (user)    return <Navigate to="/dashboard" replace />;
+  return children;
+};
 
-        {/* Auth routes - redirect to home if already logged in */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
+// ---------------------------------------------------------------------------
+const App = () => (
+  <>
+    <Navbar />
+    <Routes>
+      {/* public */}
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+      <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Email verification and password reset - accessible to all */}
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+      {/* Firebase email action */}
+      <Route path="/auth/action" element={<FirebaseActionRouter />} />
 
-        {/* Protected routes - require authentication */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/join"
-          element={
-            <ProtectedRoute>
-              <JoinAuction />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/create"
-          element={
-            <ProtectedRoute>
-              <CreateAuction />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/auction" element={<Auction />} />
-        
-        {/* Sports Auction Routes */}
-        <Route
-          path="/sports-auction/setup"
-          element={
-            <ProtectedRoute>
-              <SportsAuctionSetup />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/sports-auction/create"
-          element={
-            <ProtectedRoute>
-              <CreateSportsAuction />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/sports-auction/live" element={<LiveSportsAuction />} />
-        
-        {/* Bid Winning Page - Protected Route */}
-        <Route
-          path="/bid-winning"
-          element={
-            <ProtectedRoute>
-              <BidWinning />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
+      {/* email verify / reset */}
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* protected */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/auction/create" element={<ProtectedRoute><CreateAuction /></ProtectedRoute>} />
+      <Route path="/auction/live/:id" element={<ProtectedRoute><LiveAuction /></ProtectedRoute>} />
+      <Route path="/auction/:id" element={<ProtectedRoute><AuctionDetails /></ProtectedRoute>} />
+      <Route path="/auctions" element={<ProtectedRoute><AuctionList /></ProtectedRoute>} />
+      <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
+      <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+    </Routes>
+  </>
+);
+
+export default App;
+

@@ -15,6 +15,7 @@ pnpm-lock.yaml
 dist/
 build/
 out/
+client/dist/
 
 # Development
 .vite/

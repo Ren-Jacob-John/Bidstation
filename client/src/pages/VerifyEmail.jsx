@@ -1,177 +1,151 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import "./VerifyEmail.css";
+// ---------------------------------------------------------------------------
+// client/src/pages/VerifyEmail.jsx   (Firebase version)
+// ---------------------------------------------------------------------------
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { verifyEmail, resendVerification } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
+import './VerifyEmail.css';
 
-export default function VerifyEmail() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { verifyEmail, resendVerificationEmail } = useAuth();
+const VerifyEmail = () => {
+  const [searchParams]          = useSearchParams();
+  const [loading,   setLoading] = useState(false);
+  const [error,     setError]   = useState('');
+  const [success,   setSuccess] = useState('');
+  const [resending, setResending] = useState(false);
 
-  const [status, setStatus] = useState("verifying"); // verifying, success, error, expired
-  const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
-  const [isResending, setIsResending] = useState(false);
+  const navigate     = useNavigate();
+  const { user, refreshUser } = useAuth();
 
-  const token = searchParams.get("token");
-
+  // -----------------------------------------------------------------------
+  // If Firebase redirected us back with ?mode=verifyEmail&oobCode=…
+  // auto-apply the code on mount.
+  // -----------------------------------------------------------------------
   useEffect(() => {
-    const verify = async () => {
-      if (!token) {
-        setStatus("error");
-        setMessage("Invalid verification link. No token provided.");
-        return;
-      }
+    const mode    = searchParams.get('mode');
+    const oobCode = searchParams.get('oobCode');
 
-      try {
-        const result = await verifyEmail(token);
-
-        if (result.success) {
-          setStatus("success");
-          setMessage("Your email has been verified successfully!");
-          toast.success("Email verified successfully!");
-        } else {
-          // Check if token is expired
-          if (result.error?.includes("expired")) {
-            setStatus("expired");
-            setMessage("This verification link has expired.");
-          } else {
-            setStatus("error");
-            setMessage(result.error || "Email verification failed.");
-          }
-        }
-      } catch (error) {
-        setStatus("error");
-        setMessage("An unexpected error occurred during verification.");
-      }
-    };
-
-    verify();
-  }, [token, verifyEmail]);
-
-  const handleResendVerification = async () => {
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
+    if (mode === 'verifyEmail' && oobCode) {
+      applyCode(oobCode);
     }
+  }, [searchParams]);          // eslint-disable-line react-hooks/exhaustive-deps
 
-    setIsResending(true);
+  // -----------------------------------------------------------------------
+  const applyCode = async (code) => {
+    setLoading(true);
+    setError('');
 
     try {
-      const result = await resendVerificationEmail(email);
-      if (result.success) {
-        toast.success("Verification email sent!");
-      } else {
-        toast.error(result.error || "Failed to send verification email");
-      }
-    } catch (error) {
-      toast.error("Failed to send verification email");
+      await verifyEmail(code);                   // applies code + syncs Firestore
+      await refreshUser();                       // refresh context so UI updates
+      setSuccess('Email verified successfully! Redirecting…');
+      setTimeout(() => navigate('/dashboard'), 2000);
+    } catch (err) {
+      setError(
+        err.code === 'auth/invalid-action-code'
+          ? 'The verification link is invalid or has already been used.'
+          : err.code === 'auth/expired-action-code'
+            ? 'The verification link has expired. Please request a new one.'
+            : err.message || 'Failed to verify email.'
+      );
     } finally {
-      setIsResending(false);
+      setLoading(false);
     }
   };
 
-  const renderContent = () => {
-    switch (status) {
-      case "verifying":
-        return (
-          <div className="verify-card">
-            <div className="verify-spinner"></div>
-            <h2 className="verify-title">Verifying Your Email</h2>
-            <p className="verify-message">Please wait while we verify your email address...</p>
-          </div>
-        );
+  // -----------------------------------------------------------------------
+  // Manual code entry is NOT possible with Firebase's default flow –
+  // verification must go through the link.  We hide the manual input
+  // and guide the user to check their inbox / resend.
+  // -----------------------------------------------------------------------
 
-      case "success":
-        return (
-          <div className="verify-card success">
-            <div className="verify-icon">✓</div>
-            <h2 className="verify-title">Email Verified!</h2>
-            <p className="verify-message">{message}</p>
-            <p className="verify-submessage">
-              You can now log in to your account and start using all features.
-            </p>
-            <button
-              className="verify-btn"
-              onClick={() => navigate("/login")}
-            >
-              Go to Login
-            </button>
-          </div>
-        );
-
-      case "expired":
-        return (
-          <div className="verify-card expired">
-            <div className="verify-icon">⏰</div>
-            <h2 className="verify-title">Link Expired</h2>
-            <p className="verify-message">{message}</p>
-            <p className="verify-submessage">
-              Enter your email below to receive a new verification link.
-            </p>
-            <div className="resend-form">
-              <input
-                type="email"
-                className="verify-input"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button
-                className="verify-btn"
-                onClick={handleResendVerification}
-                disabled={isResending}
-              >
-                {isResending ? "Sending..." : "Resend Verification Email"}
-              </button>
-            </div>
-          </div>
-        );
-
-      case "error":
-      default:
-        return (
-          <div className="verify-card error">
-            <div className="verify-icon">✕</div>
-            <h2 className="verify-title">Verification Failed</h2>
-            <p className="verify-message">{message}</p>
-            <p className="verify-submessage">
-              If you're having trouble, try requesting a new verification email.
-            </p>
-            <div className="resend-form">
-              <input
-                type="email"
-                className="verify-input"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button
-                className="verify-btn"
-                onClick={handleResendVerification}
-                disabled={isResending}
-              >
-                {isResending ? "Sending..." : "Resend Verification Email"}
-              </button>
-            </div>
-            <Link to="/login" className="back-link">
-              Back to Login
-            </Link>
-          </div>
-        );
+  const handleResend = async () => {
+    setResending(true);
+    setError('');
+    setSuccess('');
+    try {
+      await resendVerification();
+      setSuccess('Verification email sent! Please check your inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to resend verification email.');
+    } finally {
+      setResending(false);
     }
   };
 
+  // -----------------------------------------------------------------------
+  // RENDER
+  // -----------------------------------------------------------------------
   return (
-    <div className="verify-page">
-      <Navbar />
-      <div className="verify-container">
-        {renderContent()}
+    <div className="verify-email-page">
+      <div className="container">
+        <div className="verify-email-container card">
+          {/* ---- HEADER ---- */}
+          <div className="verify-email-header">
+            <div className="icon-wrapper">
+              <span className="icon">{success ? '✓' : '📧'}</span>
+            </div>
+            <h1>Verify Your Email</h1>
+            {user && !user.emailVerified && (
+              <p className="subtitle">
+                We sent a verification email to <strong>{user.email}</strong>
+              </p>
+            )}
+          </div>
+
+          {/* ---- ALERTS ---- */}
+          {error   && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
+
+          {/* ---- LOADING SPINNER ---- */}
+          {loading && (
+            <div className="loading-state">
+              <div className="spinner" />
+              <p>Verifying your email…</p>
+            </div>
+          )}
+
+          {/* ---- SUCCESS STATE ---- */}
+          {!loading && success && (
+            <div className="success-state">
+              <p>✓ Your email has been verified successfully!</p>
+              <p>You now have full access to all features.</p>
+              <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
+                Go to Dashboard
+              </button>
+            </div>
+          )}
+
+          {/* ---- WAITING STATE (no oobCode yet / resend) ---- */}
+          {!loading && !success && (
+            <>
+              <div className="info-box">
+                <h3>📋 What to do:</h3>
+                <ol>
+                  <li>Check your email inbox for a message from BidStation</li>
+                  <li>Click the <strong>"Verify Email Address"</strong> button inside that email</li>
+                  <li>You will be brought back here automatically</li>
+                  <li>If you don't see the email, check your spam folder</li>
+                </ol>
+              </div>
+
+              <div className="resend-section">
+                <p>Didn't receive the email?</p>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  className="btn btn-outline"
+                  disabled={resending}
+                >
+                  {resending ? 'Sending…' : 'Resend Verification Email'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-      <Footer />
     </div>
   );
-}
+};
+
+export default VerifyEmail;

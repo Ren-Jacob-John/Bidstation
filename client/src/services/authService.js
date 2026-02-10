@@ -1,194 +1,204 @@
-// Authentication Service
-// This service handles all authentication-related API calls
+// ---------------------------------------------------------------------------
+// client/src/services/authService.js   (Firebase version)
+// ---------------------------------------------------------------------------
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  applyActionCode,
+  onAuthStateChanged,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from 'firebase/auth';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+} from 'firebase/firestore';
 
-// Helper function for making API requests
-async function apiRequest(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
-  const defaultHeaders = {
-    "Content-Type": "application/json",
-  };
+import { fireAuth, firestore } from '../firebase/firebase.config';
 
-  // Add auth token if available
-  const token = localStorage.getItem("authToken");
-  if (token) {
-    defaultHeaders["Authorization"] = `Bearer ${token}`;
-  }
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+const usersCol = (uid) => doc(firestore, 'users', uid);
 
-  const config = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
+// ---------------------------------------------------------------------------
+// REGISTER  –  creates Firebase Auth user + writes profile to Firestore
+// ---------------------------------------------------------------------------
+export const registerUser = async ({ username, email, password, role }) => {
+  // 1. Create the Auth account (Firebase sends a verification email
+  //    automatically if we call sendVerificationEmail right after)
+  const { user } = await createUserWithEmailAndPassword(fireAuth, email, password);
+
+  // 2. Write the extra profile fields into Firestore  users/{uid}
+  await setDoc(usersCol(user.uid), {
+    uid:           user.uid,
+    username,
+    email,
+    role:          role || 'bidder',
+    emailVerified: false,
+    createdAt:     new Date(),
+  });
+
+  // 3. Kick off verification email (non-blocking – never crashes registration)
+  sendEmailVerificationn(user).catch(() => {});
+
+  return {
+    user: {
+      id:            user.uid,
+      username,
+      email,
+      role:          role || 'bidder',
+      emailVerified: user.emailVerified,
     },
   };
+};
 
-  try {
-    const response = await fetch(url, config);
-    
-    // Handle empty responses
-    const text = await response.text();
-    let data = null;
-    
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        // Response is not JSON
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-        return { success: true, message: text };
-      }
-    }
+// ---------------------------------------------------------------------------
+// LOGIN
+// ---------------------------------------------------------------------------
+export const loginUser = async (email, password) => {
+  const { user } = await signInWithEmailAndPassword(fireAuth, email, password);
 
-    if (!response.ok) {
-      throw new Error(data?.message || `Request failed with status ${response.status}`);
-    }
+  // Pull the extra profile data from Firestore
+  const snap = await getDoc(usersCol(user.uid));
+  const profile = snap.exists() ? snap.data() : {};
 
-    return data || { success: true };
-  } catch (error) {
-    // Handle network errors
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Please check your connection.');
-    }
-    throw error;
-  }
-}
-
-// Register a new user
-export async function registerUser(fullName, email, password) {
-  return apiRequest("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ fullName, email, password }),
-  });
-}
-
-// Login user
-export async function loginUser(email, password) {
-  return apiRequest("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-  });
-}
-
-// Verify email with token
-export async function verifyEmail(token) {
-  return apiRequest(`/auth/verify-email?token=${token}`, {
-    method: "GET",
-  });
-}
-
-// Resend verification email
-export async function resendVerificationEmail(email) {
-  return apiRequest("/auth/resend-verification", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-}
-
-// Request password reset
-export async function forgotPassword(email) {
-  return apiRequest("/auth/forgot-password", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-}
-
-// Reset password with token
-export async function resetPassword(token, newPassword) {
-  return apiRequest("/auth/reset-password", {
-    method: "POST",
-    body: JSON.stringify({ token, newPassword }),
-  });
-}
-
-// Get current user profile
-export async function getCurrentUser() {
-  return apiRequest("/auth/me", {
-    method: "GET",
-  });
-}
-
-// Update user profile
-export async function updateProfile(userData) {
-  return apiRequest("/auth/profile", {
-    method: "PUT",
-    body: JSON.stringify(userData),
-  });
-}
-
-// Change password (when logged in)
-export async function changePassword(currentPassword, newPassword) {
-  return apiRequest("/auth/change-password", {
-    method: "POST",
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
-}
-
-// Logout (invalidate token on server if needed)
-export async function logoutUser() {
-  try {
-    await apiRequest("/auth/logout", {
-      method: "POST",
-    });
-  } catch (error) {
-    // Even if server logout fails, clear local storage
-    console.error("Server logout failed:", error);
-  }
-  
-  localStorage.removeItem("user");
-  localStorage.removeItem("authToken");
-}
-
-// Validate email format
-export function validateEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-// Validate password strength
-export function validatePassword(password) {
-  const errors = [];
-  
-  if (password.length < 8) {
-    errors.push("Password must be at least 8 characters long");
-  }
-  if (!/[A-Z]/.test(password)) {
-    errors.push("Password must contain at least one uppercase letter");
-  }
-  if (!/[a-z]/.test(password)) {
-    errors.push("Password must contain at least one lowercase letter");
-  }
-  if (!/[0-9]/.test(password)) {
-    errors.push("Password must contain at least one number");
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push("Password must contain at least one special character");
+  // Keep Firestore's emailVerified in sync with Firebase Auth
+  if (user.emailVerified && !profile.emailVerified) {
+    await updateDoc(usersCol(user.uid), { emailVerified: true });
   }
 
   return {
-    isValid: errors.length === 0,
-    errors,
+    user: {
+      id:            user.uid,
+      username:      profile.username || '',
+      email:         user.email,
+      role:          profile.role || 'bidder',
+      emailVerified: user.emailVerified,
+    },
   };
-}
+};
 
-// Check if user is authenticated
-export function isAuthenticated() {
-  const token = localStorage.getItem("authToken");
-  const user = localStorage.getItem("user");
-  return !!(token && user);
-}
+// ---------------------------------------------------------------------------
+// LOGOUT
+// ---------------------------------------------------------------------------
+export const logoutUser = () => signOut(fireAuth);
 
-// Get stored auth token
-export function getAuthToken() {
-  return localStorage.getItem("authToken");
-}
+// ---------------------------------------------------------------------------
+// GET CURRENT USER  –  reads Firestore profile for the signed-in user
+// ---------------------------------------------------------------------------
+export const getCurrentUser = async () => {
+  const user = fireAuth.currentUser;
+  if (!user) return null;
 
-// Get stored user data
-export function getStoredUser() {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
-}
+  const snap = await getDoc(usersCol(user.uid));
+  const profile = snap.exists() ? snap.data() : {};
+
+  return {
+    id:            user.uid,
+    username:      profile.username || '',
+    email:         user.email,
+    role:          profile.role || 'bidder',
+    emailVerified: user.emailVerified,
+  };
+};
+
+// ---------------------------------------------------------------------------
+// LISTEN to auth-state changes  (used by AuthContext)
+// ---------------------------------------------------------------------------
+export const onAuthChange = (callback) => onAuthStateChanged(fireAuth, callback);
+
+// ---------------------------------------------------------------------------
+// SEND verification email  (resend)
+// ---------------------------------------------------------------------------
+export const resendVerification = async () => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('Not logged in');
+  if (user.emailVerified) throw new Error('Email already verified');
+  await sendEmailVerification(user);
+};
+
+// ---------------------------------------------------------------------------
+// VERIFY email via action code  (the ?oobCode= from the link)
+// ---------------------------------------------------------------------------
+export const verifyEmail = async (actionCode) => {
+  await applyActionCode(fireAuth, actionCode);
+
+  // Refresh the token so .emailVerified updates immediately
+  const user = fireAuth.currentUser;
+  if (user) {
+    await user.reload();
+    // Sync flag to Firestore
+    await updateDoc(usersCol(user.uid), { emailVerified: true });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// FORGOT PASSWORD  –  Firebase sends the reset email for us
+// ---------------------------------------------------------------------------
+export const forgotPassword = (email) => sendPasswordResetEmail(fireAuth, email);
+
+// ---------------------------------------------------------------------------
+// RESET PASSWORD via action code  (the ?oobCode= from the reset link)
+// ---------------------------------------------------------------------------
+export const resetPassword = async (actionCode, newPassword) => {
+  // 1. Apply the action code to authorise the reset
+  await applyActionCode(fireAuth, actionCode);
+
+  // 2. Re-sign in so we have an active session to call updatePassword
+  //    (Firebase requires a recent auth – applyActionCode gives us that)
+  const user = fireAuth.currentUser;
+  if (user) {
+    await updatePassword(user, newPassword);
+  } else {
+    // Edge-case: user session expired; tell them to log in and change pw there
+    throw new Error(
+      'Session expired. Please log in with your new password directly.'
+    );
+  }
+};
+
+// ---------------------------------------------------------------------------
+// CHANGE PASSWORD  (from profile page – requires recent login)
+// ---------------------------------------------------------------------------
+export const changePassword = async (currentPassword, newPassword) => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('Not logged in');
+
+  // Re-authenticate first (Firebase security requirement)
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+
+  // Then update
+  await updatePassword(user, newPassword);
+};
+
+// ---------------------------------------------------------------------------
+// UPDATE PROFILE (username / role)
+// ---------------------------------------------------------------------------
+export const updateProfile = async (updates) => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('Not logged in');
+  await updateDoc(usersCol(user.uid), updates);
+};
+
+export default {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+  onAuthChange,
+  resendVerification,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  updateProfile,
+};

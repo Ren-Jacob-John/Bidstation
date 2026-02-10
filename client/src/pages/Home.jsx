@@ -1,79 +1,96 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './Home.css';
 
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import RoleCard from "../components/RoleCard";
+const Home = () => {
+  const { user } = useAuth();
 
-import "./Home.css";
-
-export default function Home() {
   return (
-    <div className="home">
-      <Navbar />
-
-      <main className="main-content">
-        {/* ===== Hero Section ===== */}
-        <header className="header">
-        <div className="header-container">
-          <div className="header-content">
-            <h1 className="header-title">
-              Secure <span className="highlight">Online Bidding</span> Platform
-            </h1>
-
-            <p className="header-subtitle">
-              A role-based, real-time auction system designed for transparent,
-              secure, and structured player and item bidding.
-            </p>
-
-            <div className="header-actions">
-              <Link to="/join" className="btn btn-primary">
-                Join Auction
+    <div className="home-page">
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="container">
+          <h1 className="hero-title">Welcome to BidStation</h1>
+          <p className="hero-subtitle">
+            The ultimate platform for sports player auctions and item bidding
+          </p>
+          <div className="hero-actions">
+            {user ? (
+              <Link to="/dashboard" className="btn btn-primary btn-lg">
+                Go to Dashboard
               </Link>
+            ) : (
+              <>
+                <Link to="/register" className="btn btn-primary btn-lg">
+                  Get Started
+                </Link>
+                <Link to="/login" className="btn btn-lg">
+                  Login
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
-              <Link to="/create" className="btn btn-secondary">
-                Create Auction
-              </Link>
-              
-              <Link to="/auction" className="btn btn-outline">
-                View Live Auction
-              </Link>
-              
-              <Link to="/sports-auction/setup" className="btn btn-sports">
-                🏆 Sports Auction
-              </Link>
+      {/* Features Section */}
+      <section className="features">
+        <div className="container">
+          <h2 className="section-title">Features</h2>
+          <div className="features-grid">
+            <div className="feature-card card">
+              <span className="feature-icon">⚽</span>
+              <h3>Sports Player Auctions</h3>
+              <p>Create player auctions for Cricket, Football, Basketball, Tennis, and more sports tournaments</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🛍️</span>
+              <h3>Item Auctions</h3>
+              <p>Auction various items with competitive bidding and real-time updates</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🔴</span>
+              <h3>Live Bidding</h3>
+              <p>Experience real-time auctions with instant bid updates and notifications</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🏆</span>
+              <h3>Team Management</h3>
+              <p>Manage multiple teams or franchises and build your dream squad</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">📊</span>
+              <h3>Analytics</h3>
+              <p>Track your bidding history, spending, and auction performance</p>
+            </div>
+            
+            <div className="feature-card card">
+              <span className="feature-icon">🔒</span>
+              <h3>Secure Platform</h3>
+              <p>Role-based access control and secure transactions for all users</p>
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
-      {/* ===== Roles Section ===== */}
-      <section className="roles">
-        <h3 className="roles-title">User Roles</h3>
-
-        <div className="roles-grid">
-          <RoleCard
-            title="Auction Controller"
-            color="red"
-            description="Create, monitor, and manage live auctions."
-          />
-
-          <RoleCard
-            title="Bidder"
-            color="yellow"
-            description="Participate in auctions and place real-time bids."
-          />
-
-          <RoleCard
-            title="Player"
-            color="blue"
-            description="Register and get listed for upcoming auctions."
-          />
+      {/* CTA Section */}
+      <section className="cta">
+        <div className="container">
+          <h2>Ready to start bidding?</h2>
+          <p>Join thousands of users in exciting sports player auctions</p>
+          {!user && (
+            <Link to="/register" className="btn btn-primary btn-lg">
+              Create Account
+            </Link>
+          )}
         </div>
       </section>
-      </main>
-
-      <Footer />
     </div>
   );
-}
+};
+
+export default Home;

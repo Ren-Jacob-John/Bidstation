@@ -1,0 +1,44 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  shippingAddress: String
+  billingAddress: String
+  phoneNumber: String
+}
+
+type Item @table {
+  title: String!
+  description: String!
+  startingPrice: Float!
+  currentPrice: Float!
+  auctionEndTime: Timestamp!
+  createdAt: Timestamp!
+  imageUrl: String
+  category: Category
+  seller: User
+}
+
+type Bid @table {
+  bidAmount: Float!
+  bidTime: Timestamp!
+  createdAt: Timestamp!
+  buyer: User
+  item: Item
+}
+
+type Message @table {
+  content: String!
+  sentAt: Timestamp!
+  createdAt: Timestamp!
+  subject: String
+  itemId: Item
+  sender: User
+  receiver: User
+}
+
+type Category @table {
+  name: String!
+  createdAt: Timestamp!
+  description: String
+}

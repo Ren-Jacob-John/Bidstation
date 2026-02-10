@@ -1,223 +1,98 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+// ---------------------------------------------------------------------------
+// client/src/context/AuthContext.jsx   (Firebase version)
+// ---------------------------------------------------------------------------
+import { createContext, useState, useContext, useEffect } from 'react';
+import {
+  onAuthChange,
+  loginUser,
+  registerUser,
+  logoutUser,
+  getCurrentUser,
+} from '../services/authService';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+// ---------------------------------------------------------------------------
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
+};
+
+// ---------------------------------------------------------------------------
+export const AuthProvider = ({ children }) => {
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check for existing session on mount
+  // -----------------------------------------------------------------------
+  // Listen to Firebase auth state – fires on mount AND on sign-in / sign-out
+  // -----------------------------------------------------------------------
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("authToken");
-    
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Pull username / role / emailVerified from Firestore
+          const profile = await getCurrentUser();
+          setUser(profile);
+        } catch {
+          // Firestore read failed – use what Firebase Auth gives us
+          setUser({
+            id:            firebaseUser.uid,
+            email:         firebaseUser.email,
+            username:      '',
+            role:          'bidder',
+            emailVerified: firebaseUser.emailVerified,
+          });
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // cleanup on unmount
   }, []);
 
-  // Helper function to safely parse JSON response
-  const safeJsonParse = async (response) => {
-    const text = await response.text();
-    if (!text) {
-      return null;
-    }
-    try {
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
-  };
-
-  // Login function
+  // -----------------------------------------------------------------------
+  // login
+  // -----------------------------------------------------------------------
   const login = async (email, password) => {
-    try {
-      // API call to backend for login
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Login failed");
-      }
-
-      if (!data) {
-        throw new Error("Invalid response from server");
-      }
-
-      // Store user data and token
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("authToken", data.token);
-      
-      setUser(data.user);
-      setIsAuthenticated(true);
-      
-      return { success: true, user: data.user };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    const response = await loginUser(email, password);
+    setUser(response.user);
+    return response;
   };
 
-  // Register function
-  const register = async (fullName, email, password) => {
-    try {
-      // API call to backend for registration
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ fullName, email, password }),
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Registration failed");
-      }
-
-      // Return success - user needs to verify email
-      return {
-        success: true,
-        message: "Registration successful. Please check your email for verification.",
-        requiresVerification: true
-      };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+  // -----------------------------------------------------------------------
+  // register
+  // -----------------------------------------------------------------------
+  const register = async (userData) => {
+    const response = await registerUser(userData);
+    setUser(response.user);
+    return response;
   };
 
-  // Verify email function
-  const verifyEmail = async (token) => {
-    try {
-      const response = await fetch(`/api/auth/verify-email?token=${token}`, {
-        method: "GET",
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Email verification failed");
-      }
-
-      return { success: true, message: "Email verified successfully" };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  // Resend verification email
-  const resendVerificationEmail = async (email) => {
-    try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to resend verification email");
-      }
-
-      return { success: true, message: "Verification email sent" };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  // Forgot password function
-  const forgotPassword = async (email) => {
-    try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to send reset email");
-      }
-
-      return { success: true, message: "Password reset email sent" };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  // Reset password function
-  const resetPassword = async (token, newPassword) => {
-    try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token, newPassword }),
-      });
-
-      const data = await safeJsonParse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Password reset failed");
-      }
-
-      return { success: true, message: "Password reset successful" };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  // Logout function
-  const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("authToken");
+  // -----------------------------------------------------------------------
+  // logout
+  // -----------------------------------------------------------------------
+  const logout = async () => {
+    await logoutUser();
     setUser(null);
-    setIsAuthenticated(false);
   };
 
-  const value = {
-    user,
-    loading,
-    isAuthenticated,
-    login,
-    register,
-    verifyEmail,
-    resendVerificationEmail,
-    forgotPassword,
-    resetPassword,
-    logout,
+  // -----------------------------------------------------------------------
+  // refreshUser  –  re-reads Firestore (handy after email verify)
+  // -----------------------------------------------------------------------
+  const refreshUser = async () => {
+    const profile = await getCurrentUser();
+    setUser(profile);
   };
 
+  // -----------------------------------------------------------------------
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, refreshUser, isAuthenticated: !!user }}
+    >
+      {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
-
-export default AuthContext;
+};

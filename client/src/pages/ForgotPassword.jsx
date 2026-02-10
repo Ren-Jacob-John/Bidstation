@@ -1,135 +1,115 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import { validateEmail } from "../services/authService";
-import "./ForgotPassword.css";
+// ---------------------------------------------------------------------------
+// client/src/pages/ForgotPassword.jsx   (Firebase version)
+// ---------------------------------------------------------------------------
+import { useState } from 'react';
+import { Link }     from 'react-router-dom';
+import { forgotPassword } from '../services/authService';
+import './ForgotPassword.css';
 
-export default function ForgotPassword() {
-  const { forgotPassword } = useAuth();
-
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+const ForgotPassword = () => {
+  const [email,   setEmail]   = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate email
-    if (!email) {
-      setError("Email is required");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    setError("");
-    setIsLoading(true);
+    setError('');
+    setLoading(true);
 
     try {
-      const result = await forgotPassword(email);
-
-      if (result.success) {
-        setEmailSent(true);
-        toast.success("Password reset email sent!");
+      await forgotPassword(email);   // Firebase sends the email for us
+      setSuccess(true);
+    } catch (err) {
+      // Firebase throws auth/user-not-found – we mask it for security
+      if (err.code === 'auth/user-not-found') {
+        setSuccess(true);            // pretend success → prevents enumeration
       } else {
-        toast.error(result.error || "Failed to send reset email");
-        setError(result.error || "Failed to send reset email");
+        setError(err.message || 'Failed to send reset email.');
       }
-    } catch (error) {
-      toast.error("An unexpected error occurred");
-      setError("An unexpected error occurred. Please try again.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Success screen after email sent
-  if (emailSent) {
-    return (
-      <div className="forgot-page">
-        <Navbar />
-        <div className="forgot-container">
-          <div className="forgot-card success">
-            <div className="forgot-icon">✉️</div>
-            <h2 className="forgot-title">Check Your Email</h2>
-            <p className="forgot-message">
-              We've sent a password reset link to:
-            </p>
-            <p className="forgot-email">{email}</p>
-            <p className="forgot-instructions">
-              Click the link in the email to reset your password. The link will
-              expire in 1 hour.
-            </p>
-            <div className="forgot-actions">
-              <button
-                className="forgot-btn secondary"
-                onClick={() => {
-                  setEmailSent(false);
-                  setEmail("");
-                }}
-              >
-                Try Different Email
-              </button>
-              <Link to="/login" className="back-link">
-                Back to Login
-              </Link>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
+  // -----------------------------------------------------------------------
   return (
-    <div className="forgot-page">
-      <Navbar />
+    <div className="forgot-password-page">
+      <div className="container">
+        <div className="forgot-password-container card">
+          {!success ? (
+            <>
+              <div className="forgot-password-header">
+                <div className="icon-wrapper">
+                  <span className="icon">🔒</span>
+                </div>
+                <h1>Forgot Password?</h1>
+                <p className="subtitle">
+                  No worries! Enter your email and we'll send you reset instructions.
+                </p>
+              </div>
 
-      <div className="forgot-container">
-        <form className="forgot-card" onSubmit={handleSubmit}>
-          <h2 className="forgot-title">Forgot Password?</h2>
-          <p className="forgot-description">
-            No worries! Enter your email address and we'll send you a link to
-            reset your password.
-          </p>
+              {error && <div className="alert alert-error">{error}</div>}
 
-          {error && <div className="error-banner">{error}</div>}
+              <form onSubmit={handleSubmit} className="forgot-password-form">
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your registered email"
+                    required
+                  />
+                </div>
 
-          <div className="input-group">
-            <input
-              type="email"
-              className={`forgot-input ${error ? "input-error" : ""}`}
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (error) setError("");
-              }}
-              disabled={isLoading}
-            />
-          </div>
+                <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                  {loading ? 'Sending…' : 'Send Reset Link'}
+                </button>
+              </form>
 
-          <button
-            className="forgot-btn"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Sending..." : "Send Reset Link"}
-          </button>
+              <div className="back-to-login">
+                <Link to="/login" className="link">← Back to Login</Link>
+              </div>
+            </>
+          ) : (
+            /* ---- success screen ---- */
+            <div className="success-message">
+              <div className="icon-wrapper">
+                <span className="icon success-icon">📧</span>
+              </div>
+              <h2>Check Your Email</h2>
+              <p>
+                If an account exists with <strong>{email}</strong>, we've sent
+                password-reset instructions.
+              </p>
 
-          <Link to="/login" className="back-link">
-            ← Back to Login
-          </Link>
-        </form>
+              <div className="info-box">
+                <h3>What's next?</h3>
+                <ol>
+                  <li>Check your email inbox (and spam folder)</li>
+                  <li>Click the <strong>"Reset Password"</strong> link in the email</li>
+                  <li>Enter your new password on the page that opens</li>
+                  <li>Log in with your new password</li>
+                </ol>
+                <p className="note">
+                  <strong>Note:</strong> The reset link expires in <strong>1 hour</strong>.
+                </p>
+              </div>
+
+              <div className="actions">
+                <button onClick={() => { setSuccess(false); setEmail(''); }} className="btn btn-outline">
+                  Send Another Email
+                </button>
+                <Link to="/login" className="btn btn-primary">Back to Login</Link>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      <Footer />
     </div>
   );
-}
+};
+
+export default ForgotPassword;

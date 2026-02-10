@@ -1,274 +1,187 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import { validatePassword } from "../services/authService";
-import "./ResetPassword.css";
+// ---------------------------------------------------------------------------
+// client/src/pages/ResetPassword.jsx   (Firebase version)
+// ---------------------------------------------------------------------------
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { resetPassword } from '../services/authService';
+import './ResetPassword.css';
 
-export default function ResetPassword() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { resetPassword } = useAuth();
+const ResetPassword = () => {
+  const [searchParams]            = useSearchParams();
+  const [newPassword,  setNewPw]  = useState('');
+  const [confirmPw,    setConfPw] = useState('');
+  const [loading,      setLoading] = useState(false);
+  const [error,        setError]  = useState('');
+  const [success,      setSuccess] = useState(false);
+  const [oobCode,      setOobCode] = useState(null);
+  const [validCode,    setValidCode] = useState(true);
 
-  const token = searchParams.get("token");
-
-  const [formData, setFormData] = useState({
-    password: "",
-    confirmPassword: "",
-  });
-
-  const [errors, setErrors] = useState({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
-  const [tokenError, setTokenError] = useState(false);
-
+  // -----------------------------------------------------------------------
+  // Extract oobCode from URL on mount
+  // Firebase password-reset links look like:
+  //   https://yourapp.com/reset-password?mode=resetPassword&oobCode=XXXX
+  // -----------------------------------------------------------------------
   useEffect(() => {
-    if (!token) {
-      setTokenError(true);
-    }
-  }, [token]);
+    const code = searchParams.get('oobCode');
+    const mode = searchParams.get('mode');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = "Password is required";
+    if (mode === 'resetPassword' && code) {
+      setOobCode(code);
     } else {
-      const passwordValidation = validatePassword(formData.password);
-      if (!passwordValidation.isValid) {
-        newErrors.password = passwordValidation.errors[0];
-      }
+      setValidCode(false);
     }
+  }, [searchParams]);
 
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
+  // -----------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    if (!validateForm()) {
-      return;
+    if (newPassword.length < 6) {
+      return setError('Password must be at least 6 characters.');
+    }
+    if (newPassword !== confirmPw) {
+      return setError('Passwords do not match.');
     }
 
-    setIsLoading(true);
-
+    setLoading(true);
     try {
-      const result = await resetPassword(token, formData.password);
-
-      if (result.success) {
-        setResetSuccess(true);
-        toast.success("Password reset successful!");
+      await resetPassword(oobCode, newPassword);
+      setSuccess(true);
+    } catch (err) {
+      if (err.code === 'auth/invalid-action-code') {
+        setError('The reset link is invalid or has already been used.');
+      } else if (err.code === 'auth/expired-action-code') {
+        setError('The reset link has expired. Please request a new one.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('The new password is too weak. Please choose a stronger password.');
       } else {
-        // Check if token is expired or invalid
-        if (result.error?.includes("expired") || result.error?.includes("invalid")) {
-          setTokenError(true);
-        }
-        toast.error(result.error || "Password reset failed");
-        setErrors({ submit: result.error });
+        setError(err.message || 'Failed to reset password.');
       }
-    } catch (error) {
-      toast.error("An unexpected error occurred");
-      setErrors({ submit: "An unexpected error occurred. Please try again." });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Token error screen
-  if (tokenError) {
+  // -----------------------------------------------------------------------
+  // password-requirement helpers
+  // -----------------------------------------------------------------------
+  const minLength = newPassword.length >= 6;
+  const pwMatch   = newPassword && newPassword === confirmPw;
+
+  // -----------------------------------------------------------------------
+  // RENDER ── invalid / missing code
+  // -----------------------------------------------------------------------
+  if (!validCode) {
     return (
-      <div className="reset-page">
-        <Navbar />
-        <div className="reset-container">
-          <div className="reset-card error">
-            <div className="reset-icon">⚠️</div>
-            <h2 className="reset-title">Invalid or Expired Link</h2>
-            <p className="reset-message">
-              This password reset link is invalid or has expired.
-            </p>
-            <p className="reset-submessage">
-              Please request a new password reset link.
-            </p>
-            <button
-              className="reset-btn"
-              onClick={() => navigate("/forgot-password")}
-            >
-              Request New Link
-            </button>
-            <Link to="/login" className="back-link">
-              Back to Login
+      <div className="reset-password-page">
+        <div className="container">
+          <div className="reset-password-container card">
+            <div className="reset-password-header">
+              <div className="icon-wrapper"><span className="icon">⚠️</span></div>
+              <h1>Invalid Link</h1>
+              <p className="subtitle">
+                This password-reset link is invalid or has already been used.
+              </p>
+            </div>
+            <Link to="/forgot-password" className="btn btn-primary btn-block">
+              Request a New Reset Link
             </Link>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  // Success screen
-  if (resetSuccess) {
+  // -----------------------------------------------------------------------
+  // RENDER ── success
+  // -----------------------------------------------------------------------
+  if (success) {
     return (
-      <div className="reset-page">
-        <Navbar />
-        <div className="reset-container">
-          <div className="reset-card success">
-            <div className="reset-icon">✓</div>
-            <h2 className="reset-title">Password Reset!</h2>
-            <p className="reset-message">
-              Your password has been successfully reset.
-            </p>
-            <p className="reset-submessage">
-              You can now log in with your new password.
-            </p>
-            <button
-              className="reset-btn"
-              onClick={() => navigate("/login")}
-            >
-              Go to Login
-            </button>
+      <div className="reset-password-page">
+        <div className="container">
+          <div className="reset-password-container card">
+            <div className="success-state">
+              <div className="icon-wrapper"><span className="icon success-icon">✓</span></div>
+              <h2>Password Reset Successfully!</h2>
+              <div className="info-box">
+                <h3>What's next?</h3>
+                <ol>
+                  <li>Your password has been updated</li>
+                  <li>You can now log in with your new password</li>
+                  <li>If you didn't request this, contact support</li>
+                </ol>
+              </div>
+              <Link to="/login" className="btn btn-primary btn-block">Go to Login</Link>
+            </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
+  // -----------------------------------------------------------------------
+  // RENDER ── main form
+  // -----------------------------------------------------------------------
   return (
-    <div className="reset-page">
-      <Navbar />
+    <div className="reset-password-page">
+      <div className="container">
+        <div className="reset-password-container card">
+          <div className="reset-password-header">
+            <div className="icon-wrapper"><span className="icon">🔑</span></div>
+            <h1>Reset Your Password</h1>
+            <p className="subtitle">Enter your new password below.</p>
+          </div>
 
-      <div className="reset-container">
-        <form className="reset-card" onSubmit={handleSubmit}>
-          <h2 className="reset-title">Reset Password</h2>
-          <p className="reset-description">
-            Enter your new password below.
-          </p>
+          {error && <div className="alert alert-error">{error}</div>}
 
-          {errors.submit && (
-            <div className="error-banner">{errors.submit}</div>
-          )}
-
-          {/* New Password */}
-          <div className="input-group">
-            <div className="password-wrapper">
+          <form onSubmit={handleSubmit} className="reset-password-form">
+            <div className="form-group">
+              <label htmlFor="newPassword">New Password</label>
               <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                className={`reset-input ${errors.password ? "input-error" : ""}`}
-                placeholder="New Password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
+                type="password"
+                id="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="Enter new password"
+                required
+                minLength={6}
               />
-              <button
-                type="button"
-                className="show-btn"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
             </div>
-            {errors.password && (
-              <span className="error-text">{errors.password}</span>
-            )}
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPw}
+                onChange={(e) => setConfPw(e.target.value)}
+                placeholder="Confirm your new password"
+                required
+                minLength={6}
+              />
+            </div>
+
+            {/* live requirement checks */}
             <div className="password-requirements">
-              <p>Password must contain:</p>
-              <ul>
-                <li className={formData.password.length >= 8 ? "valid" : ""}>
-                  At least 8 characters
-                </li>
-                <li className={/[A-Z]/.test(formData.password) ? "valid" : ""}>
-                  One uppercase letter
-                </li>
-                <li className={/[a-z]/.test(formData.password) ? "valid" : ""}>
-                  One lowercase letter
-                </li>
-                <li className={/[0-9]/.test(formData.password) ? "valid" : ""}>
-                  One number
-                </li>
-                <li
-                  className={
-                    /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
-                      ? "valid"
-                      : ""
-                  }
-                >
-                  One special character
-                </li>
-              </ul>
+              <div className={`requirement ${minLength ? 'met' : ''}`}>
+                <span className="check">{minLength ? '✓' : '○'}</span>
+                At least 6 characters
+              </div>
+              <div className={`requirement ${pwMatch ? 'met' : ''}`}>
+                <span className="check">{pwMatch ? '✓' : '○'}</span>
+                Passwords match
+              </div>
             </div>
-          </div>
 
-          {/* Confirm Password */}
-          <div className="input-group">
-            <div className="password-wrapper">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                className={`reset-input ${errors.confirmPassword ? "input-error" : ""}`}
-                placeholder="Confirm New Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className="show-btn"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={isLoading}
-              >
-                {showConfirmPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <span className="error-text">{errors.confirmPassword}</span>
-            )}
-          </div>
-
-          <button
-            className="reset-btn"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Resetting..." : "Reset Password"}
-          </button>
-
-          <Link to="/login" className="back-link">
-            ← Back to Login
-          </Link>
-        </form>
+            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+              {loading ? 'Resetting…' : 'Reset Password'}
+            </button>
+          </form>
+        </div>
       </div>
-      <Footer />
     </div>
   );
-}
+};
+
+export default ResetPassword;

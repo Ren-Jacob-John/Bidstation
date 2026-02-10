@@ -1,43 +1,102 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
-import { Sun, Moon } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import "./Navbar.css";
+// ---------------------------------------------------------------------------
+// client/src/components/Navbar.jsx
+// ---------------------------------------------------------------------------
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './Navbar.css';
 
-export default function Navbar() {
-  const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, user, logout } = useAuth();
+const Navbar = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
-    <header className="navbar">
+    <nav className="navbar">
       <div className="navbar-container">
-        <h1 className="navbar-logo">BIDSTATION</h1>
+        {/* Logo */}
+        <Link to="/" className="navbar-logo">
+          <span className="logo-icon">🏏</span>
+          <span className="logo-text">BidStation</span>
+        </Link>
 
-        <nav className="navbar-links">
-          <Link to="/" className="nav-link">Home</Link>
+        {/* Navigation Links */}
+        <div className="navbar-menu">
           {isAuthenticated ? (
             <>
-              <Link to="/create" className="nav-link">Create</Link>
-              <Link to="/join" className="nav-link">Join</Link>
-              <Link to="/auction" className="nav-link">Auction</Link>
-              <button className="nav-link" onClick={logout}>Logout</button>
+              {/* Authenticated Menu */}
+              <Link to="/dashboard" className="nav-link">
+                Dashboard
+              </Link>
+
+              {/* Auctioneer-only links */}
+              {user?.role === 'auctioneer' && (
+                <>
+                  <Link to="/auction/create" className="nav-link">
+                    Create Auction
+                  </Link>
+                  <Link to="/my-auctions" className="nav-link">
+                    My Auctions
+                  </Link>
+                </>
+              )}
+
+              {/* Bidder-only links */}
+              {user?.role === 'bidder' && (
+                <Link to="/my-bids" className="nav-link">
+                  My Bids
+                </Link>
+              )}
+
+              {/* Common links */}
+              <Link to="/auctions" className="nav-link">
+                Browse Auctions
+              </Link>
+
+              {/* User Menu */}
+              <div className="navbar-user">
+                <Link to="/profile" className="nav-link user-info">
+                  <span className="user-icon">👤</span>
+                  <span className="username">{user?.username || 'User'}</span>
+                  {!user?.emailVerified && (
+                    <span className="unverified-badge" title="Email not verified">
+                      ⚠️
+                    </span>
+                  )}
+                </Link>
+                <button onClick={handleLogout} className="btn btn-logout">
+                  Logout
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <Link to="/login" className="nav-link">Login</Link>
-              <Link to="/register" className="nav-link">Register</Link>
+              {/* Public Menu */}
+              <Link to="/" className="nav-link">
+                Home
+              </Link>
+              <Link to="/auctions" className="nav-link">
+                Auctions
+              </Link>
+              <Link to="/login" className="btn btn-outline">
+                Login
+              </Link>
+              <Link to="/register" className="btn btn-primary">
+                Sign Up
+              </Link>
             </>
           )}
-          <button
-            onClick={toggleTheme}
-            className="theme-toggle"
-            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
-        </nav>
+        </div>
       </div>
-    </header>
+    </nav>
   );
-}
+};
+
+export default Navbar;

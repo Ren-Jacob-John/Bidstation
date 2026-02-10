@@ -1,391 +1,643 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-hot-toast";
-import Navbar from "../components/Navbar";
-import "./CreateAuction.css";
-import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import { api } from "../services/api";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import auctionService from '../services/auctionService';
+import './CreateAuction.css';
 
-export default function CreateAuction() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-
+const CreateAuction = () => {
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    shortDescription: "",
-    categoryId: "",
-    startPrice: "",
-    reservePrice: "",
-    buyNowPrice: "",
-    bidIncrement: "1.00",
-    startTime: "",
-    endTime: "",
-    itemCondition: "new",
-    quantity: "1",
-    shippingCost: "",
-    shippingInfo: "",
-    location: "",
-    isPrivate: false,
-    inviteCode: ""
+    title: '',
+    description: '',
+    auctionType: 'sports_player',
+    sportType: 'Cricket',
+    startTime: '',
+    endTime: '',
+    teams: []
   });
-
-  const [errors, setErrors] = useState({});
+  
+  const [players, setPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState({
+    name: '',
+    description: '',
+    basePrice: '',
+    imageUrl: '',
+    position: '',
+    age: '',
+    nationality: ''
+  });
+  
+  const [teamInput, setTeamInput] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
+  const handlePlayerChange = (e) => {
+    setCurrentPlayer({
+      ...currentPlayer,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const addTeam = () => {
+    if (teamInput.trim() && !formData.teams.includes(teamInput.trim())) {
+      setFormData({
+        ...formData,
+        teams: [...formData.teams, teamInput.trim()]
+      });
+      setTeamInput('');
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const removeTeam = (teamToRemove) => {
+    setFormData({
+      ...formData,
+      teams: formData.teams.filter(team => team !== teamToRemove)
+    });
+  };
 
-    if (!formData.title.trim()) {
-      newErrors.title = "Title is required";
+  const addPlayer = () => {
+    if (!currentPlayer.name || !currentPlayer.basePrice) {
+      setError('Player name and base price are required');
+      return;
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
+    if (isNaN(currentPlayer.basePrice) || parseFloat(currentPlayer.basePrice) <= 0) {
+      setError('Base price must be a positive number');
+      return;
     }
 
-    if (!formData.startPrice || parseFloat(formData.startPrice) <= 0) {
-      newErrors.startPrice = "Valid starting price is required";
-    }
+    setPlayers([...players, { ...currentPlayer, id: Date.now() }]);
+    setCurrentPlayer({
+      name: '',
+      description: '',
+      basePrice: '',
+      imageUrl: '',
+      position: '',
+      age: '',
+      nationality: ''
+    });
+    setError('');
+  };
 
-    if (!formData.startTime) {
-      newErrors.startTime = "Start time is required";
-    }
+  const removePlayer = (playerId) => {
+    setPlayers(players.filter(p => p.id !== playerId));
+  };
 
-    if (!formData.endTime) {
-      newErrors.endTime = "End time is required";
-    }
-
-    const startTime = new Date(formData.startTime);
-    const endTime = new Date(formData.endTime);
-    const now = new Date();
-
-    if (startTime <= now) {
-      newErrors.startTime = "Start time must be in the future";
-    }
-
-    if (endTime <= startTime) {
-      newErrors.endTime = "End time must be after start time";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const editPlayer = (player) => {
+    setCurrentPlayer(player);
+    setPlayers(players.filter(p => p.id !== player.id));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsLoading(true);
+    setError('');
+    setLoading(true);
 
     try {
-      const data = await api("/auctions", {
-        method: "POST",
-        body: JSON.stringify(formData)
-      });
+      // Step 1: Create the auction
+      console.log('Creating auction with data:', formData);
+      const auctionResponse = await auctionService.createAuction(formData);
+      const auctionId = auctionResponse.auctionId;
+      
+      console.log('Auction created with ID:', auctionId);
 
-      toast.success("Auction created successfully!");
-      navigate(`/auction/${data.auctionId}`);
-    } catch (error) {
-      toast.error(error.message);
-      setErrors({ submit: error.message });
+      // Step 2: Add all players to the auction
+      if (players.length > 0) {
+        console.log(`Adding ${players.length} players to auction...`);
+        
+        for (const player of players) {
+          const playerData = {
+            auctionId: auctionId,
+            name: player.name,
+            description: player.description || '',
+            basePrice: parseFloat(player.basePrice),
+            category: formData.sportType,
+            imageUrl: player.imageUrl || '',
+            playerDetails: {
+              role: player.position || '',
+              age: player.age || '',
+              nationality: player.nationality || ''
+            }
+          };
+
+          console.log('Adding player:', playerData);
+          await auctionService.addAuctionItem(playerData);
+        }
+        
+        console.log('All players added successfully');
+      }
+
+      // Navigate to the auction details page
+      navigate(`/auction/${auctionId}`);
+      
+    } catch (err) {
+      console.error('Error creating auction:', err);
+      setError(err.response?.data?.message || 'Failed to create auction. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const nextStep = () => {
+    setError('');
+    
+    if (step === 1) {
+      if (!formData.title || !formData.description || !formData.auctionType) {
+        setError('Please fill in all required fields');
+        return;
+      }
+    }
+    
+    if (step === 2) {
+      if (!formData.startTime || !formData.endTime) {
+        setError('Please set start and end times');
+        return;
+      }
+      
+      if (formData.auctionType === 'sports_player' && formData.teams.length === 0) {
+        setError('Please add at least one team for sports player auction');
+        return;
+      }
+      
+      // Validate dates
+      const startDate = new Date(formData.startTime);
+      const endDate = new Date(formData.endTime);
+      
+      if (startDate >= endDate) {
+        setError('End time must be after start time');
+        return;
+      }
+    }
+    
+    if (step === 3 && formData.auctionType === 'sports_player' && players.length === 0) {
+      const confirmSkip = window.confirm(
+        'You haven\'t added any players yet. You can add them later from the auction details page. Continue?'
+      );
+      if (!confirmSkip) return;
+    }
+    
+    setStep(step + 1);
+  };
+
+  const prevStep = () => {
+    setError('');
+    setStep(step - 1);
+  };
+
   return (
-    <div className="create-page">
-      <Navbar />
-
-      <div className="create-container">
-        <form className="create-card" onSubmit={handleSubmit}>
-          <h2 className="create-title">Create Auction</h2>
-
-          {errors.submit && (
-            <div className="error-banner">{errors.submit}</div>
-          )}
-
-          {/* Title */}
-          <div className="input-group">
-            <input
-              type="text"
-              name="title"
-              className={`create-input ${errors.title ? "input-error" : ""}`}
-              placeholder="Auction Title"
-              value={formData.title}
-              onChange={handleChange}
-              disabled={isLoading}
-            />
-            {errors.title && <span className="error-text">{errors.title}</span>}
-          </div>
-
-          {/* Description */}
-          <div className="input-group">
-            <textarea
-              name="description"
-              className={`create-input create-textarea ${errors.description ? "input-error" : ""}`}
-              placeholder="Auction Description"
-              value={formData.description}
-              onChange={handleChange}
-              disabled={isLoading}
-              rows="4"
-            />
-            {errors.description && <span className="error-text">{errors.description}</span>}
-          </div>
-
-          {/* Short Description */}
-          <div className="input-group">
-            <input
-              type="text"
-              name="shortDescription"
-              className="create-input"
-              placeholder="Short Description (optional)"
-              value={formData.shortDescription}
-              onChange={handleChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Category */}
-          <div className="input-group">
-            <select
-              name="categoryId"
-              className="create-input"
-              value={formData.categoryId}
-              onChange={handleChange}
-              disabled={isLoading}
-            >
-              <option value="">Select Category</option>
-              <option value="1">Electronics</option>
-              <option value="2">Fashion</option>
-              <option value="3">Home & Garden</option>
-              <option value="4">Sports</option>
-              <option value="5">Art & Collectibles</option>
-            </select>
-          </div>
-
-          {/* Pricing */}
-          <div className="pricing-grid">
-            <div className="input-group">
-              <input
-                type="number"
-                name="startPrice"
-                className={`create-input ${errors.startPrice ? "input-error" : ""}`}
-                placeholder="Starting Price"
-                value={formData.startPrice}
-                onChange={handleChange}
-                disabled={isLoading}
-                step="0.01"
-                min="0"
-              />
-              {errors.startPrice && <span className="error-text">{errors.startPrice}</span>}
+    <div className="create-auction-page">
+      <div className="container">
+        <div className="create-auction-container">
+          <h1>Create New Auction</h1>
+          
+          {/* Progress Bar */}
+          <div className="progress-bar">
+            <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>
+              <div className="step-number">1</div>
+              <span>Basic Info</span>
             </div>
-
-            <div className="input-group">
-              <input
-                type="number"
-                name="reservePrice"
-                className="create-input"
-                placeholder="Reserve Price (optional)"
-                value={formData.reservePrice}
-                onChange={handleChange}
-                disabled={isLoading}
-                step="0.01"
-                min="0"
-              />
+            <div className="progress-line"></div>
+            <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>
+              <div className="step-number">2</div>
+              <span>Details</span>
             </div>
-
-            <div className="input-group">
-              <input
-                type="number"
-                name="buyNowPrice"
-                className="create-input"
-                placeholder="Buy Now Price (optional)"
-                value={formData.buyNowPrice}
-                onChange={handleChange}
-                disabled={isLoading}
-                step="0.01"
-                min="0"
-              />
+            <div className="progress-line"></div>
+            <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>
+              <div className="step-number">3</div>
+              <span>Add Players</span>
             </div>
-
-            <div className="input-group">
-              <input
-                type="number"
-                name="bidIncrement"
-                className="create-input"
-                placeholder="Bid Increment"
-                value={formData.bidIncrement}
-                onChange={handleChange}
-                disabled={isLoading}
-                step="0.01"
-                min="0.01"
-              />
+            <div className="progress-line"></div>
+            <div className={`progress-step ${step >= 4 ? 'active' : ''}`}>
+              <div className="step-number">4</div>
+              <span>Review</span>
             </div>
           </div>
 
-          {/* Timing */}
-          <div className="timing-grid">
-            <div className="input-group">
-              <label className="input-label">Start Time</label>
-              <input
-                type="datetime-local"
-                name="startTime"
-                className={`create-input ${errors.startTime ? "input-error" : ""}`}
-                value={formData.startTime}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              {errors.startTime && <span className="error-text">{errors.startTime}</span>}
-            </div>
-
-            <div className="input-group">
-              <label className="input-label">End Time</label>
-              <input
-                type="datetime-local"
-                name="endTime"
-                className={`create-input ${errors.endTime ? "input-error" : ""}`}
-                value={formData.endTime}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              {errors.endTime && <span className="error-text">{errors.endTime}</span>}
-            </div>
-          </div>
-
-          {/* Item Details */}
-          <div className="item-grid">
-            <div className="input-group">
-              <select
-                name="itemCondition"
-                className="create-input"
-                value={formData.itemCondition}
-                onChange={handleChange}
-                disabled={isLoading}
-              >
-                <option value="new">New</option>
-                <option value="like_new">Like New</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
-                <option value="poor">Poor</option>
-              </select>
-            </div>
-
-            <div className="input-group">
-              <input
-                type="number"
-                name="quantity"
-                className="create-input"
-                placeholder="Quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                disabled={isLoading}
-                min="1"
-              />
-            </div>
-          </div>
-
-          {/* Shipping */}
-          <div className="shipping-grid">
-            <div className="input-group">
-              <input
-                type="number"
-                name="shippingCost"
-                className="create-input"
-                placeholder="Shipping Cost (optional)"
-                value={formData.shippingCost}
-                onChange={handleChange}
-                disabled={isLoading}
-                step="0.01"
-                min="0"
-              />
-            </div>
-
-            <div className="input-group">
-              <input
-                type="text"
-                name="location"
-                className="create-input"
-                placeholder="Location"
-                value={formData.location}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Shipping Info */}
-          <div className="input-group">
-            <textarea
-              name="shippingInfo"
-              className="create-input create-textarea"
-              placeholder="Shipping Information (optional)"
-              value={formData.shippingInfo}
-              onChange={handleChange}
-              disabled={isLoading}
-              rows="2"
-            />
-          </div>
-
-          {/* Private Auction */}
-          <div className="checkbox-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                name="isPrivate"
-                checked={formData.isPrivate}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              Private Auction
-            </label>
-          </div>
-
-          {formData.isPrivate && (
-            <div className="input-group">
-              <input
-                type="text"
-                name="inviteCode"
-                className="create-input"
-                placeholder="Invite Code"
-                value={formData.inviteCode}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+          {error && (
+            <div className="alert alert-error">
+              {error}
             </div>
           )}
 
-          <button
-            className="create-btn"
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? "Creating Auction..." : "Create Auction"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="auction-form card">
+            {/* Step 1: Basic Information */}
+            {step === 1 && (
+              <div className="form-step">
+                <h2>Basic Information</h2>
+                
+                <div className="form-group">
+                  <label htmlFor="title">Auction Title *</label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="e.g., Cricket Premier League 2026 Auction"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="description">Description *</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="Describe your auction..."
+                    rows="4"
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="auctionType">Auction Type *</label>
+                  <select
+                    id="auctionType"
+                    name="auctionType"
+                    value={formData.auctionType}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="sports_player">⚽ Sports Player Auction</option>
+                    <option value="item">🛍️ Item Auction</option>
+                  </select>
+                </div>
+
+                {formData.auctionType === 'sports_player' && (
+                  <div className="form-group">
+                    <label htmlFor="sportType">Sport Type *</label>
+                    <select
+                      id="sportType"
+                      name="sportType"
+                      value={formData.sportType}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="Cricket">🏏 Cricket</option>
+                      <option value="Football">⚽ Football</option>
+                      <option value="Basketball">🏀 Basketball</option>
+                      <option value="Tennis">🎾 Tennis</option>
+                      <option value="Hockey">🏑 Hockey</option>
+                      <option value="Volleyball">🏐 Volleyball</option>
+                      <option value="Baseball">⚾ Baseball</option>
+                      <option value="Badminton">🏸 Badminton</option>
+                      <option value="Other">🏅 Other</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="button" onClick={nextStep} className="btn btn-primary">
+                    Next Step →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Auction Details */}
+            {step === 2 && (
+              <div className="form-step">
+                <h2>Auction Details</h2>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="startTime">Start Time *</label>
+                    <input
+                      type="datetime-local"
+                      id="startTime"
+                      name="startTime"
+                      value={formData.startTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="endTime">End Time *</label>
+                    <input
+                      type="datetime-local"
+                      id="endTime"
+                      name="endTime"
+                      value={formData.endTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {formData.auctionType === 'sports_player' && (
+                  <div className="form-group">
+                    <label>Teams / Franchises *</label>
+                    <div className="team-input-group">
+                      <input
+                        type="text"
+                        value={teamInput}
+                        onChange={(e) => setTeamInput(e.target.value)}
+                        placeholder="Enter team name"
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTeam())}
+                      />
+                      <button type="button" onClick={addTeam} className="btn">
+                        Add Team
+                      </button>
+                    </div>
+                    
+                    {formData.teams.length > 0 && (
+                      <div className="teams-list">
+                        {formData.teams.map((team, index) => (
+                          <div key={index} className="team-chip">
+                            <span>{team}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTeam(team)}
+                              className="remove-btn"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="button" onClick={prevStep} className="btn">
+                    ← Previous
+                  </button>
+                  <button type="button" onClick={nextStep} className="btn btn-primary">
+                    Next Step →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Add Players */}
+            {step === 3 && (
+              <div className="form-step">
+                <h2>Add {formData.auctionType === 'sports_player' ? 'Players' : 'Items'}</h2>
+                <p className="step-description">
+                  Add {formData.auctionType === 'sports_player' ? 'players' : 'items'} to your auction now, or you can add them later.
+                </p>
+
+                {/* Add Player Form */}
+                <div className="add-player-form">
+                  <h3>Add New {formData.auctionType === 'sports_player' ? 'Player' : 'Item'}</h3>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Name *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={currentPlayer.name}
+                        onChange={handlePlayerChange}
+                        placeholder={formData.auctionType === 'sports_player' ? 'Player name' : 'Item name'}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Base Price * ($)</label>
+                      <input
+                        type="number"
+                        name="basePrice"
+                        value={currentPlayer.basePrice}
+                        onChange={handlePlayerChange}
+                        placeholder="e.g., 100000"
+                        min="0"
+                        step="1000"
+                      />
+                    </div>
+                  </div>
+
+                  {formData.auctionType === 'sports_player' && (
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Position / Role</label>
+                        <input
+                          type="text"
+                          name="position"
+                          value={currentPlayer.position}
+                          onChange={handlePlayerChange}
+                          placeholder="e.g., Forward, Batsman, Point Guard"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Age</label>
+                        <input
+                          type="number"
+                          name="age"
+                          value={currentPlayer.age}
+                          onChange={handlePlayerChange}
+                          placeholder="Age"
+                          min="15"
+                          max="50"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Nationality</label>
+                        <input
+                          type="text"
+                          name="nationality"
+                          value={currentPlayer.nationality}
+                          onChange={handlePlayerChange}
+                          placeholder="Country"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label>Description</label>
+                    <textarea
+                      name="description"
+                      value={currentPlayer.description}
+                      onChange={handlePlayerChange}
+                      placeholder="Add details..."
+                      rows="2"
+                    ></textarea>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Image URL</label>
+                    <input
+                      type="url"
+                      name="imageUrl"
+                      value={currentPlayer.imageUrl}
+                      onChange={handlePlayerChange}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+
+                  <button type="button" onClick={addPlayer} className="btn btn-success">
+                    ✓ Add {formData.auctionType === 'sports_player' ? 'Player' : 'Item'}
+                  </button>
+                </div>
+
+                {/* Players List */}
+                {players.length > 0 && (
+                  <div className="players-list">
+                    <h3>Added {formData.auctionType === 'sports_player' ? 'Players' : 'Items'} ({players.length})</h3>
+                    <div className="players-grid">
+                      {players.map((player) => (
+                        <div key={player.id} className="player-card">
+                          <div className="player-header">
+                            <h4>{player.name}</h4>
+                            <div className="player-actions">
+                              <button
+                                type="button"
+                                onClick={() => editPlayer(player)}
+                                className="btn-icon"
+                                title="Edit"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removePlayer(player.id)}
+                                className="btn-icon"
+                                title="Remove"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                          <div className="player-details">
+                            <p><strong>Base Price:</strong> ${parseFloat(player.basePrice).toLocaleString()}</p>
+                            {player.position && <p><strong>Position:</strong> {player.position}</p>}
+                            {player.age && <p><strong>Age:</strong> {player.age}</p>}
+                            {player.nationality && <p><strong>Nationality:</strong> {player.nationality}</p>}
+                            {player.description && <p className="player-desc">{player.description}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {players.length === 0 && (
+                  <div className="empty-state">
+                    <p>No {formData.auctionType === 'sports_player' ? 'players' : 'items'} added yet.</p>
+                    <p className="text-muted">You can skip this step and add them later from the auction details page.</p>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="button" onClick={prevStep} className="btn">
+                    ← Previous
+                  </button>
+                  <button type="button" onClick={nextStep} className="btn btn-primary">
+                    Next Step →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Review */}
+            {step === 4 && (
+              <div className="form-step">
+                <h2>Review & Create</h2>
+                
+                <div className="review-section">
+                  <h3>Auction Details</h3>
+                  <div className="review-item">
+                    <span className="review-label">Title:</span>
+                    <span className="review-value">{formData.title}</span>
+                  </div>
+                  
+                  <div className="review-item">
+                    <span className="review-label">Description:</span>
+                    <span className="review-value">{formData.description}</span>
+                  </div>
+                  
+                  <div className="review-item">
+                    <span className="review-label">Type:</span>
+                    <span className="review-value">
+                      {formData.auctionType === 'sports_player' ? '⚽ Sports Player' : '🛍️ Item'} Auction
+                    </span>
+                  </div>
+                  
+                  {formData.auctionType === 'sports_player' && (
+                    <div className="review-item">
+                      <span className="review-label">Sport:</span>
+                      <span className="review-value">{formData.sportType}</span>
+                    </div>
+                  )}
+                  
+                  <div className="review-item">
+                    <span className="review-label">Start Time:</span>
+                    <span className="review-value">
+                      {new Date(formData.startTime).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  <div className="review-item">
+                    <span className="review-label">End Time:</span>
+                    <span className="review-value">
+                      {new Date(formData.endTime).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  {formData.auctionType === 'sports_player' && formData.teams.length > 0 && (
+                    <div className="review-item">
+                      <span className="review-label">Teams:</span>
+                      <span className="review-value">{formData.teams.join(', ')}</span>
+                    </div>
+                  )}
+
+                  {players.length > 0 && (
+                    <div className="review-item">
+                      <span className="review-label">{formData.auctionType === 'sports_player' ? 'Players' : 'Items'}:</span>
+                      <span className="review-value">{players.length} added</span>
+                    </div>
+                  )}
+                </div>
+
+                {players.length > 0 && (
+                  <div className="review-section">
+                    <h3>{formData.auctionType === 'sports_player' ? 'Players' : 'Items'} Summary</h3>
+                    <div className="review-players-list">
+                      {players.map((player, index) => (
+                        <div key={player.id} className="review-player-item">
+                          <span className="player-number">{index + 1}.</span>
+                          <span className="player-name">{player.name}</span>
+                          <span className="player-price">${parseFloat(player.basePrice).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="button" onClick={prevStep} className="btn">
+                    ← Previous
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-success"
+                    disabled={loading}
+                  >
+                    {loading ? 'Creating Auction...' : 'Create Auction'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
-      <Footer />
     </div>
   );
-}
+};
+
+export default CreateAuction;

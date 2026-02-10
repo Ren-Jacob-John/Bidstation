@@ -3,10 +3,12 @@
 // ---------------------------------------------------------------------------
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -60,6 +62,16 @@ const Navbar = () => {
                 Browse Auctions
               </Link>
 
+              {/* Theme Toggle */}
+              <button 
+                onClick={toggleTheme} 
+                className="theme-toggle-btn"
+                title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
+
               {/* User Menu */}
               <div className="navbar-user">
                 <Link to="/profile" className="nav-link user-info">
@@ -85,6 +97,17 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Auctions
               </Link>
+              
+              {/* Theme Toggle */}
+              <button 
+                onClick={toggleTheme} 
+                className="theme-toggle-btn"
+                title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle theme"
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
+              
               <Link to="/login" className="btn btn-outline">
                 Login
               </Link>

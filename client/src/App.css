@@ -20,8 +20,22 @@
 }
 
 /* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+.gradient-text-red {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-blue {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-green {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -82,7 +96,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .empty-state-text {
@@ -164,10 +178,42 @@
   font-weight: 700;
   margin-bottom: 2rem;
   text-align: center;
+  color: var(--text-primary);
 }
 
 .section-subtitle {
   color: var(--text-secondary);
   text-align: center;
   margin-bottom: 3rem;
+}
+
+/* Theme toggle button styles */
+.theme-toggle-btn {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: white;
+  font-size: 1.2rem;
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: white;
+  transform: rotate(15deg);
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

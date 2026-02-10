@@ -8,9 +8,10 @@
 
 /* Hero Section */
 .hero-section {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
+  background: var(--bg-secondary);
   padding: 6rem 2rem;
   text-align: center;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .hero-content {
@@ -22,7 +23,7 @@
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -53,33 +54,33 @@
 }
 
 .btn-primary-hero {
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   color: white;
   border: none;
 }
 
 .btn-primary-hero:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
 }
 
 .btn-secondary-hero {
-  background: white;
-  color: #ef4444;
-  border: 2px solid #ef4444;
+  background: var(--bg-primary);
+  color: var(--primary-red);
+  border: 2px solid var(--primary-red);
 }
 
 .btn-secondary-hero:hover {
-  background: #ef4444;
+  background: var(--primary-red);
   color: white;
   transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.2);
 }
 
 /* Features Section */
 .features-section {
   padding: 5rem 2rem;
-  background: white;
+  background: var(--bg-primary);
 }
 
 .features-container {
@@ -92,7 +93,7 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 3rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .features-grid {
@@ -102,7 +103,7 @@
 }
 
 .feature-card {
-  background: var(--bg-color);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 2rem;
@@ -113,7 +114,7 @@
 .feature-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  border-color: #ef4444;
+  border-color: var(--primary-red);
 }
 
 .feature-icon {
@@ -126,7 +127,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .feature-description {
@@ -137,7 +138,9 @@
 /* Sports Section */
 .sports-section {
   padding: 5rem 2rem;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(245, 158, 11, 0.05));
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .sports-container {
@@ -152,7 +155,7 @@
 }
 
 .sport-card {
-  background: white;
+  background: var(--bg-primary);
   border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
@@ -162,9 +165,9 @@
 }
 
 .sport-card:hover {
-  border-color: #ef4444;
+  border-color: var(--primary-red);
   transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 5px 15px rgba(220, 38, 38, 0.2);
 }
 
 .sport-icon {
@@ -174,14 +177,14 @@
 
 .sport-name {
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
 /* CTA Section */
 .cta-section {
   padding: 5rem 2rem;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   color: white;
   text-align: center;
 }
@@ -205,7 +208,7 @@
 
 .btn-cta {
   background: white;
-  color: #ef4444;
+  color: var(--primary-red);
   padding: 1rem 2.5rem;
   font-size: 1.125rem;
   font-weight: 600;
@@ -224,7 +227,7 @@
 /* Stats Section */
 .stats-section {
   padding: 4rem 2rem;
-  background: white;
+  background: var(--bg-primary);
 }
 
 .stats-container {
@@ -246,7 +249,7 @@
 .stat-number {
   font-size: 3rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

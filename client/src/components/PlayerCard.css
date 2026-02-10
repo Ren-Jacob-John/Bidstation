@@ -3,7 +3,7 @@
    ========================================================================= */
 
 .player-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid var(--border-color);
 }
 
 .player-card:hover {
@@ -27,7 +28,7 @@
   position: relative;
   width: 100%;
   height: 250px;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: var(--gradient-blue);
   overflow: hidden;
 }
 
@@ -43,19 +44,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  background: var(--bg-secondary);
 }
 
 .placeholder-icon {
   font-size: 5rem;
-  color: #9ca3af;
+  color: var(--gray-400);
 }
 
 .sold-badge {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: var(--gradient-green);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 6px;
@@ -76,7 +77,7 @@
 .player-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.2;
 }
@@ -87,32 +88,33 @@
   gap: 0.5rem;
 }
 
-.detail-item {
+.player-detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-label {
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .detail-value {
   font-weight: 500;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
 /* Pricing */
 .player-pricing {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--bg-secondary);
   padding: 1rem;
   border-radius: 8px;
   margin: 0.5rem 0;
+  border: 1px solid var(--border-color);
 }
 
 .price-row {
@@ -125,29 +127,29 @@
 .price-row.current {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 2px solid #fbbf24;
+  border-top: 2px solid var(--primary-orange);
 }
 
 .price-label {
   font-weight: 600;
-  color: #92400e;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .price-value {
   font-weight: 700;
-  color: #92400e;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 
 .price-value.highlight {
-  color: #ef4444;
+  color: var(--primary-red);
   font-size: 1.3rem;
 }
 
 .current-bidder {
   font-size: 0.85rem;
-  color: #92400e;
+  color: var(--text-secondary);
   font-style: italic;
   margin-top: 0.5rem;
 }
@@ -161,16 +163,17 @@
 }
 
 .stat-item {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   padding: 0.5rem;
   border-radius: 6px;
   text-align: center;
+  border: 1px solid var(--border-color);
 }
 
 .stat-label {
   display: block;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0.25rem;
@@ -179,7 +182,7 @@
 .stat-value {
   display: block;
   font-size: 1rem;
-  color: #1f2937;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -187,7 +190,7 @@
 .btn-bid {
   width: 100%;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+  background: var(--gradient-red);
   color: white;
   border: none;
   border-radius: 8px;
@@ -200,7 +203,7 @@
 
 .btn-bid:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-bid:disabled {
@@ -237,7 +240,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   max-width: 500px;
   width: 100%;
@@ -260,7 +263,7 @@
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -269,14 +272,14 @@
 .modal-header h3 {
   margin: 0;
   font-size: 1.3rem;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .modal-close {
   background: none;
   border: none;
   font-size: 2rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   line-height: 1;
   padding: 0;
@@ -286,7 +289,7 @@
 }
 
 .modal-close:hover {
-  color: #ef4444;
+  color: var(--primary-red);
   transform: rotate(90deg);
 }
 
@@ -295,21 +298,22 @@
 }
 
 .bid-info {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--bg-secondary);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
 }
 
 .bid-info p {
   margin: 0.25rem 0;
   font-weight: 600;
-  color: #92400e;
+  color: var(--text-primary);
 }
 
 .min-bid-text {
   font-size: 0.9rem;
-  color: #b45309;
+  color: var(--text-secondary);
 }
 
 .form-group {
@@ -319,33 +323,36 @@
 .form-group label {
   display: block;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
   transition: all 0.2s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .error-message {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
   padding: 0.75rem;
   border-radius: 6px;
   margin: 1rem 0;
   font-size: 0.9rem;
   font-weight: 500;
+  border: 1px solid var(--error);
 }
 
 .quick-bids {
@@ -354,7 +361,7 @@
 
 .quick-bids-label {
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
@@ -367,9 +374,9 @@
 
 .btn-quick {
   padding: 0.5rem;
-  background: #f3f4f6;
-  color: #1f2937;
-  border: 2px solid #e5e7eb;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
@@ -377,14 +384,14 @@
 }
 
 .btn-quick:hover {
-  background: #ef4444;
+  background: var(--primary-red);
   color: white;
-  border-color: #ef4444;
+  border-color: var(--primary-red);
 }
 
 .modal-footer {
   padding: 1.5rem;
-  border-top: 2px solid #f3f4f6;
+  border-top: 2px solid var(--border-color);
   display: flex;
   gap: 1rem;
   justify-content: flex-end;

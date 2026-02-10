@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(245, 158, 11, 0.05));
+  background: var(--bg-secondary);
 }
 
 .verify-email-container {
@@ -12,6 +12,9 @@
   width: 100%;
   padding: 2.5rem;
   text-align: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
 .verify-email-header {
@@ -32,7 +35,7 @@
 }
 
 .success-icon {
-  color: #22c55e;
+  color: var(--success);
   animation: scaleIn 0.5s ease-out;
 }
 
@@ -59,7 +62,7 @@
 
 .verify-email-container h1 {
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 2rem;
@@ -72,27 +75,27 @@
 }
 
 .subtitle strong {
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 /* Alerts */
 .alert {
   padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
   text-align: left;
 }
 
 .alert-error {
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  color: #ef4444;
+  border: 1px solid var(--error);
+  color: var(--error);
 }
 
 .alert-success {
   background: rgba(34, 197, 94, 0.1);
-  border: 1px solid #22c55e;
-  color: #22c55e;
+  border: 1px solid var(--success);
+  color: var(--success);
 }
 
 /* Form */
@@ -109,7 +112,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .code-input {
@@ -120,16 +123,16 @@
   letter-spacing: 0.1em;
   font-weight: 600;
   border: 2px solid var(--border-color);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   background: var(--input-bg);
-  color: var(--text-color);
+  color: var(--text-primary);
   transition: all 0.3s;
 }
 
 .code-input:focus {
   outline: none;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 .helper-text {
@@ -178,15 +181,15 @@
 
 .btn-outline {
   background: transparent;
-  color: #ef4444;
-  border: 2px solid #ef4444;
+  color: var(--primary-red);
+  border: 2px solid var(--primary-red);
   padding: 0.75rem 1.5rem;
   font-weight: 600;
   transition: all 0.3s;
 }
 
 .btn-outline:hover {
-  background: #ef4444;
+  background: var(--primary-red);
   color: white;
   transform: translateY(-2px);
 }
@@ -199,9 +202,9 @@
 
 /* Info Box */
 .info-box {
-  background: var(--bg-color);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   padding: 1.5rem;
   margin-top: 2rem;
   text-align: left;
@@ -210,7 +213,7 @@
 .info-box h3 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .info-box ol {
@@ -233,7 +236,7 @@
   height: 50px;
   margin: 0 auto 1rem;
   border: 4px solid var(--border-color);
-  border-top-color: #ef4444;
+  border-top-color: var(--primary-red);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -260,7 +263,7 @@
 }
 
 .success-state p:first-child {
-  color: #22c55e;
+  color: var(--success);
   font-weight: 600;
   font-size: 1.25rem;
 }

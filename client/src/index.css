@@ -9,29 +9,66 @@
   box-sizing: border-box;
 }
 
-/* CSS Variables */
+/* CSS Variables - Light Theme (Default) */
 :root {
-  /* Colors */
-  --primary-red: #ef4444;
-  --primary-orange: #f59e0b;
-  --gradient: linear-gradient(135deg, #ef4444, #f59e0b);
+  /* Primary Colors - Red, Green, Blue */
+  --primary-red: #dc2626;
+  --primary-red-light: #ef4444;
+  --primary-red-dark: #b91c1c;
   
+  --primary-green: #16a34a;
+  --primary-green-light: #22c55e;
+  --primary-green-dark: #15803d;
+  
+  --primary-blue: #2563eb;
+  --primary-blue-light: #3b82f6;
+  --primary-blue-dark: #1d4ed8;
+  
+  /* Neutral Colors - White, Black, Gray */
+  --white: #ffffff;
+  --black: #000000;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* Gradients */
+  --gradient-red: linear-gradient(135deg, #dc2626, #ef4444);
+  --gradient-blue: linear-gradient(135deg, #2563eb, #3b82f6);
+  --gradient-green: linear-gradient(135deg, #16a34a, #22c55e);
+  --gradient-dark: linear-gradient(135deg, #1f2937, #374151);
+  
+  /* Status Colors */
   --success: #22c55e;
   --error: #ef4444;
   --warning: #f59e0b;
   --info: #3b82f6;
   
-  --text-color: #1f2937;
+  /* Text Colors */
+  --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --text-light: #9ca3af;
+  --text-inverse: #ffffff;
   
-  --bg-color: #f9fafb;
-  --bg-white: #ffffff;
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  /* Border */
   --border-color: #e5e7eb;
+  --border-focus: #dc2626;
   
+  /* Input */
   --input-bg: #ffffff;
   --input-border: #d1d5db;
-  --input-focus: #ef4444;
+  --input-focus: #dc2626;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -58,6 +95,33 @@
   --transition-slow: 500ms ease;
 }
 
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-light: #6b7280;
+  
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  
+  --border-color: #374151;
+  --border-focus: #ef4444;
+  
+  --input-bg: #1f2937;
+  --input-border: #4b5563;
+  --input-focus: #ef4444;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  
+  /* Scrollbar - Dark */
+  --scrollbar-track: #1f2937;
+  --scrollbar-thumb: #4b5563;
+}
+
 /* Base Styles */
 html {
   font-size: 16px;
@@ -70,9 +134,10 @@ body {
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   line-height: 1.6;
-  color: var(--text-color);
-  background: var(--bg-white);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   min-height: 100vh;
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 #root {
@@ -85,8 +150,9 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
-  color: var(--text-color);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
+  transition: color var(--transition-base);
 }
 
 h1 { font-size: 2.5rem; }
@@ -101,7 +167,7 @@ p {
 }
 
 a {
-  color: var(--primary-red);
+  color: var(--primary-red-light);
   text-decoration: none;
   transition: color var(--transition-base);
 }
@@ -125,11 +191,12 @@ a:hover {
 
 /* Card */
 .card {
-  background: var(--bg-white);
+  background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
 }
 
 /* Buttons */
@@ -154,7 +221,7 @@ a:hover {
 }
 
 .btn-primary {
-  background: var(--gradient);
+  background: var(--gradient-red);
   color: white;
 }
 
@@ -164,13 +231,13 @@ a:hover {
 }
 
 .btn-secondary {
-  background: var(--bg-color);
-  color: var(--text-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--bg-white);
+  background: var(--bg-secondary);
   border-color: var(--primary-red);
 }
 
@@ -183,6 +250,26 @@ a:hover {
 .btn-outline:hover:not(:disabled) {
   background: var(--primary-red);
   color: white;
+}
+
+.btn-success {
+  background: var(--gradient-green);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-blue {
+  background: var(--gradient-blue);
+  color: white;
+}
+
+.btn-blue:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .btn-sm {
@@ -209,7 +296,7 @@ label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 input[type="text"],
@@ -226,7 +313,7 @@ select {
   border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);
   background: var(--input-bg);
-  color: var(--text-color);
+  color: var(--text-primary);
   transition: all var(--transition-base);
 }
 
@@ -235,7 +322,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--input-focus);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
 }
 
 textarea {
@@ -325,10 +412,29 @@ textarea {
   color: white;
 }
 
+.badge-red {
+  background: var(--primary-red);
+  color: white;
+}
+
+.badge-blue {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.badge-green {
+  background: var(--primary-green);
+  color: white;
+}
+
 /* Utilities */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
+.text-red { color: var(--primary-red); }
+.text-green { color: var(--primary-green); }
+.text-blue { color: var(--primary-blue); }
+.text-white { color: var(--text-inverse); }
 
 .mt-1 { margin-top: 0.5rem; }
 .mt-2 { margin-top: 1rem; }
@@ -375,7 +481,7 @@ textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -385,4 +491,19 @@ textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-light);
+}
+
+/* Theme Toggle Animation */
+.theme-toggle {
+  transition: all var(--transition-base);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Selection */
+::selection {
+  background: var(--primary-red);
+  color: white;
 }

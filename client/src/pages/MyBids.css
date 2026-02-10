@@ -1,6 +1,7 @@
 .my-bids-page {
   min-height: calc(100vh - 80px);
   padding: 2rem 0;
+  background: var(--bg-secondary);
 }
 
 .page-header {
@@ -11,14 +12,13 @@
 .page-header h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .page-header p {
-  color: var(--text-color);
-  opacity: 0.7;
+  color: var(--text-secondary);
   font-size: 1.125rem;
 }
 
@@ -35,6 +35,9 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
 }
 
 .stat-icon {
@@ -44,21 +47,23 @@
 .stat-content h3 {
   font-size: 1.75rem;
   margin: 0;
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .stat-content p {
   margin: 0;
-  color: var(--text-color);
-  opacity: 0.7;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
 /* Filters */
 .filters-section {
   padding: 1.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   margin-bottom: 2rem;
 }
 
@@ -71,22 +76,26 @@
 .filter-tab {
   padding: 0.75rem 1.5rem;
   border: none;
-  background-color: var(--input-bg);
-  color: var(--text-color);
-  border-radius: 0.5rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
+  border: 1px solid var(--border-color);
 }
 
 .filter-tab:hover {
-  background-color: var(--btn-bg);
+  background: var(--primary-red);
+  color: white;
+  border-color: var(--primary-red);
   transform: translateY(-2px);
 }
 
 .filter-tab.active {
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   color: white;
+  border-color: var(--primary-red);
 }
 
 /* Bids List */
@@ -98,11 +107,17 @@
 
 .bid-card {
   padding: 2rem;
-  transition: transform 0.2s, box-shadow 0.2s;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+  text-decoration: none;
 }
 
 .bid-card:hover {
   transform: translateY(-0.25rem);
+  border-color: var(--primary-red);
+  box-shadow: var(--shadow-md);
 }
 
 .bid-header {
@@ -120,18 +135,17 @@
 .bid-title-section h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .auction-link {
-  color: var(--accent-color);
+  color: var(--primary-red);
   font-size: 0.875rem;
   font-weight: 600;
-  opacity: 0.8;
 }
 
 .auction-link:hover {
   text-decoration: underline;
-  opacity: 1;
 }
 
 .bid-badges {
@@ -145,9 +159,10 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1.5rem;
-  background-color: var(--input-bg);
-  border-radius: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
   margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color);
 }
 
 .detail-row {
@@ -158,17 +173,18 @@
 
 .detail-label {
   font-size: 0.875rem;
-  opacity: 0.7;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .detail-value {
   font-size: 1.125rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .detail-value.highlight {
-  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  background: var(--gradient-red);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 1.5rem;
@@ -182,21 +198,25 @@
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
 }
 
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 .empty-state h3 {
   margin: 0.5rem 0;
   font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .empty-state p {
-  color: var(--text-color);
-  opacity: 0.7;
+  color: var(--text-secondary);
   margin-bottom: 1.5rem;
 }
 

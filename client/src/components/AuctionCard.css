@@ -3,7 +3,7 @@
    ========================================================================= */
 
 .auction-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid var(--border-color);
 }
 
 .auction-card:hover {
@@ -19,18 +20,19 @@
 }
 
 .auction-card.live {
-  border: 2px solid #ef4444;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+  border: 2px solid var(--primary-red);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.2);
 }
 
 /* Header */
 .auction-header {
   padding: 1.5rem;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-  border-bottom: 2px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  transition: background-color var(--transition-base);
 }
 
 .auction-icon {
@@ -47,7 +49,7 @@
 .auction-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
   line-height: 1.3;
   overflow: hidden;
@@ -59,7 +61,7 @@
 
 .auction-sport {
   display: inline-block;
-  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+  background: var(--gradient-red);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
@@ -124,13 +126,14 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 8px;
   transition: all 0.2s;
+  border: 1px solid var(--border-color);
 }
 
 .detail-item:hover {
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
 }
 
 .detail-icon {
@@ -149,7 +152,7 @@
 .detail-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -157,13 +160,13 @@
 .detail-value {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .detail-value.highlight {
-  color: #ef4444;
+  color: var(--primary-red);
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -172,15 +175,15 @@
 .auction-description {
   margin-top: 0.5rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--bg-tertiary);
   border-radius: 8px;
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid var(--primary-orange);
 }
 
 .auction-description p {
   margin: 0;
   font-size: 0.9rem;
-  color: #92400e;
+  color: var(--text-secondary);
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -195,10 +198,11 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   border-radius: 8px;
   font-size: 0.9rem;
   margin-top: 0.5rem;
+  border: 1px solid var(--border-color);
 }
 
 .creator-icon {
@@ -206,19 +210,19 @@
 }
 
 .creator-label {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .creator-name {
-  color: #1f2937;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
 /* Actions */
 .auction-actions {
   padding: 1.5rem;
-  border-top: 2px solid #f3f4f6;
+  border-top: 2px solid var(--border-color);
 }
 
 .btn-block {
@@ -231,7 +235,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+  background: var(--gradient-red);
   color: white;
   border: none;
   border-radius: 8px;
@@ -241,32 +245,33 @@
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-outline {
   background: transparent;
-  color: #ef4444;
-  border: 2px solid #ef4444;
+  color: var(--primary-red);
+  border: 2px solid var(--primary-red);
   border-radius: 8px;
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .btn-outline:hover {
-  background: #ef4444;
+  background: var(--primary-red);
   color: white;
 }
 
 /* Footer */
 .auction-footer {
   padding: 1rem 1.5rem;
-  background: #f9fafb;
-  border-top: 2px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border-top: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  transition: background-color var(--transition-base);
 }
 
 .footer-stat {
@@ -277,14 +282,14 @@
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
 }
 
 .stat-value {
   font-size: 0.85rem;
-  color: #1f2937;
+  color: var(--text-primary);
   font-weight: 600;
 }
 

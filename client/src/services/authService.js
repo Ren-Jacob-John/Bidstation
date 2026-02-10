@@ -11,6 +11,7 @@ import {
   updatePassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { ref, set, get, update } from 'firebase/database';
 import { fireAuth, database } from '../firebase/firebase.config';
@@ -236,6 +237,14 @@ export const updateProfile = async (updates) => {
     throw error;
   }
 };
+
+// ---------------------------------------------------------------------------
+// Listen to auth state changes
+// ---------------------------------------------------------------------------
+export const onAuthChange = (callback) => {
+  return onAuthStateChanged(fireAuth, callback);
+};
+
 
 export default {
   registerUser,

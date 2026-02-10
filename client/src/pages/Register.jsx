@@ -46,7 +46,33 @@ const Register = () => {
       await register(registerData);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      // Handle Firebase auth errors with user-friendly messages
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered. Please login or use a different email.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Please enter a valid email address.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password should be at least 6 characters.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          default:
+            errorMessage = err.message || errorMessage;
+        }
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -66,7 +66,8 @@ export const AuthProvider = ({ children }) => {
   // register
   // -----------------------------------------------------------------------
   const register = async (userData) => {
-    const response = await registerUser(userData);
+    const { email, password, username, role } = userData;
+    const response = await registerUser(email, password, username, role);
     setUser(response.user);
     return response;
   };

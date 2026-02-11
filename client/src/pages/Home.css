@@ -6,264 +6,383 @@
   min-height: 100vh;
 }
 
-/* Hero Section */
-.hero-section {
-  background: var(--bg-secondary);
+/* =========================================================================
+   Hero Section
+   ========================================================================= */
+
+.hero {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 50%, #0f172a 100%);
   padding: 6rem 2rem;
-  text-align: center;
-  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated Background Blobs */
+.hero-bg-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: blobFloat 20s ease-in-out infinite;
+}
+
+.hero-blob-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(220, 38, 38, 0.3);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.hero-blob-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(37, 99, 235, 0.25);
+  top: 50%;
+  right: -100px;
+  animation-delay: -5s;
+}
+
+.hero-blob-3 {
+  width: 350px;
+  height: 350px;
+  background: rgba(34, 197, 94, 0.2);
+  bottom: -100px;
+  left: 30%;
+  animation-delay: -10s;
+}
+
+@keyframes blobFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  50% {
+    transform: translate(-20px, 30px) scale(0.95);
+  }
+  75% {
+    transform: translate(50px, 20px) scale(1.05);
+  }
+}
+
+.hero .container {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-content {
-  max-width: 800px;
-  margin: 0 auto;
+  text-align: center;
 }
+
+
 
 .hero-title {
   font-size: 3.5rem;
   font-weight: 800;
   margin-bottom: 1.5rem;
-  background: var(--gradient-red);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1.2;
+  color: #ffffff;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
 .hero-subtitle {
-  font-size: 1.5rem;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  line-height: 1.6;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 2.5rem;
+  line-height: 1.7;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.hero-buttons {
+.hero-actions {
   display: flex;
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 3rem;
 }
 
-.btn-hero {
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: all 0.3s;
+.hero-actions .btn {
+  min-width: 180px;
 }
 
-.btn-primary-hero {
-  background: var(--gradient-red);
-  color: white;
-  border: none;
+.hero-actions .btn-icon {
+  font-size: 1.1rem;
 }
 
-.btn-primary-hero:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
-}
 
-.btn-secondary-hero {
-  background: var(--bg-primary);
-  color: var(--primary-red);
-  border: 2px solid var(--primary-red);
-}
+/* =========================================================================
+   Features Section
+   ========================================================================= */
 
-.btn-secondary-hero:hover {
-  background: var(--primary-red);
-  color: white;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.2);
-}
-
-/* Features Section */
-.features-section {
+.features {
   padding: 5rem 2rem;
   background: var(--bg-primary);
+  position: relative;
 }
 
-.features-container {
+.features .container {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.section-title {
+.section-header {
   text-align: center;
+  margin-bottom: 4rem;
+}
+
+.features .section-title {
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 3rem;
+  margin-bottom: 1rem;
   color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.features .section-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-}
-
-.feature-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  transition: all 0.3s;
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-red);
-}
-
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  display: inline-block;
-}
-
-.feature-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
-.feature-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Sports Section */
-.sports-section {
-  padding: 5rem 2rem;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.sports-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.sports-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
 }
 
-.sport-card {
+.feature-card {
   background: var(--bg-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
   text-align: center;
-  transition: all 0.3s;
-  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
 }
 
-.sport-card:hover {
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-red);
+  transform: scaleX(0);
+  transition: transform var(--transition-base);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
   border-color: var(--primary-red);
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(220, 38, 38, 0.2);
 }
 
-.sport-icon {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
+.feature-card:hover::before {
+  transform: scaleX(1);
 }
 
-.sport-name {
-  font-weight: 600;
+.feature-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-spring);
+}
+
+.feature-card:hover .feature-icon-wrapper {
+  background: var(--gradient-red);
+  transform: scale(1.1) rotate(5deg);
+}
+
+.feature-card:hover .feature-icon {
+  filter: brightness(0) invert(1);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  transition: filter var(--transition-fast);
+}
+
+.feature-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
   color: var(--text-primary);
-  font-size: 0.875rem;
 }
 
-/* CTA Section */
-.cta-section {
+.feature-card p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.feature-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-base);
+}
+
+/* =========================================================================
+   CTA Section
+   ========================================================================= */
+
+.cta {
   padding: 5rem 2rem;
   background: var(--gradient-red);
   color: white;
-  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-bg-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cta-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cta-circle-1 {
+  width: 400px;
+  height: 400px;
+  top: -200px;
+  right: -100px;
+  animation: circleFloat 15s ease-in-out infinite;
+}
+
+.cta-circle-2 {
+  width: 300px;
+  height: 300px;
+  bottom: -150px;
+  left: -50px;
+  animation: circleFloat 15s ease-in-out infinite reverse;
+}
+
+@keyframes circleFloat {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+
+.cta .container {
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .cta-content {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.cta-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-}
-
-.cta-subtitle {
-  font-size: 1.25rem;
-  margin-bottom: 2rem;
-  opacity: 0.95;
-}
-
-.btn-cta {
-  background: white;
-  color: var(--primary-red);
-  padding: 1rem 2.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  border-radius: 8px;
-  text-decoration: none;
-  display: inline-block;
-  transition: all 0.3s;
-}
-
-.btn-cta:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  background: #fef2f2;
-}
-
-/* Stats Section */
-.stats-section {
-  padding: 4rem 2rem;
-  background: var(--bg-primary);
-}
-
-.stats-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
   text-align: center;
 }
 
-.stat-card {
-  padding: 1.5rem;
+.cta-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
 }
 
-.stat-number {
-  font-size: 3rem;
-  font-weight: 800;
-  background: var(--gradient-red);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.5rem;
+.cta h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
 }
 
-.stat-label {
-  color: var(--text-secondary);
+.cta p {
   font-size: 1.125rem;
-  font-weight: 500;
+  margin-bottom: 2rem;
+  opacity: 0.95;
+  line-height: 1.7;
 }
 
-/* Responsive */
+.btn-light {
+  background: white;
+  color: var(--primary-red);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.btn-light:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  background: #fef2f2;
+}
+
+.btn-arrow {
+  margin-left: 0.5rem;
+  transition: transform var(--transition-fast);
+}
+
+.btn-light:hover .btn-arrow {
+  transform: translateX(5px);
+}
+
+/* =========================================================================
+   Responsive Design
+   ========================================================================= */
+
+@media (max-width: 1024px) {
+  .hero-title {
+    font-size: 3rem;
+  }
+
+  .hero-stats {
+    gap: 2rem;
+  }
+
+  .stat-item .stat-number {
+    font-size: 2rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .hero {
+    padding: 4rem 1.5rem;
+  }
+
   .hero-title {
     font-size: 2.5rem;
   }
@@ -272,46 +391,79 @@
     font-size: 1.125rem;
   }
 
-  .section-title {
-    font-size: 2rem;
-  }
-
-  .cta-title {
-    font-size: 2rem;
-  }
-
-  .hero-buttons {
+  .hero-actions {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
   }
 
-  .btn-hero {
+  .hero-actions .btn {
     width: 100%;
+    max-width: 280px;
+  }
+
+  .hero-stats {
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .stat-item {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .features {
+    padding: 3rem 1.5rem;
+  }
+
+  .features .section-title {
+    font-size: 2rem;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
   }
 
-  .sports-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .cta {
+    padding: 3rem 1.5rem;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .cta h2 {
+    font-size: 2rem;
   }
 }
 
 @media (max-width: 480px) {
-  .hero-section {
-    padding: 4rem 1rem;
+  .hero {
+    padding: 3rem 1rem;
   }
 
   .hero-title {
     font-size: 2rem;
   }
 
-  .stat-number {
-    font-size: 2.5rem;
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-badge {
+    font-size: 0.8125rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .features .section-title {
+    font-size: 1.75rem;
+  }
+
+  .cta h2 {
+    font-size: 1.75rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
   }
 }

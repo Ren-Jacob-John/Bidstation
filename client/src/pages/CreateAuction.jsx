@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import auctionService from '../services/auctionService';
+import { useAuth } from '../context/AuthContext';
+import { createAuction, addPlayerToAuction } from '../services/auctionService';
 import './CreateAuction.css';
 
 const CreateAuction = () => {
@@ -8,29 +9,30 @@ const CreateAuction = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    auctionType: 'sports_player',
-    sportType: 'Cricket',
-    startTime: '',
-    endTime: '',
-    teams: []
+    sport: 'IPL',
+    startDate: '',
+    endDate: '',
+    totalBudget: '',
+    minIncrement: 100000,
+    maxPlayers: 100,
+    rules: ''
   });
   
   const [players, setPlayers] = useState([]);
   const [currentPlayer, setCurrentPlayer] = useState({
     name: '',
-    description: '',
+    role: '',
     basePrice: '',
+    nationality: '',
     imageUrl: '',
-    position: '',
-    age: '',
-    nationality: ''
+    stats: {}
   });
   
-  const [teamInput, setTeamInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -43,23 +45,6 @@ const CreateAuction = () => {
     setCurrentPlayer({
       ...currentPlayer,
       [e.target.name]: e.target.value
-    });
-  };
-
-  const addTeam = () => {
-    if (teamInput.trim() && !formData.teams.includes(teamInput.trim())) {
-      setFormData({
-        ...formData,
-        teams: [...formData.teams, teamInput.trim()]
-      });
-      setTeamInput('');
-    }
-  };
-
-  const removeTeam = (teamToRemove) => {
-    setFormData({
-      ...formData,
-      teams: formData.teams.filter(team => team !== teamToRemove)
     });
   };
 
@@ -77,12 +62,11 @@ const CreateAuction = () => {
     setPlayers([...players, { ...currentPlayer, id: Date.now() }]);
     setCurrentPlayer({
       name: '',
-      description: '',
+      role: '',
       basePrice: '',
+      nationality: '',
       imageUrl: '',
-      position: '',
-      age: '',
-      nationality: ''
+      stats: {}
     });
     setError('');
   };
@@ -102,10 +86,28 @@ const CreateAuction = () => {
     setLoading(true);
 
     try {
+      if (!user) {
+        throw new Error('You must be logged in to create an auction');
+      }
+
       // Step 1: Create the auction
       console.log('Creating auction with data:', formData);
-      const auctionResponse = await auctionService.createAuction(formData);
-      const auctionId = auctionResponse.auctionId;
+      
+      const auctionData = {
+        title: formData.title,
+        description: formData.description,
+        sport: formData.sport,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        totalBudget: parseFloat(formData.totalBudget) || 0,
+        minIncrement: parseFloat(formData.minIncrement) || 100000,
+        maxPlayers: parseInt(formData.maxPlayers) || 100,
+        rules: formData.rules,
+        players: [] // We'll add players separately
+      };
+
+      const auction = await createAuction(auctionData);
+      const auctionId = auction.id;
       
       console.log('Auction created with ID:', auctionId);
 
@@ -115,21 +117,17 @@ const CreateAuction = () => {
         
         for (const player of players) {
           const playerData = {
-            auctionId: auctionId,
             name: player.name,
-            description: player.description || '',
+            sport: formData.sport,
+            role: player.role || 'Player',
             basePrice: parseFloat(player.basePrice),
-            category: formData.sportType,
+            nationality: player.nationality || 'Unknown',
             imageUrl: player.imageUrl || '',
-            playerDetails: {
-              role: player.position || '',
-              age: player.age || '',
-              nationality: player.nationality || ''
-            }
+            stats: player.stats || {}
           };
 
           console.log('Adding player:', playerData);
-          await auctionService.addAuctionItem(playerData);
+          await addPlayerToAuction(auctionId, playerData);
         }
         
         console.log('All players added successfully');
@@ -140,7 +138,7 @@ const CreateAuction = () => {
       
     } catch (err) {
       console.error('Error creating auction:', err);
-      setError(err.response?.data?.message || 'Failed to create auction. Please try again.');
+      setError(err.message || 'Failed to create auction. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -150,34 +148,34 @@ const CreateAuction = () => {
     setError('');
     
     if (step === 1) {
-      if (!formData.title || !formData.description || !formData.auctionType) {
+      if (!formData.title || !formData.description || !formData.sport) {
         setError('Please fill in all required fields');
         return;
       }
     }
     
     if (step === 2) {
-      if (!formData.startTime || !formData.endTime) {
-        setError('Please set start and end times');
+      if (!formData.startDate || !formData.endDate) {
+        setError('Please set start and end dates');
         return;
       }
       
-      if (formData.auctionType === 'sports_player' && formData.teams.length === 0) {
-        setError('Please add at least one team for sports player auction');
+      if (!formData.totalBudget || parseFloat(formData.totalBudget) <= 0) {
+        setError('Please enter a valid total budget');
         return;
       }
       
       // Validate dates
-      const startDate = new Date(formData.startTime);
-      const endDate = new Date(formData.endTime);
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
       
       if (startDate >= endDate) {
-        setError('End time must be after start time');
+        setError('End date must be after start date');
         return;
       }
     }
     
-    if (step === 3 && formData.auctionType === 'sports_player' && players.length === 0) {
+    if (step === 3 && players.length === 0) {
       const confirmSkip = window.confirm(
         'You haven\'t added any players yet. You can add them later from the auction details page. Continue?'
       );
@@ -190,6 +188,21 @@ const CreateAuction = () => {
   const prevStep = () => {
     setError('');
     setStep(step - 1);
+  };
+
+  const getSportRoles = (sport) => {
+    const roles = {
+      IPL: ['Batsman', 'Bowler', 'All-Rounder', 'Wicket-Keeper'],
+      PKL: ['Raider', 'Defender', 'All-Rounder'],
+      ISL: ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'],
+      HIL: ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'],
+      PBL: ['Singles', 'Doubles', 'Mixed Doubles'],
+      UTT: ['Singles', 'Doubles'],
+      PVL: ['Outside Hitter', 'Middle Blocker', 'Setter', 'Libero'],
+      IBL: ['Point Guard', 'Shooting Guard', 'Small Forward', 'Power Forward', 'Center'],
+      PWL: ['Freestyle', 'Greco-Roman', 'Women\'s Wrestling'],
+    };
+    return roles[sport] || ['Player'];
   };
 
   return (
@@ -207,7 +220,7 @@ const CreateAuction = () => {
             <div className="progress-line"></div>
             <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>
               <div className="step-number">2</div>
-              <span>Details</span>
+              <span>Budget & Rules</span>
             </div>
             <div className="progress-line"></div>
             <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>
@@ -241,7 +254,7 @@ const CreateAuction = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    placeholder="e.g., Cricket Premier League 2026 Auction"
+                    placeholder="e.g., IPL 2025 Mega Auction"
                     required
                   />
                 </div>
@@ -260,41 +273,51 @@ const CreateAuction = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="auctionType">Auction Type *</label>
+                  <label htmlFor="sport">Sport Type *</label>
                   <select
-                    id="auctionType"
-                    name="auctionType"
-                    value={formData.auctionType}
+                    id="sport"
+                    name="sport"
+                    value={formData.sport}
                     onChange={handleChange}
                     required
                   >
-                    <option value="sports_player">⚽ Sports Player Auction</option>
-                    <option value="item">🛍️ Item Auction</option>
+                    <option value="IPL">🏏 IPL - Indian Premier League</option>
+                    <option value="PKL">🤼 PKL - Pro Kabaddi League</option>
+                    <option value="ISL">⚽ ISL - Indian Super League</option>
+                    <option value="HIL">🏑 HIL - Hockey India League</option>
+                    <option value="PBL">🏸 PBL - Premier Badminton League</option>
+                    <option value="UTT">🏓 UTT - Ultimate Table Tennis</option>
+                    <option value="PVL">🏐 PVL - Pro Volleyball League</option>
+                    <option value="IBL">🏀 IBL - Indian Basketball League</option>
+                    <option value="PWL">🤼‍♂️ PWL - Pro Wrestling League</option>
                   </select>
                 </div>
 
-                {formData.auctionType === 'sports_player' && (
+                <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="sportType">Sport Type *</label>
-                    <select
-                      id="sportType"
-                      name="sportType"
-                      value={formData.sportType}
+                    <label htmlFor="startDate">Start Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      id="startDate"
+                      name="startDate"
+                      value={formData.startDate}
                       onChange={handleChange}
                       required
-                    >
-                      <option value="Cricket">🏏 Cricket</option>
-                      <option value="Football">⚽ Football</option>
-                      <option value="Basketball">🏀 Basketball</option>
-                      <option value="Tennis">🎾 Tennis</option>
-                      <option value="Hockey">🏑 Hockey</option>
-                      <option value="Volleyball">🏐 Volleyball</option>
-                      <option value="Baseball">⚾ Baseball</option>
-                      <option value="Badminton">🏸 Badminton</option>
-                      <option value="Other">🏅 Other</option>
-                    </select>
+                    />
                   </div>
-                )}
+
+                  <div className="form-group">
+                    <label htmlFor="endDate">End Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      id="endDate"
+                      name="endDate"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
 
                 <div className="form-actions">
                   <button type="button" onClick={nextStep} className="btn btn-primary">
@@ -304,71 +327,70 @@ const CreateAuction = () => {
               </div>
             )}
 
-            {/* Step 2: Auction Details */}
+            {/* Step 2: Budget & Rules */}
             {step === 2 && (
               <div className="form-step">
-                <h2>Auction Details</h2>
+                <h2>Budget & Rules</h2>
+
+                <div className="form-group">
+                  <label htmlFor="totalBudget">Total Budget (₹) *</label>
+                  <input
+                    type="number"
+                    id="totalBudget"
+                    name="totalBudget"
+                    value={formData.totalBudget}
+                    onChange={handleChange}
+                    placeholder="e.g., 100000000"
+                    min="0"
+                    step="1000000"
+                    required
+                  />
+                  <p className="helper-text">
+                    {formData.totalBudget && `₹${(parseFloat(formData.totalBudget) / 10000000).toFixed(1)} Crores`}
+                  </p>
+                </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="startTime">Start Time *</label>
+                    <label htmlFor="minIncrement">Minimum Bid Increment (₹)</label>
                     <input
-                      type="datetime-local"
-                      id="startTime"
-                      name="startTime"
-                      value={formData.startTime}
+                      type="number"
+                      id="minIncrement"
+                      name="minIncrement"
+                      value={formData.minIncrement}
                       onChange={handleChange}
-                      required
+                      placeholder="e.g., 100000"
+                      min="1000"
+                      step="10000"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="endTime">End Time *</label>
+                    <label htmlFor="maxPlayers">Maximum Players</label>
                     <input
-                      type="datetime-local"
-                      id="endTime"
-                      name="endTime"
-                      value={formData.endTime}
+                      type="number"
+                      id="maxPlayers"
+                      name="maxPlayers"
+                      value={formData.maxPlayers}
                       onChange={handleChange}
-                      required
+                      placeholder="e.g., 100"
+                      min="1"
+                      max="500"
                     />
                   </div>
                 </div>
 
-                {formData.auctionType === 'sports_player' && (
-                  <div className="form-group">
-                    <label>Teams / Franchises *</label>
-                    <div className="team-input-group">
-                      <input
-                        type="text"
-                        value={teamInput}
-                        onChange={(e) => setTeamInput(e.target.value)}
-                        placeholder="Enter team name"
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTeam())}
-                      />
-                      <button type="button" onClick={addTeam} className="btn">
-                        Add Team
-                      </button>
-                    </div>
-                    
-                    {formData.teams.length > 0 && (
-                      <div className="teams-list">
-                        {formData.teams.map((team, index) => (
-                          <div key={index} className="team-chip">
-                            <span>{team}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeTeam(team)}
-                              className="remove-btn"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="form-group">
+                  <label htmlFor="rules">Additional Rules</label>
+                  <textarea
+                    id="rules"
+                    name="rules"
+                    value={formData.rules}
+                    onChange={handleChange}
+                    placeholder="Enter any special rules or conditions..."
+                    rows="4"
+                  ></textarea>
+                </div>
 
                 <div className="form-actions">
                   <button type="button" onClick={prevStep} className="btn">
@@ -384,89 +406,66 @@ const CreateAuction = () => {
             {/* Step 3: Add Players */}
             {step === 3 && (
               <div className="form-step">
-                <h2>Add {formData.auctionType === 'sports_player' ? 'Players' : 'Items'}</h2>
+                <h2>Add Players</h2>
                 <p className="step-description">
-                  Add {formData.auctionType === 'sports_player' ? 'players' : 'items'} to your auction now, or you can add them later.
+                  Add players to your auction now, or you can add them later.
                 </p>
 
                 {/* Add Player Form */}
                 <div className="add-player-form">
-                  <h3>Add New {formData.auctionType === 'sports_player' ? 'Player' : 'Item'}</h3>
+                  <h3>Add New Player</h3>
                   
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Name *</label>
+                      <label>Player Name *</label>
                       <input
                         type="text"
                         name="name"
                         value={currentPlayer.name}
                         onChange={handlePlayerChange}
-                        placeholder={formData.auctionType === 'sports_player' ? 'Player name' : 'Item name'}
+                        placeholder="e.g., Virat Kohli"
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Base Price * ($)</label>
+                      <label>Base Price (₹) *</label>
                       <input
                         type="number"
                         name="basePrice"
                         value={currentPlayer.basePrice}
                         onChange={handlePlayerChange}
-                        placeholder="e.g., 100000"
+                        placeholder="e.g., 2000000"
                         min="0"
-                        step="1000"
+                        step="100000"
                       />
                     </div>
                   </div>
 
-                  {formData.auctionType === 'sports_player' && (
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Position / Role</label>
-                        <input
-                          type="text"
-                          name="position"
-                          value={currentPlayer.position}
-                          onChange={handlePlayerChange}
-                          placeholder="e.g., Forward, Batsman, Point Guard"
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Age</label>
-                        <input
-                          type="number"
-                          name="age"
-                          value={currentPlayer.age}
-                          onChange={handlePlayerChange}
-                          placeholder="Age"
-                          min="15"
-                          max="50"
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Nationality</label>
-                        <input
-                          type="text"
-                          name="nationality"
-                          value={currentPlayer.nationality}
-                          onChange={handlePlayerChange}
-                          placeholder="Country"
-                        />
-                      </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Role / Position</label>
+                      <select
+                        name="role"
+                        value={currentPlayer.role}
+                        onChange={handlePlayerChange}
+                      >
+                        <option value="">Select Role</option>
+                        {getSportRoles(formData.sport).map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
 
-                  <div className="form-group">
-                    <label>Description</label>
-                    <textarea
-                      name="description"
-                      value={currentPlayer.description}
-                      onChange={handlePlayerChange}
-                      placeholder="Add details..."
-                      rows="2"
-                    ></textarea>
+                    <div className="form-group">
+                      <label>Nationality</label>
+                      <input
+                        type="text"
+                        name="nationality"
+                        value={currentPlayer.nationality}
+                        onChange={handlePlayerChange}
+                        placeholder="e.g., India"
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -476,19 +475,19 @@ const CreateAuction = () => {
                       name="imageUrl"
                       value={currentPlayer.imageUrl}
                       onChange={handlePlayerChange}
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="https://example.com/player.jpg"
                     />
                   </div>
 
                   <button type="button" onClick={addPlayer} className="btn btn-success">
-                    ✓ Add {formData.auctionType === 'sports_player' ? 'Player' : 'Item'}
+                    ✓ Add Player
                   </button>
                 </div>
 
                 {/* Players List */}
                 {players.length > 0 && (
                   <div className="players-list">
-                    <h3>Added {formData.auctionType === 'sports_player' ? 'Players' : 'Items'} ({players.length})</h3>
+                    <h3>Added Players ({players.length})</h3>
                     <div className="players-grid">
                       {players.map((player) => (
                         <div key={player.id} className="player-card">
@@ -514,11 +513,9 @@ const CreateAuction = () => {
                             </div>
                           </div>
                           <div className="player-details">
-                            <p><strong>Base Price:</strong> ${parseFloat(player.basePrice).toLocaleString()}</p>
-                            {player.position && <p><strong>Position:</strong> {player.position}</p>}
-                            {player.age && <p><strong>Age:</strong> {player.age}</p>}
+                            <p><strong>Base Price:</strong> ₹{parseFloat(player.basePrice).toLocaleString()}</p>
+                            {player.role && <p><strong>Role:</strong> {player.role}</p>}
                             {player.nationality && <p><strong>Nationality:</strong> {player.nationality}</p>}
-                            {player.description && <p className="player-desc">{player.description}</p>}
                           </div>
                         </div>
                       ))}
@@ -528,8 +525,8 @@ const CreateAuction = () => {
 
                 {players.length === 0 && (
                   <div className="empty-state">
-                    <p>No {formData.auctionType === 'sports_player' ? 'players' : 'items'} added yet.</p>
-                    <p className="text-muted">You can skip this step and add them later from the auction details page.</p>
+                    <p>No players added yet.</p>
+                    <p className="text-muted">You can skip this step and add them later.</p>
                   </div>
                 )}
 
@@ -557,48 +554,34 @@ const CreateAuction = () => {
                   </div>
                   
                   <div className="review-item">
-                    <span className="review-label">Description:</span>
-                    <span className="review-value">{formData.description}</span>
+                    <span className="review-label">Sport:</span>
+                    <span className="review-value">{formData.sport}</span>
                   </div>
                   
                   <div className="review-item">
-                    <span className="review-label">Type:</span>
+                    <span className="review-label">Start Date:</span>
                     <span className="review-value">
-                      {formData.auctionType === 'sports_player' ? '⚽ Sports Player' : '🛍️ Item'} Auction
-                    </span>
-                  </div>
-                  
-                  {formData.auctionType === 'sports_player' && (
-                    <div className="review-item">
-                      <span className="review-label">Sport:</span>
-                      <span className="review-value">{formData.sportType}</span>
-                    </div>
-                  )}
-                  
-                  <div className="review-item">
-                    <span className="review-label">Start Time:</span>
-                    <span className="review-value">
-                      {new Date(formData.startTime).toLocaleString()}
+                      {new Date(formData.startDate).toLocaleString()}
                     </span>
                   </div>
                   
                   <div className="review-item">
-                    <span className="review-label">End Time:</span>
+                    <span className="review-label">End Date:</span>
                     <span className="review-value">
-                      {new Date(formData.endTime).toLocaleString()}
+                      {new Date(formData.endDate).toLocaleString()}
                     </span>
                   </div>
                   
-                  {formData.auctionType === 'sports_player' && formData.teams.length > 0 && (
-                    <div className="review-item">
-                      <span className="review-label">Teams:</span>
-                      <span className="review-value">{formData.teams.join(', ')}</span>
-                    </div>
-                  )}
+                  <div className="review-item">
+                    <span className="review-label">Total Budget:</span>
+                    <span className="review-value">
+                      ₹{(parseFloat(formData.totalBudget) / 10000000).toFixed(1)} Crores
+                    </span>
+                  </div>
 
                   {players.length > 0 && (
                     <div className="review-item">
-                      <span className="review-label">{formData.auctionType === 'sports_player' ? 'Players' : 'Items'}:</span>
+                      <span className="review-label">Players:</span>
                       <span className="review-value">{players.length} added</span>
                     </div>
                   )}
@@ -606,13 +589,13 @@ const CreateAuction = () => {
 
                 {players.length > 0 && (
                   <div className="review-section">
-                    <h3>{formData.auctionType === 'sports_player' ? 'Players' : 'Items'} Summary</h3>
+                    <h3>Players Summary</h3>
                     <div className="review-players-list">
                       {players.map((player, index) => (
                         <div key={player.id} className="review-player-item">
                           <span className="player-number">{index + 1}.</span>
                           <span className="player-name">{player.name}</span>
-                          <span className="player-price">${parseFloat(player.basePrice).toLocaleString()}</span>
+                          <span className="player-price">₹{parseFloat(player.basePrice).toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -628,7 +611,7 @@ const CreateAuction = () => {
                     className="btn btn-success"
                     disabled={loading}
                   >
-                    {loading ? 'Creating Auction...' : 'Create Auction'}
+                    {loading ? 'Creating Auction...' : '🚀 Create Auction'}
                   </button>
                 </div>
               </div>

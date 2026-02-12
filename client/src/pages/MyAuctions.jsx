@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import auctionService from '../services/auctionService';
 import './MyAuctions.css';
 
 const MyAuctions = () => {
   const { user } = useAuth();
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({
     totalAuctions: 0,
@@ -21,18 +23,13 @@ const MyAuctions = () => {
 
   const fetchMyAuctions = async () => {
     try {
-      const response = await api.get('/auction/my-auctions');
-      const auctionsData = response.data;
+      setError('');
+      const auctionsData = await auctionService.getMyAuctions();
       setAuctions(auctionsData);
 
-      // Calculate stats
       const liveAuctions = auctionsData.filter(a => a.status === 'live').length;
       const completedAuctions = auctionsData.filter(a => a.status === 'completed').length;
-      
-      // Calculate total revenue from sold items
-      const totalRevenue = auctionsData.reduce((sum, auction) => {
-        return sum + parseFloat(auction.total_revenue || 0);
-      }, 0);
+      const totalRevenue = auctionsData.reduce((sum, auction) => sum + parseFloat(auction.totalRevenue || 0), 0);
 
       setStats({
         totalAuctions: auctionsData.length,
@@ -40,8 +37,10 @@ const MyAuctions = () => {
         completedAuctions,
         totalRevenue
       });
-    } catch (error) {
-      console.error('Error fetching auctions:', error);
+    } catch (err) {
+      console.error('Error fetching auctions:', err);
+      setError(err.message || 'Failed to load your auctions');
+      setAuctions([]);
     } finally {
       setLoading(false);
     }
@@ -52,7 +51,7 @@ const MyAuctions = () => {
       case 'live':
         return auctions.filter(auction => auction.status === 'live');
       case 'pending':
-        return auctions.filter(auction => auction.status === 'pending');
+        return auctions.filter(auction => auction.status === 'pending' || auction.status === 'upcoming');
       case 'completed':
         return auctions.filter(auction => auction.status === 'completed');
       default:
@@ -65,12 +64,13 @@ const MyAuctions = () => {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(amount || 0);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp) => {
+    if (timestamp == null) return 'Not set';
+    const d = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp);
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -82,6 +82,7 @@ const MyAuctions = () => {
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'badge-warning',
+      upcoming: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
       cancelled: 'badge-error'
@@ -109,10 +110,16 @@ const MyAuctions = () => {
             <h1>My Auctions</h1>
             <p>Manage all your created auctions</p>
           </div>
-          <Link to="/create-auction" className="btn btn-primary">
+          <Link to="/auction/create" className="btn btn-primary">
             ➕ Create New Auction
           </Link>
         </div>
+
+        {error && (
+          <div className="alert alert-error">
+            {error}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="stats-grid">
@@ -189,7 +196,7 @@ const MyAuctions = () => {
                 ? "You haven't created any auctions yet" 
                 : `No ${filter} auctions`}
             </p>
-            <Link to="/create-auction" className="btn btn-primary mt-2">
+            <Link to="/auction/create" className="btn btn-primary mt-2">
               Create Your First Auction
             </Link>
           </div>
@@ -200,10 +207,10 @@ const MyAuctions = () => {
                 <div className="auction-header">
                   <div className="header-badges">
                     <span className={`badge ${getStatusBadge(auction.status)}`}>
-                      {auction.status}
+                      {auction.status === 'upcoming' ? 'Upcoming' : auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.auctionType === 'item' ? '🛍️ Item' : '⚽ Sports'}
                     </span>
                   </div>
                 </div>
@@ -213,18 +220,14 @@ const MyAuctions = () => {
 
                 <div className="auction-stats">
                   <div className="stat-item">
-                    <span className="stat-label">Items</span>
-                    <span className="stat-value">{auction.item_count || 0}</span>
+                    <span className="stat-label">{auction.auctionType === 'item' ? 'Items' : 'Players'}</span>
+                    <span className="stat-value">{auction.auctionType === 'item' ? (auction.itemCount || 0) : (auction.playerCount || 0)}</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Bids</span>
-                    <span className="stat-value">{auction.bid_count || 0}</span>
-                  </div>
-                  {auction.total_revenue > 0 && (
+                  {(auction.totalRevenue > 0 || auction.total_revenue > 0) && (
                     <div className="stat-item">
                       <span className="stat-label">Revenue</span>
                       <span className="stat-value highlight">
-                        {formatCurrency(auction.total_revenue)}
+                        {formatCurrency(auction.totalRevenue ?? auction.total_revenue)}
                       </span>
                     </div>
                   )}
@@ -233,28 +236,22 @@ const MyAuctions = () => {
                 <div className="auction-meta">
                   <div className="meta-row">
                     <span className="meta-label">Starts</span>
-                    <span className="meta-value">{formatDate(auction.start_time)}</span>
+                    <span className="meta-value">{formatDate(auction.startDate)}</span>
                   </div>
-                  {auction.end_time && (
+                  {auction.endDate != null && (
                     <div className="meta-row">
                       <span className="meta-label">Ends</span>
-                      <span className="meta-value">{formatDate(auction.end_time)}</span>
+                      <span className="meta-value">{formatDate(auction.endDate)}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="auction-actions">
-                  <Link 
-                    to={`/auction/${auction.id}`} 
-                    className="btn"
-                  >
+                  <Link to={`/auction/${auction.id}`} className="btn">
                     View Details
                   </Link>
                   {auction.status === 'live' && (
-                    <Link 
-                      to={`/auction/${auction.id}/live`} 
-                      className="btn btn-success"
-                    >
+                    <Link to={`/auction/live/${auction.id}`} className="btn btn-success">
                       📺 Manage Live
                     </Link>
                   )}

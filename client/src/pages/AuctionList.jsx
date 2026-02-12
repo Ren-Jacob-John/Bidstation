@@ -32,9 +32,13 @@ const AuctionList = () => {
   const filterAuctions = () => {
     let filtered = [...auctions];
 
-    // Filter by status
+    // Filter by status (DB uses 'upcoming', UI may use 'pending')
     if (filter !== 'all') {
-      filtered = filtered.filter(auction => auction.status === filter);
+      filtered = filtered.filter(auction => {
+        const s = auction.status;
+        if (filter === 'pending') return s === 'pending' || s === 'upcoming';
+        return s === filter;
+      });
     }
 
     // Filter by search term
@@ -51,6 +55,7 @@ const AuctionList = () => {
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'badge-warning',
+      upcoming: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
       cancelled: 'badge-error'
@@ -58,9 +63,10 @@ const AuctionList = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp) => {
+    if (timestamp == null) return 'Not set';
+    const d = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp);
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -143,10 +149,10 @@ const AuctionList = () => {
               >
                 <div className="auction-header">
                   <span className={`badge ${getStatusBadge(auction.status)}`}>
-                    {auction.status}
+                    {auction.status === 'upcoming' ? 'Upcoming' : auction.status}
                   </span>
                   <span className="auction-type">
-                    {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                    {auction.auctionType === 'item' ? '🛍️ Item' : '⚽ Sports'}
                   </span>
                 </div>
 
@@ -155,23 +161,13 @@ const AuctionList = () => {
 
                 <div className="auction-info">
                   <div className="info-row">
-                    <span className="info-label">Created by</span>
-                    <span className="info-value">{auction.creator_name}</span>
+                    <span className="info-label">Starts</span>
+                    <span className="info-value">{formatDate(auction.startDate)}</span>
                   </div>
-                  
-                  {auction.start_time && (
+                  {(auction.playerCount != null || auction.itemCount != null) && (
                     <div className="info-row">
-                      <span className="info-label">Starts</span>
-                      <span className="info-value">{formatDate(auction.start_time)}</span>
-                    </div>
-                  )}
-                  
-                  {auction.auction_type === 'sports_player' && auction.teams && (
-                    <div className="info-row">
-                      <span className="info-label">Teams</span>
-                      <span className="info-value">
-                        {JSON.parse(auction.teams || '[]').length} teams
-                      </span>
+                      <span className="info-label">{auction.auctionType === 'item' ? 'Items' : 'Players'}</span>
+                      <span className="info-value">{auction.auctionType === 'item' ? (auction.itemCount || 0) : (auction.playerCount || 0)}</span>
                     </div>
                   )}
                 </div>
@@ -183,9 +179,9 @@ const AuctionList = () => {
                       Live Now
                     </span>
                   )}
-                  <button className="btn btn-primary">
+                  <span className="btn btn-primary">
                     {auction.status === 'live' ? 'Join Auction' : 'View Details'}
-                  </button>
+                  </span>
                 </div>
               </Link>
             ))}

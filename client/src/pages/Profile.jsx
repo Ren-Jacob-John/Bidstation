@@ -1,23 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { updateProfile as updateProfileService, changePassword } from '../services/authService';
 import './Profile.css';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount, refreshUser } = useAuth();
   const navigate = useNavigate();
   
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || ''
+    username: '',
+    email: ''
   });
+
+  useEffect(() => {
+    setFormData({
+      username: user?.username || '',
+      email: user?.email || ''
+    });
+  }, [user]);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,13 +53,12 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await api.put('/auth/update-profile', formData);
+      await updateProfileService({ username: formData.username });
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
-      // Refresh user data
-      window.location.reload();
+      await refreshUser();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      setError(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -73,10 +82,7 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      await api.put('/auth/update-password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
       setSuccess('Password updated successfully!');
       setPasswordData({
         currentPassword: '',
@@ -85,7 +91,7 @@ const Profile = () => {
       });
       setShowPasswordForm(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update password');
+      setError(err.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }
@@ -94,6 +100,23 @@ const Profile = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      setError('Please enter your password to confirm.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await deleteAccount(deletePassword);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Failed to delete account. Wrong password or try signing in again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRoleBadgeClass = (role) => {
@@ -266,17 +289,50 @@ const Profile = () => {
               <button onClick={handleLogout} className="action-btn logout-btn">
                 🚪 Logout
               </button>
-              <button 
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                    // Implement account deletion
-                    alert('Account deletion feature coming soon!');
-                  }
-                }} 
-                className="action-btn delete-btn"
-              >
-                🗑️ Delete Account
-              </button>
+              {!showDeleteConfirm ? (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)} 
+                  className="action-btn delete-btn"
+                >
+                  🗑️ Delete Account
+                </button>
+              ) : (
+                <div className="delete-account-form">
+                  <p className="delete-warning">
+                    This will permanently delete your account and profile. Auctions you created will remain but will no longer be linked to you. This cannot be undone.
+                  </p>
+                  <div className="form-group">
+                    <label htmlFor="deletePassword">Enter your password to confirm</label>
+                    <input
+                      type="password"
+                      id="deletePassword"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Your password"
+                      disabled={loading}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setError(''); }}
+                      className="btn"
+                      disabled={loading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      className="btn btn-primary delete-confirm-btn"
+                      disabled={loading || !deletePassword.trim()}
+                    >
+                      {loading ? 'Deleting...' : 'Permanently Delete Account'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

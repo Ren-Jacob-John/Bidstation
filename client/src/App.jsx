@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import './App.css';
 
 // ── pages ──────────────────────────────────────────────────────────────────
 import Home             from './pages/Home';
@@ -65,8 +66,14 @@ const AuthRoute = ({ children }) => {
 
 // ---------------------------------------------------------------------------
 const App = () => (
-  <>
+  <div className="App">
+    <div className="site-background" aria-hidden="true">
+      <span className="bg-orb" />
+      <span className="bg-orb" />
+      <span className="bg-orb" />
+    </div>
     <Navbar />
+    <main className="main-content">
     <Routes>
       {/* public */}
       <Route path="/" element={<Home />} />
@@ -81,17 +88,20 @@ const App = () => (
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
+      {/* public: browse & view auctions without signing up */}
+      <Route path="/auctions" element={<AuctionList />} />
+      <Route path="/auction/:id" element={<AuctionDetails />} />
+
       {/* protected */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/auction/create" element={<ProtectedRoute><CreateAuction /></ProtectedRoute>} />
       <Route path="/auction/live/:id" element={<ProtectedRoute><LiveAuction /></ProtectedRoute>} />
-      <Route path="/auction/:id" element={<ProtectedRoute><AuctionDetails /></ProtectedRoute>} />
-      <Route path="/auctions" element={<ProtectedRoute><AuctionList /></ProtectedRoute>} />
       <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
       <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     </Routes>
-  </>
+    </main>
+  </div>
 );
 
 export default App;

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import  auctionService  from '../services/auctionService';
+import auctionService from '../services/auctionService';
+import bidService from '../services/bidService';
 import './LiveAuction.css';
 
 const LiveAuction = () => {
@@ -30,18 +31,19 @@ const LiveAuction = () => {
 
   const fetchAuctionData = async () => {
     try {
-      const auctionData = await auctionService.getAuctionById(id);
+      const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
-      
+
       const itemsData = await auctionService.getAuctionItems(id);
       setItems(itemsData);
-      
+
       if (itemsData.length > 0) {
         setCurrentItem(itemsData[0]);
-        setBidAmount(itemsData[0].current_price || itemsData[0].base_price);
+        const price = itemsData[0].current_price ?? itemsData[0].base_price ?? itemsData[0].currentBid ?? itemsData[0].basePrice;
+        setBidAmount(String(price ?? ''));
       }
-    } catch (error) {
-      console.error('Error fetching auction data:', error);
+    } catch (err) {
+      console.error('Error fetching auction data:', err);
       setError('Failed to load auction data');
     } finally {
       setLoading(false);
@@ -49,11 +51,13 @@ const LiveAuction = () => {
   };
 
   const fetchItemBids = async (itemId) => {
+    if (!itemId) return;
     try {
-      const bidsData = await auctionService.getItemBids(itemId);
-      setBids(bidsData);
-    } catch (error) {
-      console.error('Error fetching bids:', error);
+      const allBids = await bidService.getAuctionBids(id);
+      setBids(allBids.filter(b => b.playerId === itemId));
+    } catch (err) {
+      console.error('Error fetching bids:', err);
+      setBids([]);
     }
   };
 
@@ -75,21 +79,20 @@ const LiveAuction = () => {
     }
 
     try {
-      await auctionService.placeBid({
-        itemId: currentItem.id,
-        bidAmount: amount,
-        teamName: selectedTeam || null
-      });
+      if (auction?.auctionType === 'item') {
+        await bidService.placeBidForItem(id, currentItem.id, amount);
+      } else {
+        await bidService.placeBid(id, currentItem.id, amount);
+      }
 
-      // Refresh data
       await fetchAuctionData();
       await fetchItemBids(currentItem.id);
-      
-      // Increment bid amount
-      setBidAmount((amount + 100000).toString());
+
+      const increment = auction?.minIncrement || 100000;
+      setBidAmount((amount + increment).toString());
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place bid');
+      setError(err.message || 'Failed to place bid');
     }
   };
 

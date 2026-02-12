@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auctionService from '../services/auctionService';
 import './AuctionDetails.css';
@@ -21,6 +21,7 @@ const AuctionDetails = () => {
     description: '',
     basePrice: '',
     category: '',
+    condition: 'Good',
     imageUrl: '',
     playerDetails: {
       role: '',
@@ -35,13 +36,12 @@ const AuctionDetails = () => {
 
   const fetchAuctionData = async () => {
     try {
-      const auctionData = await auctionService.getAuctionById(id);
+      const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
-      
       const itemsData = await auctionService.getAuctionItems(id);
       setItems(itemsData);
-    } catch (error) {
-      console.error('Error fetching auction data:', error);
+    } catch (err) {
+      console.error('Error fetching auction data:', err);
       setError('Failed to load auction details');
     } finally {
       setLoading(false);
@@ -50,23 +50,21 @@ const AuctionDetails = () => {
 
   const handleStartAuction = async () => {
     if (!window.confirm('Are you sure you want to start this auction?')) return;
-    
     try {
       await auctionService.startAuction(id);
-      navigate(`/auction/${id}/live`);
+      navigate(`/auction/live/${id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to start auction');
+      setError(err.message || 'Failed to start auction');
     }
   };
 
   const handleEndAuction = async () => {
     if (!window.confirm('Are you sure you want to end this auction?')) return;
-    
     try {
       await auctionService.endAuction(id);
       await fetchAuctionData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to end auction');
+      setError(err.message || 'Failed to end auction');
     }
   };
 
@@ -93,31 +91,31 @@ const AuctionDetails = () => {
   const handleAddItem = async (e) => {
     e.preventDefault();
     setError('');
-
     try {
       await auctionService.addItem({
         auctionId: id,
         name: itemForm.name,
         description: itemForm.description,
         basePrice: parseFloat(itemForm.basePrice),
+        base_price: parseFloat(itemForm.basePrice),
         category: itemForm.category,
         imageUrl: itemForm.imageUrl,
-        playerDetails: auction.auction_type === 'ipl_player' ? itemForm.playerDetails : null
+        condition: itemForm.condition,
+        playerDetails: auction.auction_type === 'sports_player' ? itemForm.playerDetails : null
       });
-
-      // Reset form and refresh items
       setItemForm({
         name: '',
         description: '',
         basePrice: '',
-        category: '',
+        category: auction.category || 'Electronics',
         imageUrl: '',
+        condition: 'Good',
         playerDetails: { role: '', age: '', nationality: '' }
       });
       setShowAddItem(false);
       await fetchAuctionData();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add item');
+      setError(err.message || 'Failed to add item');
     }
   };
 
@@ -175,8 +173,8 @@ const AuctionDetails = () => {
     );
   }
 
-  const isCreator = user?.id === auction.creator_id;
-  const canManage = isCreator || user?.role === 'admin';
+  const isCreator = user?.uid === auction.creator_id || user?.id === auction.creator_id;
+  const canManage = user && (isCreator || user?.role === 'admin');
 
   return (
     <div className="auction-details-page">
@@ -200,10 +198,6 @@ const AuctionDetails = () => {
 
           <div className="auction-info-grid">
             <div className="info-card">
-              <span className="info-label">Created by</span>
-              <span className="info-value">{auction.creator_name}</span>
-            </div>
-            <div className="info-card">
               <span className="info-label">Start Time</span>
               <span className="info-value">{formatDate(auction.start_time)}</span>
             </div>
@@ -212,12 +206,18 @@ const AuctionDetails = () => {
               <span className="info-value">{formatDate(auction.end_time)}</span>
             </div>
             <div className="info-card">
-              <span className="info-label">Total Items</span>
+              <span className="info-label">{auction.auction_type === 'sports_player' ? 'Players' : 'Items'}</span>
               <span className="info-value">{items.length}</span>
             </div>
           </div>
 
           {/* Action Buttons */}
+          {!user && (
+            <div className="action-buttons">
+              <Link to="/login" className="btn btn-primary">Sign in to bid or manage</Link>
+              <Link to="/register" className="btn btn-outline">Create account</Link>
+            </div>
+          )}
           {canManage && (
             <div className="action-buttons">
               {auction.status === 'pending' && items.length > 0 && (

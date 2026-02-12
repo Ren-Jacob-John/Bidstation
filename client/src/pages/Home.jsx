@@ -36,6 +36,10 @@ const Home = () => {
                 </Link>
               ) : (
                 <>
+                  <Link to="/auctions" className="btn btn-primary btn-lg">
+                    <span className="btn-icon">🛒</span>
+                    Browse Auctions
+                  </Link>
                   <Link to="/register" className="btn btn-primary btn-lg">
                     <span className="btn-icon">🚀</span>
                     Get Started

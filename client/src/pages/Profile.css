@@ -207,6 +207,45 @@
   transform: translateY(-2px);
 }
 
+.delete-account-form {
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  margin-top: 0.5rem;
+}
+
+.delete-warning {
+  margin: 0 0 1rem 0;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.delete-account-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.delete-account-form .form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0;
+  border: none;
+}
+
+.delete-confirm-btn {
+  background: var(--error) !important;
+  color: white !important;
+  border-color: var(--error) !important;
+}
+
+.delete-confirm-btn:hover:not(:disabled) {
+  background: var(--primary-red-dark) !important;
+  filter: brightness(1.1);
+}
+
 /* Statistics */
 .profile-stats {
   padding: 2rem;

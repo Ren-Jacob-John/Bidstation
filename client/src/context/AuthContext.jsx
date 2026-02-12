@@ -8,6 +8,7 @@ import {
   registerUser,
   logoutUser,
   getCurrentUser,
+  deleteAccount as deleteAccountService,
 } from '../services/authService';
 
 const AuthContext = createContext();
@@ -89,9 +90,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   // -----------------------------------------------------------------------
+  // deleteAccount  –  deletes user after re-auth with password
+  // -----------------------------------------------------------------------
+  const deleteAccount = async (currentPassword) => {
+    await deleteAccountService(currentPassword);
+    setUser(null);
+  };
+
+  // -----------------------------------------------------------------------
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshUser, isAuthenticated: !!user }}
+      value={{ user, loading, login, register, logout, refreshUser, deleteAccount, isAuthenticated: !!user }}
     >
       {children}
     </AuthContext.Provider>

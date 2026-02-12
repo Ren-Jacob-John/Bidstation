@@ -30,7 +30,7 @@ const Login = () => {
       await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +75,9 @@ const Login = () => {
                   placeholder="Enter your password"
                   required
                 />
+                <p className="forgot-password-link">
+                  <Link to="/forgot-password">Forgot password?</Link>
+                </p>
               </div>
 
               <button 

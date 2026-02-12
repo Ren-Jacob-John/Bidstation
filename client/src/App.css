@@ -6,43 +6,152 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* =========================================================================
+   Global site background (sports/auction themed, every page)
+   ========================================================================= */
+
+.site-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Base: soft gradient that suggests arena/spotlight */
+.site-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(220, 38, 38, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(34, 197, 94, 0.04) 0%, transparent 45%),
+    var(--bg-secondary);
+  animation: siteBgGradient 20s ease-in-out infinite;
+}
+
+@keyframes siteBgGradient {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+
+/* Subtle “field/court” grid pattern (sports) */
+.site-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(220, 38, 38, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(220, 38, 38, 0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: siteBgGrid 45s linear infinite;
+  mask-image: radial-gradient(ellipse 140% 140% at 50% 50%, black 15%, transparent 65%);
+  -webkit-mask-image: radial-gradient(ellipse 140% 140% at 50% 50%, black 15%, transparent 65%);
+}
+
+@keyframes siteBgGrid {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(56px, 56px); }
+}
+
+/* Floating “bid” orbs – slow drift */
+.site-background .bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: siteBgOrb 25s ease-in-out infinite;
+}
+
+.site-background .bg-orb:nth-child(1) {
+  width: 280px;
+  height: 280px;
+  background: rgba(220, 38, 38, 0.2);
+  top: 15%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.site-background .bg-orb:nth-child(2) {
+  width: 200px;
+  height: 200px;
+  background: rgba(37, 99, 235, 0.15);
+  top: 60%;
+  right: 15%;
+  animation-delay: -8s;
+}
+
+.site-background .bg-orb:nth-child(3) {
+  width: 240px;
+  height: 240px;
+  background: rgba(34, 197, 94, 0.12);
+  bottom: 20%;
+  left: 25%;
+  animation-delay: -16s;
+}
+
+@keyframes siteBgOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 25px) scale(0.95); }
+}
+
+/* Dark theme: softer, darker background */
+[data-theme="dark"] .site-background::before {
+  background:
+    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(34, 197, 94, 0.05) 0%, transparent 45%),
+    var(--bg-secondary);
+}
+
+[data-theme="dark"] .site-background::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 .main-content {
   flex: 1;
-  padding-top: 80px;
+  padding-top: var(--navbar-height);
+  position: relative;
+  z-index: 1;
 }
 
 /* Page wrapper */
 .page {
-  min-height: calc(100vh - 80px);
-  padding: 2rem 0;
+  min-height: calc(100vh - var(--navbar-height));
+  padding: 2.5rem 0;
 }
 
 /* Gradient text */
 .gradient-text-red {
-  background: linear-gradient(135deg, #dc2626, #ef4444);
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-blue {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-green {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+  background: linear-gradient(135deg, #15803d, #22c55e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-white {
-  background: linear-gradient(135deg, #ffffff, #e5e7eb);
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -203,7 +312,7 @@
   margin-bottom: 2rem;
   text-align: center;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .section-subtitle {
@@ -211,6 +320,9 @@
   text-align: center;
   margin-bottom: 3rem;
   font-size: 1.125rem;
+  max-width: 42ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Theme toggle button styles */
@@ -266,10 +378,11 @@
 .form-container {
   max-width: 500px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2.5rem;
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
 }
 
 /* Card grid */

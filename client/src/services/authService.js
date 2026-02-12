@@ -9,11 +9,12 @@ import {
   sendPasswordResetEmail,
   applyActionCode,
   updatePassword,
+  deleteUser,
   EmailAuthProvider,
   reauthenticateWithCredential,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { ref, set, get, update } from 'firebase/database';
+import { ref, set, get, update, remove } from 'firebase/database';
 import { fireAuth, database } from '../firebase/firebase.config';
 
 // ---------------------------------------------------------------------------
@@ -245,6 +246,24 @@ export const onAuthChange = (callback) => {
   return onAuthStateChanged(fireAuth, callback);
 };
 
+// ---------------------------------------------------------------------------
+// Delete account (requires current password for re-authentication)
+// ---------------------------------------------------------------------------
+export const deleteAccount = async (currentPassword) => {
+  const user = fireAuth.currentUser;
+  if (!user || !user.email) throw new Error('No user logged in');
+
+  // Re-authenticate (required by Firebase before deleteUser)
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+
+  // Remove user profile from Realtime Database
+  const userRef = ref(database, `users/${user.uid}`);
+  await remove(userRef);
+
+  // Delete Firebase Auth user (also signs out)
+  await deleteUser(user);
+};
 
 export default {
   registerUser,
@@ -257,4 +276,5 @@ export default {
   resetPassword,
   changePassword,
   updateProfile,
+  deleteAccount,
 };

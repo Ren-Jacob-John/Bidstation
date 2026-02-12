@@ -99,6 +99,70 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
 };
 
 // ---------------------------------------------------------------------------
+// Place a bid on an item (item auctions)
+// ---------------------------------------------------------------------------
+export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const userRef = ref(database, `users/${user.uid}`);
+    const userSnapshot = await get(userRef);
+    const bidderName = userSnapshot.val()?.username || user.email;
+
+    const itemRef = ref(database, `auctions/${auctionId}/items/${itemId}`);
+
+    await runTransaction(itemRef, (item) => {
+      if (item === null) throw new Error('Item not found');
+      const currentBid = item.currentBid ?? item.current_price ?? item.basePrice ?? item.base_price;
+      if (bidAmount <= (currentBid || 0)) {
+        throw new Error(`Bid must be higher than current bid of ₹${Number(currentBid).toLocaleString()}`);
+      }
+      item.currentBid = bidAmount;
+      item.currentBidderId = user.uid;
+      item.currentBidderName = bidderName;
+      item.lastBidAt = Date.now();
+      return item;
+    });
+
+    const itemSnapshot = await get(itemRef);
+    const itemData = itemSnapshot.val();
+
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const newBidRef = push(bidsRef);
+    const newBid = {
+      id: newBidRef.key,
+      auctionId,
+      playerId: itemId,
+      playerName: itemData.name,
+      bidderId: user.uid,
+      bidderName,
+      amount: bidAmount,
+      timestamp: Date.now(),
+      status: 'active',
+    };
+    await set(newBidRef, newBid);
+
+    const allBidsSnap = await get(bidsRef);
+    if (allBidsSnap.exists()) {
+      const updates = {};
+      allBidsSnap.forEach((snap) => {
+        const bid = snap.val();
+        if (bid.playerId === itemId && bid.status === 'active' && bid.id !== newBid.id) {
+          updates[`${snap.key}/status`] = 'outbid';
+        }
+      });
+      if (Object.keys(updates).length > 0) await update(bidsRef, updates);
+    }
+
+    return newBid;
+  } catch (error) {
+    console.error('Error placing bid on item:', error);
+    throw error;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Get all bids for an auction
 // ---------------------------------------------------------------------------
 export const getAuctionBids = async (auctionId, options = {}) => {
@@ -455,6 +519,7 @@ export const listenToAuctionBids = (auctionId, callback) => {
 
 export default {
   placeBid,
+  placeBidForItem,
   getAuctionBids,
   getPlayerBids,
   getMyBids,

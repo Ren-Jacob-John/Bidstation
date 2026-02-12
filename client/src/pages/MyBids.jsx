@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import bidService from '../services/bidService';
+import auctionService from '../services/auctionService';
 import './MyBids.css';
 
 const MyBids = () => {
@@ -21,15 +23,32 @@ const MyBids = () => {
 
   const fetchMyBids = async () => {
     try {
-      const response = await api.get('/auction/my-bids');
-      const bidsData = response.data;
+      const rawBids = await bidService.getMyBids();
+      const auctions = await auctionService.getAllAuctions();
+      const auctionStatusMap = Object.fromEntries(
+        auctions.map(a => [a.id, a.status])
+      );
+
+      const bidsData = rawBids.map(bid => ({
+        id: bid.id,
+        auction_id: bid.auctionId,
+        auction_title: bid.auctionTitle || 'Auction',
+        item_name: bid.playerName || 'Item',
+        bid_amount: bid.amount,
+        current_price: bid.amount,
+        is_winning: bid.status === 'active',
+        item_status: bid.status === 'won' ? 'sold' : '',
+        auction_status: auctionStatusMap[bid.auctionId] === 'upcoming' ? 'pending' : (auctionStatusMap[bid.auctionId] || 'live'),
+        created_at: bid.timestamp,
+        team_name: bid.teamName || null
+      }));
+
       setBids(bidsData);
 
-      // Calculate stats
       const winningBids = bidsData.filter(bid => bid.is_winning).length;
       const totalSpent = bidsData
         .filter(bid => bid.item_status === 'sold' && bid.is_winning)
-        .reduce((sum, bid) => sum + parseFloat(bid.bid_amount), 0);
+        .reduce((sum, bid) => sum + parseFloat(bid.bid_amount || 0), 0);
       const activeAuctions = new Set(
         bidsData
           .filter(bid => bid.auction_status === 'live')
@@ -44,6 +63,7 @@ const MyBids = () => {
       });
     } catch (error) {
       console.error('Error fetching bids:', error);
+      setBids([]);
     } finally {
       setLoading(false);
     }
@@ -57,8 +77,10 @@ const MyBids = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateVal) => {
+    if (dateVal == null) return '—';
+    const d = typeof dateVal === 'number' ? new Date(dateVal) : new Date(dateVal);
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -235,7 +257,7 @@ const MyBids = () => {
                 <div className="bid-footer">
                   {bid.auction_status === 'live' && (
                     <Link 
-                      to={`/auction/${bid.auction_id}/live`} 
+                      to={`/auction/live/${bid.auction_id}`} 
                       className="btn btn-primary"
                     >
                       View Live Auction

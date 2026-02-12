@@ -27,10 +27,13 @@ export const createAuction = async (auctionData) => {
     const auction = {
       id: newAuctionRef.key,
       ...auctionData,
+      auctionType: auctionData.auctionType || (auctionData.sport ? 'sports_player' : 'item'),
+      category: auctionData.category || auctionData.sport || '',
       createdBy: user.uid,
       createdAt: Date.now(),
       status: 'upcoming',
       playerCount: auctionData.players?.length || 0,
+      itemCount: auctionData.itemCount ?? 0,
       totalBudget: auctionData.totalBudget || 0,
       startDate: new Date(auctionData.startDate).getTime(),
       endDate: new Date(auctionData.endDate).getTime(),
@@ -56,12 +59,24 @@ export const getAuction = async (auctionId) => {
       throw new Error('Auction not found');
     }
 
-    return snapshot.val();
+    const data = snapshot.val();
+    // Normalize for UI (start_time, end_time, creator_id, status names)
+    return {
+      ...data,
+      creator_id: data.createdBy,
+      start_time: data.startDate,
+      end_time: data.endDate,
+      auction_type: data.auctionType || (data.sport ? 'sports_player' : 'item'),
+      status: data.status === 'upcoming' ? 'pending' : data.status,
+    };
   } catch (error) {
     console.error('Error getting auction:', error);
     throw error;
   }
 };
+
+/** Alias for components that use getAuctionById */
+export const getAuctionById = getAuction;
 
 // ---------------------------------------------------------------------------
 // Get all auctions (with optional filters)
@@ -305,6 +320,119 @@ export const getAuctionPlayers = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
+// Get items in an auction (item auctions) or map players to item shape (sports)
+// ---------------------------------------------------------------------------
+export const getAuctionItems = async (auctionId) => {
+  try {
+    const itemsRef = ref(database, `auctions/${auctionId}/items`);
+    const itemsSnap = await get(itemsRef);
+
+    if (itemsSnap.exists()) {
+      const items = [];
+      itemsSnap.forEach((childSnapshot) => {
+        const v = childSnapshot.val();
+        items.push({
+          id: childSnapshot.key,
+          name: v.name,
+          description: v.description || '',
+          base_price: v.basePrice ?? v.base_price,
+          current_price: v.currentBid ?? v.current_price ?? v.basePrice ?? v.base_price,
+          status: v.status || 'available',
+          category: v.category,
+          imageUrl: v.imageUrl,
+          condition: v.condition,
+        });
+      });
+      return items;
+    }
+
+    // Fallback: sports auction uses players
+    const players = await getAuctionPlayers(auctionId);
+    return players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.role ? `Role: ${p.role}` : '',
+      base_price: p.basePrice,
+      current_price: p.currentBid ?? p.basePrice,
+      status: p.status || 'available',
+      player_details: JSON.stringify({
+        role: p.role,
+        age: p.age,
+        nationality: p.nationality,
+      }),
+    }));
+  } catch (error) {
+    console.error('Error getting auction items:', error);
+    throw error;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Add item to an item auction
+// ---------------------------------------------------------------------------
+export const addItemToAuction = async (auctionId, itemData) => {
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const itemsRef = ref(database, `auctions/${auctionId}/items`);
+    const newItemRef = push(itemsRef);
+
+    const item = {
+      id: newItemRef.key,
+      name: itemData.name,
+      description: itemData.description || '',
+      basePrice: itemData.basePrice ?? itemData.base_price,
+      base_price: itemData.basePrice ?? itemData.base_price,
+      currentBid: itemData.basePrice ?? itemData.base_price,
+      current_price: itemData.basePrice ?? itemData.base_price,
+      category: itemData.category || '',
+      condition: itemData.condition || '',
+      imageUrl: itemData.imageUrl || '',
+      status: 'available',
+      addedAt: Date.now(),
+      addedBy: user.uid,
+    };
+
+    await set(newItemRef, item);
+
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnapshot = await get(auctionRef);
+    const currentCount = auctionSnapshot.val()?.itemCount ?? auctionSnapshot.val()?.playerCount ?? 0;
+    await update(auctionRef, { itemCount: currentCount + 1 });
+
+    return item;
+  } catch (error) {
+    console.error('Error adding item to auction:', error);
+    throw error;
+  }
+};
+
+/** Alias for UI that calls addItem({ auctionId, ... }) */
+export const addItem = async (payload) => {
+  const { auctionId, name, description, basePrice, base_price, category, imageUrl, playerDetails, condition } = payload;
+  const price = basePrice ?? base_price;
+  if (payload.playerDetails && (payload.playerDetails.role || payload.playerDetails.age || payload.playerDetails.nationality)) {
+    return addPlayerToAuction(auctionId, {
+      name,
+      role: payload.playerDetails.role || 'Player',
+      basePrice: price,
+      nationality: payload.playerDetails.nationality || '',
+      imageUrl: imageUrl || '',
+      stats: {},
+    });
+  }
+  return addItemToAuction(auctionId, {
+    name,
+    description: description || '',
+    basePrice: price,
+    category: category || '',
+    imageUrl: imageUrl || '',
+    condition: condition || '',
+  });
+};
+
+// ---------------------------------------------------------------------------
 // Search auctions
 // ---------------------------------------------------------------------------
 export const searchAuctions = async (searchTerm) => {
@@ -380,6 +508,7 @@ export const listenToAuction = (auctionId, callback) => {
 export default {
   createAuction,
   getAuction,
+  getAuctionById,
   getAllAuctions,
   getMyAuctions,
   getLiveAuctions,
@@ -389,7 +518,10 @@ export default {
   endAuction,
   deleteAuction,
   addPlayerToAuction,
+  addItemToAuction,
+  addItem,
   getAuctionPlayers,
+  getAuctionItems,
   searchAuctions,
   getAuctionStats,
   listenToAuction,

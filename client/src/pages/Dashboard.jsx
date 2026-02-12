@@ -44,6 +44,7 @@ const Dashboard = () => {
   const getStatusBadge = (status) => {
     const badges = {
       pending: 'badge-warning',
+      upcoming: 'badge-warning',
       live: 'badge-success',
       completed: 'badge-secondary',
       cancelled: 'badge-error'
@@ -51,9 +52,10 @@ const Dashboard = () => {
     return badges[status] || 'badge-secondary';
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp) => {
+    if (timestamp == null) return 'Not set';
+    const d = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp);
+    return d.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -126,7 +128,7 @@ const Dashboard = () => {
           <h2>Quick Actions</h2>
           <div className="actions-grid">
             {user?.role === 'auctioneer' && (
-              <Link to="/create-auction" className="action-card card">
+              <Link to="/auction/create" className="action-card card">
                 <span className="action-icon">➕</span>
                 <h3>Create Auction</h3>
                 <p>Start a new IPL or Item auction</p>
@@ -153,14 +155,14 @@ const Dashboard = () => {
         <div className="recent-auctions mt-4">
           <div className="section-header">
             <h2>Recent Auctions</h2>
-            <Link to="/auctions" className="btn">View All</Link>
+            <Link to="/auctions" className="btn btn-outline btn-sm">View All</Link>
           </div>
           
           {auctions.length === 0 ? (
             <div className="empty-state card">
               <p>No auctions available yet</p>
               {user?.role === 'auctioneer' && (
-                <Link to="/create-auction" className="btn btn-primary mt-2">
+                <Link to="/auction/create" className="btn btn-primary mt-2">
                   Create Your First Auction
                 </Link>
               )}
@@ -175,24 +177,24 @@ const Dashboard = () => {
                 >
                   <div className="auction-header">
                     <span className={`badge ${getStatusBadge(auction.status)}`}>
-                      {auction.status}
+                      {auction.status === 'upcoming' ? 'Upcoming' : auction.status}
                     </span>
                     <span className="auction-type">
-                      {auction.auction_type === 'sports_player' ? '⚽ Sports' : '🛍️ Item'}
+                      {auction.auctionType === 'item' ? '🛍️ Item' : '⚽ Sports'}
                     </span>
                   </div>
-                  
+
                   <h3>{auction.title}</h3>
                   <p className="auction-description">{auction.description}</p>
-                  
+
                   <div className="auction-meta">
                     <div className="meta-item">
-                      <span className="meta-label">Created by</span>
-                      <span className="meta-value">{auction.creator_name}</span>
+                      <span className="meta-label">Start</span>
+                      <span className="meta-value">{formatDate(auction.startDate)}</span>
                     </div>
                     <div className="meta-item">
-                      <span className="meta-label">Start Time</span>
-                      <span className="meta-value">{formatDate(auction.start_time)}</span>
+                      <span className="meta-label">{auction.auctionType === 'item' ? 'Items' : 'Players'}</span>
+                      <span className="meta-value">{auction.auctionType === 'item' ? (auction.itemCount || 0) : (auction.playerCount || 0)}</span>
                     </div>
                   </div>
                 </Link>

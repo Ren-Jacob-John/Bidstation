@@ -8,10 +8,6 @@ import {
   get, 
   update, 
   remove,
-  query,
-  orderByChild,
-  equalTo,
-  limitToLast,
   onValue,
   off
 } from 'firebase/database';

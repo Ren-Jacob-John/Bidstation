@@ -9,9 +9,6 @@
   box-sizing: border-box;
 }
 
-/* Import Inter font for professional typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 /* CSS Variables - Light Theme (Default) */
 :root {
   /* Primary Colors - Red, Green, Blue */

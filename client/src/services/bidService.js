@@ -7,9 +7,6 @@ import {
   set,
   get,
   update,
-  query,
-  orderByChild,
-  equalTo,
   runTransaction,
   onValue,
   off

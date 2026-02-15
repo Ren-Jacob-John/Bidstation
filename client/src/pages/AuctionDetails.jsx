@@ -280,19 +280,28 @@ const AuctionDetails = () => {
         </div>
 
         {/* Teams Section (for sports player auctions) */}
-        {auction.auction_type === 'sports_player' && auction.teams && (
-          <div className="teams-section card">
-            <h2>Participating Teams / Franchises</h2>
-            <div className="teams-grid">
-              {JSON.parse(auction.teams).map((team, index) => (
-                <div key={index} className="team-card">
-                  <span className="team-icon">⚽</span>
-                  <span className="team-name">{team}</span>
-                </div>
-              ))}
+        {auction.auction_type === 'sports_player' && (() => {
+          const teamsRaw = auction.teams;
+          let teamsList = [];
+          try {
+            if (typeof teamsRaw === 'string') teamsList = JSON.parse(teamsRaw || '[]');
+            else if (Array.isArray(teamsRaw)) teamsList = teamsRaw;
+          } catch (_) { teamsList = []; }
+          if (teamsList.length === 0) return null;
+          return (
+            <div className="teams-section card">
+              <h2>Participating Teams / Franchises</h2>
+              <div className="teams-grid">
+                {teamsList.map((team, index) => (
+                  <div key={index} className="team-card">
+                    <span className="team-icon">⚽</span>
+                    <span className="team-name">{team}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Add Item Form */}
         {showAddItem && canManage && (

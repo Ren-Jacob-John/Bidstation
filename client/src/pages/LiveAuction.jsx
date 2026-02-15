@@ -213,21 +213,29 @@ const LiveAuction = () => {
                       </div>
                     )}
 
-                    {auction.auction_type === 'sports_player' && (
-                      <div className="form-group">
-                        <label>Select Team / Franchise</label>
-                        <select
-                          value={selectedTeam}
-                          onChange={(e) => setSelectedTeam(e.target.value)}
-                          required
-                        >
-                          <option value="">Choose a team...</option>
-                          {JSON.parse(auction.teams || '[]').map(team => (
-                            <option key={team} value={team}>{team}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    {auction.auction_type === 'sports_player' && (() => {
+                      const teamsRaw = auction.teams;
+                      let teamsList = [];
+                      try {
+                        if (typeof teamsRaw === 'string') teamsList = JSON.parse(teamsRaw || '[]');
+                        else if (Array.isArray(teamsRaw)) teamsList = teamsRaw;
+                      } catch (_) { teamsList = []; }
+                      return (
+                        <div className="form-group">
+                          <label>Select Team / Franchise</label>
+                          <select
+                            value={selectedTeam}
+                            onChange={(e) => setSelectedTeam(e.target.value)}
+                            required
+                          >
+                            <option value="">Choose a team...</option>
+                            {teamsList.map(team => (
+                              <option key={team} value={team}>{team}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })()}
 
                     <div className="form-group">
                       <label>Your Bid Amount</label>

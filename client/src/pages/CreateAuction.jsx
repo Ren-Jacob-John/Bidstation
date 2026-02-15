@@ -51,6 +51,7 @@ const CreateAuction = () => {
     description: '',
     sport: 'Cricket',
     category: 'Electronics',
+    teams: '',
     startDate: '',
     endDate: '',
     totalBudget: '',
@@ -178,12 +179,16 @@ const CreateAuction = () => {
         throw new Error('You must be logged in to create an auction');
       }
 
+      const teamsArray = formData.auctionType === 'sports_player' && formData.teams
+        ? formData.teams.split(',').map(t => t.trim()).filter(Boolean)
+        : [];
       const auctionData = {
         title: formData.title,
         description: formData.description,
         auctionType: formData.auctionType,
         category: formData.auctionType === 'item' ? formData.category : formData.sport,
         sport: formData.auctionType === 'sports_player' ? formData.sport : undefined,
+        teams: formData.auctionType === 'sports_player' ? JSON.stringify(teamsArray) : undefined,
         startDate: formData.startDate,
         endDate: formData.endDate,
         totalBudget: parseFloat(formData.totalBudget) || 0,
@@ -243,6 +248,13 @@ const CreateAuction = () => {
       if (formData.auctionType === 'sports_player' && !formData.sport) {
         setError('Please select a sport/league');
         return;
+      }
+      if (formData.auctionType === 'sports_player') {
+        const teamsList = formData.teams.split(',').map(t => t.trim()).filter(Boolean);
+        if (teamsList.length === 0) {
+          setError('Please add at least one participating team (comma-separated)');
+          return;
+        }
       }
       if (formData.auctionType === 'item' && !formData.category) {
         setError('Please select an item category');
@@ -391,20 +403,34 @@ const CreateAuction = () => {
                 </div>
 
                 {formData.auctionType === 'sports_player' && (
-                  <div className="form-group">
-                    <label htmlFor="sport">Sport *</label>
-                    <select
-                      id="sport"
-                      name="sport"
-                      value={formData.sport}
-                      onChange={handleChange}
-                      required
-                    >
-                      {SPORTS_LIST.map((s) => (
-                        <option key={s.value} value={s.value}>{s.icon} {s.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="sport">Sport *</label>
+                      <select
+                        id="sport"
+                        name="sport"
+                        value={formData.sport}
+                        onChange={handleChange}
+                        required
+                      >
+                        {SPORTS_LIST.map((s) => (
+                          <option key={s.value} value={s.value}>{s.icon} {s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="teams">Participating teams / franchises *</label>
+                      <input
+                        type="text"
+                        id="teams"
+                        name="teams"
+                        value={formData.teams}
+                        onChange={handleChange}
+                        placeholder="e.g. Team A, Team B, Team C (comma-separated)"
+                      />
+                      <p className="helper-text">Bidders will choose one of these when placing bids.</p>
+                    </div>
+                  </>
                 )}
 
                 {formData.auctionType === 'item' && (

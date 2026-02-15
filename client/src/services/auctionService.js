@@ -553,6 +553,7 @@ export default {
   createAuction,
   getAuction,
   getAuctionById,
+  getAuctionByJoinCode,
   getAllAuctions,
   getMyAuctions,
   getLiveAuctions,

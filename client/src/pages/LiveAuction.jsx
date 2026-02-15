@@ -34,7 +34,7 @@ const LiveAuction = () => {
       const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
 
-      const itemsData = await auctionService.getAuctionItems(id);
+      const itemsData = await auctionService.getAuctionItems(id, { auctionType: auctionData.auction_type });
       setItems(itemsData);
 
       if (itemsData.length > 0) {

@@ -29,6 +29,11 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     // Use transaction to ensure atomic updates
     const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
     
+    const playerSnap = await get(playerRef);
+    if (!playerSnap.exists()) {
+      throw new Error('Player not found. Make sure you are bidding in a sports auction and the player exists.');
+    }
+
     let newBid = null;
 
     await runTransaction(playerRef, (player) => {

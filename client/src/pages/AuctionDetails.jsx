@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auctionService from '../services/auctionService';
+import bidService from '../services/bidService';
 import './AuctionDetails.css';
 
 const AuctionDetails = () => {
@@ -38,7 +39,7 @@ const AuctionDetails = () => {
     try {
       const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
-      const itemsData = await auctionService.getAuctionItems(id);
+      const itemsData = await auctionService.getAuctionItems(id, { auctionType: auctionData.auction_type });
       setItems(itemsData);
     } catch (err) {
       console.error('Error fetching auction data:', err);
@@ -61,6 +62,7 @@ const AuctionDetails = () => {
   const handleEndAuction = async () => {
     if (!window.confirm('Are you sure you want to end this auction?')) return;
     try {
+      await bidService.finalizeAuctionBids(id);
       await auctionService.endAuction(id);
       await fetchAuctionData();
     } catch (err) {
@@ -421,6 +423,39 @@ const AuctionDetails = () => {
                 Add {auction.auction_type === 'sports_player' ? 'Player' : 'Item'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Auction Results (when completed) */}
+        {auction.status === 'completed' && items.length > 0 && (
+          <div className="results-section card">
+            <h2>Auction Results</h2>
+            <p className="results-subtitle">
+              {items.filter(i => i.status === 'sold').length} sold, {items.filter(i => i.status !== 'sold').length} unsold
+            </p>
+            <div className="results-grid">
+              {items.map(item => {
+                const isSold = item.status === 'sold';
+                return (
+                  <div key={item.id} className={`result-card ${isSold ? 'sold' : 'unsold'}`}>
+                    <div className="result-card-header">
+                      <h3>{item.name}</h3>
+                      <span className={`item-status ${isSold ? 'sold' : 'unsold'}`}>
+                        {isSold ? 'Sold' : 'Unsold'}
+                      </span>
+                    </div>
+                    {isSold && item.current_bidder_name && (
+                      <p className="result-winner">
+                        Won by <strong>{item.current_bidder_name}</strong> for {formatCurrency(item.current_price)}
+                      </p>
+                    )}
+                    {!isSold && (
+                      <p className="result-unsold">No winning bid</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

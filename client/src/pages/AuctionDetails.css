@@ -292,6 +292,67 @@
   border: 1px solid var(--border-color);
 }
 
+/* Auction Results section (completed auctions) */
+.results-section {
+  margin-bottom: 2rem;
+  padding: 2rem;
+}
+
+.results-section h2 {
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+}
+
+.results-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.result-card {
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.result-card.sold {
+  border-color: var(--primary-red);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.result-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.result-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.result-winner {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.result-unsold {
+  font-size: 0.9375rem;
+  color: var(--text-light);
+  margin: 0;
+  font-style: italic;
+}
+
 .item-description {
   color: var(--text-secondary);
   font-size: 0.875rem;

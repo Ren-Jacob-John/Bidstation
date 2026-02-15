@@ -262,10 +262,48 @@ export const startAuction = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
-// End an auction
+// End an auction and mark all players/items as sold or unsold
 // ---------------------------------------------------------------------------
 export const endAuction = async (auctionId) => {
   try {
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnap = await get(auctionRef);
+    if (!auctionSnap.exists()) throw new Error('Auction not found');
+    const auction = auctionSnap.val();
+    const isSports = (auction.auctionType || (auction.sport ? 'sports_player' : 'item')) === 'sports_player';
+
+    if (isSports) {
+      const playersRef = ref(database, `auctions/${auctionId}/players`);
+      const playersSnap = await get(playersRef);
+      if (playersSnap.exists()) {
+        const updates = {};
+        playersSnap.forEach((snap) => {
+          const p = snap.val();
+          const status = (p.currentBidderId != null && p.currentBidderId !== '') ? 'sold' : 'unsold';
+          updates[`auctions/${auctionId}/players/${snap.key}/status`] = status;
+        });
+        if (Object.keys(updates).length > 0) {
+          const dbRef = ref(database);
+          await update(dbRef, updates);
+        }
+      }
+    } else {
+      const itemsRef = ref(database, `auctions/${auctionId}/items`);
+      const itemsSnap = await get(itemsRef);
+      if (itemsSnap.exists()) {
+        const updates = {};
+        itemsSnap.forEach((snap) => {
+          const v = snap.val();
+          const status = (v.currentBidderId != null && v.currentBidderId !== '') ? 'sold' : 'unsold';
+          updates[`auctions/${auctionId}/items/${snap.key}/status`] = status;
+        });
+        if (Object.keys(updates).length > 0) {
+          const dbRef = ref(database);
+          await update(dbRef, updates);
+        }
+      }
+    }
+
     return await updateAuctionStatus(auctionId, 'completed');
   } catch (error) {
     console.error('Error ending auction:', error);
@@ -365,9 +403,31 @@ export const getAuctionPlayers = async (auctionId) => {
 
 // ---------------------------------------------------------------------------
 // Get items in an auction (item auctions) or map players to item shape (sports)
+// When auctionType is provided, use that path only so sports always uses players.
 // ---------------------------------------------------------------------------
-export const getAuctionItems = async (auctionId) => {
+export const getAuctionItems = async (auctionId, options = {}) => {
   try {
+    const { auctionType } = options;
+
+    // Sports auction: always use players path so placeBid finds auctions/.../players/id
+    if (auctionType === 'sports_player') {
+      const players = await getAuctionPlayers(auctionId);
+      return players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.role ? `Role: ${p.role}` : '',
+        base_price: p.basePrice,
+        current_price: p.currentBid ?? p.basePrice,
+        status: p.status || 'available',
+        current_bidder_name: p.currentBidderName || null,
+        player_details: JSON.stringify({
+          role: p.role,
+          age: p.age,
+          nationality: p.nationality,
+        }),
+      }));
+    }
+
     const itemsRef = ref(database, `auctions/${auctionId}/items`);
     const itemsSnap = await get(itemsRef);
 
@@ -382,6 +442,7 @@ export const getAuctionItems = async (auctionId) => {
           base_price: v.basePrice ?? v.base_price,
           current_price: v.currentBid ?? v.current_price ?? v.basePrice ?? v.base_price,
           status: v.status || 'available',
+          current_bidder_name: v.currentBidderName || null,
           category: v.category,
           imageUrl: v.imageUrl,
           condition: v.condition,
@@ -390,7 +451,7 @@ export const getAuctionItems = async (auctionId) => {
       return items;
     }
 
-    // Fallback: sports auction uses players
+    // Fallback when no auctionType: if no items, use players (legacy sports)
     const players = await getAuctionPlayers(auctionId);
     return players.map((p) => ({
       id: p.id,
@@ -399,6 +460,7 @@ export const getAuctionItems = async (auctionId) => {
       base_price: p.basePrice,
       current_price: p.currentBid ?? p.basePrice,
       status: p.status || 'available',
+      current_bidder_name: p.currentBidderName || null,
       player_details: JSON.stringify({
         role: p.role,
         age: p.age,

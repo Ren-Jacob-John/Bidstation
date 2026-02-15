@@ -19,12 +19,19 @@
         "players": {
           "$playerId": {
             ".read": "auth != null",
-            ".write": "auth != null && root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid"
+            ".write": "auth != null"
+          }
+        },
+        "items": {
+          "$itemId": {
+            ".read": "auth != null",
+            ".write": "auth != null"
           }
         }
       }
     },
     "bids": {
+      ".read": "auth != null",
       "$auctionId": {
         ".read": "auth != null",
         "$bidId": {

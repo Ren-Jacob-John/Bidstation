@@ -9,6 +9,7 @@ const MyBids = () => {
   const { user } = useAuth();
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState({
     totalBids: 0,
@@ -21,7 +22,21 @@ const MyBids = () => {
     fetchMyBids();
   }, []);
 
-  const fetchMyBids = async () => {
+  // Refetch when user returns to this tab (no full loading spinner, just refresh data)
+  useEffect(() => {
+    const onFocus = () => fetchMyBids(false);
+    window.addEventListener('focus', onFocus);
+    const onVisibilityChange = () => { if (document.visibilityState === 'visible') fetchMyBids(false); };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  const fetchMyBids = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    else setRefreshing(true);
     try {
       const rawBids = await bidService.getMyBids();
       const auctions = await auctionService.getAllAuctions();
@@ -66,6 +81,7 @@ const MyBids = () => {
       setBids([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -118,8 +134,18 @@ const MyBids = () => {
     <div className="my-bids-page">
       <div className="container">
         <div className="page-header">
-          <h1>My Bids</h1>
-          <p>Track all your bidding activity</p>
+          <div>
+            <h1>My Bids</h1>
+            <p>Track all your bidding activity</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => fetchMyBids(false)}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
         </div>
 
         {/* Stats Cards */}

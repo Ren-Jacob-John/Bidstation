@@ -6,6 +6,12 @@
         ".write": "$uid === auth.uid"
       }
     },
+    "joinCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
     "auctions": {
       ".read": "auth != null",
       "$auctionId": {

@@ -147,6 +147,24 @@ const LiveAuction = () => {
             </span>
           </div>
           <p>{auction.description}</p>
+          {auction.auction_type === 'sports_player' && (auction.joinCode || auction.join_code) && (
+            <div className="join-code-box">
+              <span className="join-code-label">Join code</span>
+              <div className="join-code-value-wrap">
+                <code className="join-code-value">{auction.joinCode || auction.join_code}</code>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm join-code-copy"
+                  onClick={() => {
+                    const c = auction.joinCode || auction.join_code;
+                    navigator.clipboard?.writeText(c);
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="auction-content">

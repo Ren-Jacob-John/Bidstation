@@ -41,6 +41,43 @@
   color: var(--text-primary);
 }
 
+/* Join code (sports auctions) */
+.join-code-box {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.join-code-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.join-code-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.join-code-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--primary-red);
+  background: var(--bg-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.join-code-copy {
+  flex-shrink: 0;
+}
+
 .auction-content {
   display: grid;
   grid-template-columns: 1fr 350px;

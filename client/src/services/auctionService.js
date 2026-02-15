@@ -1,17 +1,31 @@
 // ---------------------------------------------------------------------------
 // client/src/services/auctionService.js - Realtime Database Auction Operations
 // ---------------------------------------------------------------------------
-import { 
-  ref, 
-  push, 
-  set, 
-  get, 
-  update, 
+import {
+  ref,
+  push,
+  set,
+  get,
+  update,
   remove,
   onValue,
   off
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
+import { generateJoinCode } from '../utils/helpers';
+
+// ---------------------------------------------------------------------------
+// Generate a unique join code for sports auctions (not already in DB)
+// ---------------------------------------------------------------------------
+async function generateUniqueJoinCode(maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const code = generateJoinCode(8);
+    const joinCodeRef = ref(database, `joinCodes/${code}`);
+    const snapshot = await get(joinCodeRef);
+    if (!snapshot.exists()) return code;
+  }
+  throw new Error('Could not generate a unique join code. Please try again.');
+}
 
 // ---------------------------------------------------------------------------
 // Create a new auction
@@ -23,6 +37,14 @@ export const createAuction = async (auctionData) => {
 
     const auctionsRef = ref(database, 'auctions');
     const newAuctionRef = push(auctionsRef);
+
+    const isSportsAuction = (auctionData.auctionType || (auctionData.sport ? 'sports_player' : 'item')) === 'sports_player';
+    let joinCode = null;
+    if (isSportsAuction) {
+      joinCode = await generateUniqueJoinCode();
+      const joinCodeRef = ref(database, `joinCodes/${joinCode}`);
+      await set(joinCodeRef, newAuctionRef.key);
+    }
 
     const auction = {
       id: newAuctionRef.key,
@@ -37,6 +59,7 @@ export const createAuction = async (auctionData) => {
       totalBudget: auctionData.totalBudget || 0,
       startDate: new Date(auctionData.startDate).getTime(),
       endDate: new Date(auctionData.endDate).getTime(),
+      ...(joinCode && { joinCode }),
     };
 
     await set(newAuctionRef, auction);
@@ -77,6 +100,27 @@ export const getAuction = async (auctionId) => {
 
 /** Alias for components that use getAuctionById */
 export const getAuctionById = getAuction;
+
+// ---------------------------------------------------------------------------
+// Get auction by join code (sports auctions only)
+// ---------------------------------------------------------------------------
+export const getAuctionByJoinCode = async (code) => {
+  if (!code || typeof code !== 'string') throw new Error('Invalid join code');
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) throw new Error('Invalid join code');
+
+  const joinCodeRef = ref(database, `joinCodes/${normalized}`);
+  const snapshot = await get(joinCodeRef);
+  if (!snapshot.exists()) {
+    throw new Error('Auction not found for this code');
+  }
+  const auctionId = snapshot.val();
+  const auction = await getAuction(auctionId);
+  if (auction.auction_type !== 'sports_player') {
+    throw new Error('Join codes are only valid for sports auctions');
+  }
+  return { ...auction, id: auctionId };
+};
 
 // ---------------------------------------------------------------------------
 // Get all auctions (with optional filters)

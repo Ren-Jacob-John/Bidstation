@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import './Navbar.css';
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
 
@@ -61,6 +61,16 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Browse Auctions
               </Link>
+              <Link to="/join" className="nav-link">
+                Join with code
+              </Link>
+
+              {/* Admin link */}
+              {isAdmin && (
+                <Link to="/admin" className="nav-link nav-link-admin">
+                  Admin
+                </Link>
+              )}
 
               {/* Theme Toggle */}
               <button 
@@ -97,9 +107,12 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Auctions
               </Link>
-              
+              <Link to="/admin/login" className="nav-link nav-link-admin">
+                Admin
+              </Link>
+
               {/* Theme Toggle */}
-              <button 
+              <button
                 onClick={toggleTheme} 
                 className="theme-toggle-btn"
                 title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}

@@ -20,9 +20,13 @@ import Profile          from './pages/Profile';
 import VerifyEmail      from './pages/VerifyEmail';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
+import AdminLogin       from './pages/AdminLogin';
+import Admin            from './pages/Admin';
+import JoinWithCode     from './pages/JoinWithCode';
 
 // ── shared ─────────────────────────────────────────────────────────────────
 import Navbar           from './components/Navbar';
+import Footer           from './components/Footer';
 
 // ---------------------------------------------------------------------------
 // Firebase email-action router
@@ -64,6 +68,21 @@ const AuthRoute = ({ children }) => {
   return children;
 };
 
+const AdminRoute = ({ children }) => {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (!user)   return <Navigate to="/admin/login" replace />;
+  if (!isAdmin) return <Navigate to="/admin/login" replace />;
+  return children;
+};
+
+const AdminLoginRoute = ({ children }) => {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  return children;
+};
+
 // ---------------------------------------------------------------------------
 const App = () => (
   <div className="App">
@@ -80,6 +99,7 @@ const App = () => (
       <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
       <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/admin/login" element={<AdminLoginRoute><AdminLogin /></AdminLoginRoute>} />
 
       {/* Firebase email action */}
       <Route path="/auth/action" element={<FirebaseActionRouter />} />
@@ -91,6 +111,7 @@ const App = () => (
       {/* public: browse & view auctions without signing up */}
       <Route path="/auctions" element={<AuctionList />} />
       <Route path="/auction/:id" element={<AuctionDetails />} />
+      <Route path="/join" element={<ProtectedRoute><JoinWithCode /></ProtectedRoute>} />
 
       {/* protected */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -99,8 +120,12 @@ const App = () => (
       <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
       <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+      {/* admin */}
+      <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
     </Routes>
     </main>
+    <Footer />
   </div>
 );
 

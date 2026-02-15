@@ -211,6 +211,27 @@ const AuctionDetails = () => {
             </div>
           </div>
 
+          {/* Join code (sports auctions only) */}
+          {auction.auction_type === 'sports_player' && (auction.joinCode || auction.join_code) && (
+            <div className="join-code-box">
+              <span className="join-code-label">Share this code to join</span>
+              <div className="join-code-value-wrap">
+                <code className="join-code-value">{auction.joinCode || auction.join_code}</code>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm join-code-copy"
+                  onClick={() => {
+                    const c = auction.joinCode || auction.join_code;
+                    navigator.clipboard?.writeText(c);
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="join-code-hint">Participants can enter this code at <Link to="/join">Join with code</Link></p>
+            </div>
+          )}
+
           {/* Action Buttons */}
           {!user && (
             <div className="action-buttons">
@@ -227,7 +248,7 @@ const AuctionDetails = () => {
               )}
               {auction.status === 'live' && (
                 <>
-                  <button onClick={() => navigate(`/auction/${id}/live`)} className="btn btn-primary">
+                  <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
                     📺 View Live Auction
                   </button>
                   <button onClick={handleEndAuction} className="btn btn-error">
@@ -245,7 +266,7 @@ const AuctionDetails = () => {
 
           {!canManage && auction.status === 'live' && (
             <div className="action-buttons">
-              <button onClick={() => navigate(`/auction/${id}/live`)} className="btn btn-primary">
+              <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
                 🔴 Join Live Auction
               </button>
             </div>

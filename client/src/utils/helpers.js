@@ -133,6 +133,24 @@ export const slugify = (str) => {
 };
 
 // ---------------------------------------------------------------------------
+// Join code for sports auctions (unique, easy to read/speak)
+// Uses A-Z and 2-9 only (no 0,O,1,I,L) to avoid confusion
+// ---------------------------------------------------------------------------
+const JOIN_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export const generateJoinCode = (length = 8) => {
+  let code = '';
+  const random = typeof crypto !== 'undefined' && crypto.getRandomValues
+    ? (arr) => crypto.getRandomValues(arr)
+    : (arr) => { for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256); };
+  const bytes = new Uint8Array(length);
+  random(bytes);
+  for (let i = 0; i < length; i++) {
+    code += JOIN_CODE_CHARS[bytes[i] % JOIN_CODE_CHARS.length];
+  }
+  return code;
+};
+
+// ---------------------------------------------------------------------------
 // Number Formatting
 // ---------------------------------------------------------------------------
 export const formatNumber = (num, decimals = 0) => {

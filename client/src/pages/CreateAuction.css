@@ -260,6 +260,12 @@ textarea:focus {
   font-size: 0.875rem;
   color: var(--text-primary);
   animation: scaleIn 0.3s ease;
+  transition: all var(--transition-fast);
+}
+
+.team-chip:hover {
+  border-color: var(--gray-400);
+  background: var(--bg-secondary);
 }
 
 .remove-btn {
@@ -351,6 +357,10 @@ textarea:focus {
   padding: 1.5rem;
   margin-bottom: 2rem;
   transition: all var(--transition-fast);
+}
+
+.add-player-form:hover {
+  border-color: var(--gray-400);
 }
 
 .add-player-form:focus-within {
@@ -498,6 +508,11 @@ textarea:focus {
   align-items: center;
   padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-fast);
+}
+
+.review-player-item:hover {
+  background: var(--bg-tertiary);
 }
 
 .review-player-item:last-child {

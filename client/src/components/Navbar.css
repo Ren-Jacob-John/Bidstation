@@ -39,11 +39,12 @@
   font-size: 1.375rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
 .navbar-logo:hover {
   opacity: 0.9;
+  transform: scale(1.02);
 }
 
 .logo-icon {

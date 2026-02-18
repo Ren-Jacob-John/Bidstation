@@ -41,6 +41,11 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
+  transition: box-shadow var(--transition-base);
+}
+
+.profile-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .profile-header {

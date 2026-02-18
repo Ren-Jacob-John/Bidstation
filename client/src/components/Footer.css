@@ -37,11 +37,12 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
 }
 
 .footer-logo:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .footer-logo-icon {
@@ -85,11 +86,12 @@
   font-size: 0.9375rem;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.2s;
 }
 
 .footer-links a:hover {
   color: var(--primary-red);
+  transform: translateX(2px);
 }
 
 .footer-bottom {

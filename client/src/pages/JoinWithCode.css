@@ -14,6 +14,11 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.join-with-code-card:hover {
+  box-shadow: var(--shadow-2xl);
 }
 
 .join-with-code-header {
@@ -65,8 +70,10 @@
   color: var(--primary-red);
   font-weight: 600;
   font-size: 0.9375rem;
+  transition: color var(--transition-fast);
 }
 
 .join-with-code-footer a:hover {
+  color: var(--primary-red-dark);
   text-decoration: underline;
 }

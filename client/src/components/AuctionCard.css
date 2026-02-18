@@ -263,6 +263,12 @@
   font-size: 0.875rem;
   margin-top: 0.5rem;
   border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.auction-card:hover .auction-creator {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
 }
 
 .creator-icon {

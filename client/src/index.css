@@ -230,6 +230,11 @@ a:hover {
 
 .card:hover {
   box-shadow: var(--shadow-lg);
+  border-color: var(--gray-300);
+}
+
+[data-theme="dark"] .card:hover {
+  border-color: var(--gray-600);
 }
 
 /* Glass Card */

@@ -59,6 +59,12 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.stat-card:hover {
+  border-color: var(--primary-red);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {

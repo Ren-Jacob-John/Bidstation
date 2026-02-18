@@ -26,6 +26,11 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.auction-header:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .header-content {
@@ -69,6 +74,12 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.info-card:hover {
+  border-color: var(--primary-red);
+  box-shadow: var(--shadow-sm);
 }
 
 .info-label {
@@ -114,6 +125,11 @@
   background: var(--bg-primary);
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.join-code-value:hover {
+  background: var(--bg-tertiary);
 }
 
 .join-code-copy {
@@ -130,6 +146,12 @@
 .join-code-hint a {
   color: var(--primary-red);
   font-weight: 600;
+  transition: color var(--transition-fast), text-decoration var(--transition-fast);
+}
+
+.join-code-hint a:hover {
+  color: var(--primary-red-dark);
+  text-decoration: underline;
 }
 
 .action-buttons {
@@ -320,6 +342,17 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
+  transition: all var(--transition-base);
+}
+
+.result-card:hover {
+  border-color: var(--gray-400);
+  box-shadow: var(--shadow-sm);
+}
+
+.result-card.sold:hover {
+  border-color: var(--primary-red);
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.2);
 }
 
 .result-card.sold {

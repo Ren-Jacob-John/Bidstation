@@ -49,6 +49,11 @@
   padding: 1.5rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.filters-section:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .search-box {
@@ -242,6 +247,12 @@
   padding: 0.5rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 600;
+  transition: all var(--transition-base);
+}
+
+.view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 @keyframes pulse {

@@ -45,7 +45,7 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-base);
   text-decoration: none;
   color: inherit;
 }
@@ -53,6 +53,7 @@
 .admin-card:hover {
   border-color: var(--primary-red);
   box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .admin-card-icon {

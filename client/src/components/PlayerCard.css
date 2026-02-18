@@ -129,6 +129,11 @@
   padding: 0.75rem;
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.player-card:hover .stat-box {
+  background: var(--bg-tertiary);
 }
 
 .stat-value {

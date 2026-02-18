@@ -70,8 +70,8 @@ const AuthRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
-  if (!user)   return <Navigate to="/login?mode=admin" replace />;
-  if (!isAdmin) return <Navigate to="/login?mode=admin" replace />;
+  if (!user)   return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 };
 

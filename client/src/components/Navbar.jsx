@@ -107,9 +107,6 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Auctions
               </Link>
-              <Link to="/login?mode=admin" className="nav-link nav-link-admin">
-                Admin
-              </Link>
 
               {/* Theme Toggle */}
               <button

@@ -28,6 +28,7 @@
 .page-header {
   text-align: center;
   margin-bottom: 2.5rem;
+  animation: fadeInUp 1s ease-out forwards;
 }
 
 .page-header h1 {
@@ -50,6 +51,8 @@
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-base);
+  animation: fadeInUp 1s ease-out 0.5s forwards;
+  opacity: 0;
 }
 
 .filters-section:hover {
@@ -128,7 +131,19 @@
   text-decoration: none;
   position: relative;
   overflow: hidden;
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
 }
+
+.auctions-grid .auction-card:nth-child(1) { animation-delay: 0.1s; }
+.auctions-grid .auction-card:nth-child(2) { animation-delay: 0.3s; }
+.auctions-grid .auction-card:nth-child(3) { animation-delay: 0.4s; }
+.auctions-grid .auction-card:nth-child(4) { animation-delay: 0.5s; }
+.auctions-grid .auction-card:nth-child(5) { animation-delay: 0.7s; }
+.auctions-grid .auction-card:nth-child(6) { animation-delay: 0.8s; }
+.auctions-grid .auction-card:nth-child(7) { animation-delay: 0.9s; }
+.auctions-grid .auction-card:nth-child(8) { animation-delay: 1.s; }
+.auctions-grid .auction-card:nth-child(n+9) { animation-delay: 1.2s; }
 
 .auction-card::before {
   content: '';

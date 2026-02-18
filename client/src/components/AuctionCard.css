@@ -13,6 +13,8 @@
   height: 100%;
   border: 1px solid var(--border-color);
   position: relative;
+  animation: fadeInUp 1s ease-out forwards;
+  opacity: 0;
 }
 
 .auction-card::before {

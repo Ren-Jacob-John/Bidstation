@@ -19,6 +19,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
+  animation: fadeInUp 1s ease-out forwards;
 }
 
 .auth-header {

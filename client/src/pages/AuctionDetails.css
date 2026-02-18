@@ -27,6 +27,7 @@
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  animation: fadeInUp 1s ease-out forwards;
 }
 
 .auction-header:hover {
@@ -169,6 +170,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
+  animation: fadeInUp 1s ease-out 0.5s forwards;
+  opacity: 0;
 }
 
 .teams-section h2 {
@@ -215,6 +218,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   margin-bottom: 2rem;
+  animation: fadeInUp 1s ease-out 0.5s forwards;
+  opacity: 0;
 }
 
 .section-header {
@@ -244,6 +249,8 @@
 /* Items Section */
 .items-section {
   margin-top: 2rem;
+  animation: fadeInUp 1s ease-out 0.5s forwards;
+  opacity: 0;
 }
 
 .items-section h2 {

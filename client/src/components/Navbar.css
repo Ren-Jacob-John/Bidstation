@@ -12,6 +12,18 @@
   z-index: 1000;
   padding: 0;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  animation: slideDown 1s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 [data-theme="dark"] .navbar {

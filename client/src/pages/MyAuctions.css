@@ -27,6 +27,7 @@
   margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
+  animation: fadeInUp 0.5s ease-out forwards;
 }
 
 .page-header h1 {
@@ -60,7 +61,14 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: all var(--transition-base);
+  animation: fadeInUp 1s ease-out forwards;
+  opacity: 0;
 }
+
+.my-auctions-page .stats-grid .stat-card:nth-child(1) { animation-delay: 0.08s; }
+.my-auctions-page .stats-grid .stat-card:nth-child(2) { animation-delay: 0.16s; }
+.my-auctions-page .stats-grid .stat-card:nth-child(3) { animation-delay: 0.24s; }
+.my-auctions-page .stats-grid .stat-card:nth-child(4) { animation-delay: 0.32s; }
 
 .stat-card:hover {
   border-color: var(--primary-red);
@@ -142,7 +150,15 @@
   gap: 1rem;
   transition: all 0.2s;
   text-decoration: none;
+  animation: fadeInUp 0.45s ease-out forwards;
+  opacity: 0;
 }
+
+.my-auctions-page .auctions-grid .auction-card:nth-child(1) { animation-delay: 0.08s; }
+.my-auctions-page .auctions-grid .auction-card:nth-child(2) { animation-delay: 0.16s; }
+.my-auctions-page .auctions-grid .auction-card:nth-child(3) { animation-delay: 0.24s; }
+.my-auctions-page .auctions-grid .auction-card:nth-child(4) { animation-delay: 0.32s; }
+.my-auctions-page .auctions-grid .auction-card:nth-child(n+5) { animation-delay: 0.4s; }
 
 .auction-card:hover {
   transform: translateY(-0.5rem);

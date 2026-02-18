@@ -1,10 +1,3 @@
-// ---------------------------------------------------------------------------
-// client/src/firebase/firebase.config.js
-//
-// Replace every "YOUR_…" placeholder with the real values from:
-//   Firebase Console  →  Project Settings  →  General  →  Your apps  →  Web
-// ---------------------------------------------------------------------------
-
 import { initializeApp }  from 'firebase/app';
 import { getAuth }        from 'firebase/auth';
 import { getDatabase }    from 'firebase/database';

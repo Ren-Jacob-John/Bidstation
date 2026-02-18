@@ -731,11 +731,12 @@ textarea {
 }
 
 /* Staggered Animation Delays */
-.stagger-1 { animation-delay: 0.1s; opacity: 0; }
-.stagger-2 { animation-delay: 0.2s; opacity: 0; }
-.stagger-3 { animation-delay: 0.3s; opacity: 0; }
-.stagger-4 { animation-delay: 0.4s; opacity: 0; }
-.stagger-5 { animation-delay: 0.5s; opacity: 0; }
+.stagger-1 { animation-delay: 0.3s; opacity: 0; }
+.stagger-2 { animation-delay: 0.5s; opacity: 0; }
+.stagger-3 { animation-delay: 0.7s; opacity: 0; }
+.stagger-4 { animation-delay: 0.9s; opacity: 0; }
+.stagger-5 { animation-delay: 1.1s; opacity: 0; }
+.stagger-6 { animation-delay: 1.3s; opacity: 0; }
 
 /* Skeleton Loading */
 .skeleton {

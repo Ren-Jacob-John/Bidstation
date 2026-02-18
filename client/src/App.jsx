@@ -20,7 +20,6 @@ import Profile          from './pages/Profile';
 import VerifyEmail      from './pages/VerifyEmail';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
-import AdminLogin       from './pages/AdminLogin';
 import Admin            from './pages/Admin';
 import JoinWithCode     from './pages/JoinWithCode';
 
@@ -71,15 +70,8 @@ const AuthRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <div className="loading-page"><div className="spinner" /></div>;
-  if (!user)   return <Navigate to="/admin/login" replace />;
-  if (!isAdmin) return <Navigate to="/admin/login" replace />;
-  return children;
-};
-
-const AdminLoginRoute = ({ children }) => {
-  const { user, loading, isAdmin } = useAuth();
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (!user)   return <Navigate to="/login?mode=admin" replace />;
+  if (!isAdmin) return <Navigate to="/login?mode=admin" replace />;
   return children;
 };
 
@@ -99,7 +91,6 @@ const App = () => (
       <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
       <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/admin/login" element={<AdminLoginRoute><AdminLogin /></AdminLoginRoute>} />
 
       {/* Firebase email action */}
       <Route path="/auth/action" element={<FirebaseActionRouter />} />

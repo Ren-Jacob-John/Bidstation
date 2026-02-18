@@ -57,6 +57,42 @@
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Login Mode Toggle */
+.login-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.25rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.toggle-btn.active {
+  background: var(--gradient-red);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
 
 .auth-form {
@@ -157,6 +193,21 @@
 }
 
 /* Password reset link */
+.forgot-password-link {
+  text-align: right;
+  margin-top: 0.5rem;
+}
+
+.forgot-password-link a {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.forgot-password-link a:hover {
+  color: var(--primary-red);
+}
+
 .forgot-password {
   text-align: right;
   margin-top: -0.5rem;

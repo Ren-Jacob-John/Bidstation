@@ -107,7 +107,7 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Auctions
               </Link>
-              <Link to="/admin/login" className="nav-link nav-link-admin">
+              <Link to="/login?mode=admin" className="nav-link nav-link-admin">
                 Admin
               </Link>
 

@@ -62,7 +62,12 @@ export const createAuction = async (auctionData) => {
       ...(joinCode && { joinCode }),
     };
 
-    await set(newAuctionRef, auction);
+    // Firebase Realtime Database rejects undefined; omit any keys with undefined value
+    const auctionForFirebase = Object.fromEntries(
+      Object.entries(auction).filter(([, v]) => v !== undefined)
+    );
+
+    await set(newAuctionRef, auctionForFirebase);
     return auction;
   } catch (error) {
     console.error('Error creating auction:', error);

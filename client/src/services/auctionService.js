@@ -332,7 +332,14 @@ export const deleteAuction = async (auctionId) => {
     }
 
     const auction = snapshot.val();
-    if (auction.createdBy !== user.uid) {
+    
+    // Check if user is admin
+    const userRef = ref(database, `users/${user.uid}`);
+    const userSnapshot = await get(userRef);
+    const isAdmin = userSnapshot.exists() && userSnapshot.val().role === 'admin';
+    
+    // Allow deletion if user is the creator OR if user is admin
+    if (auction.createdBy !== user.uid && !isAdmin) {
       throw new Error('Unauthorized: You can only delete your own auctions');
     }
 

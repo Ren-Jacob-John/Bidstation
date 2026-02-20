@@ -27,9 +27,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(220, 38, 38, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 45%),
-    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(34, 197, 94, 0.04) 0%, transparent 45%),
+    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(14, 165, 233, 0.06) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(20, 184, 166, 0.05) 0%, transparent 45%),
     var(--bg-secondary);
   animation: siteBgGradient 20s ease-in-out infinite;
 }
@@ -45,8 +45,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(220, 38, 38, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(220, 38, 38, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
   background-size: 56px 56px;
   animation: siteBgGrid 45s linear infinite;
   mask-image: radial-gradient(ellipse 140% 140% at 50% 50%, black 15%, transparent 65%);
@@ -70,7 +70,7 @@
 .site-background .bg-orb:nth-child(1) {
   width: 280px;
   height: 280px;
-  background: rgba(220, 38, 38, 0.2);
+  background: rgba(99, 102, 241, 0.22);
   top: 15%;
   left: 10%;
   animation-delay: 0s;
@@ -79,7 +79,7 @@
 .site-background .bg-orb:nth-child(2) {
   width: 200px;
   height: 200px;
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(14, 165, 233, 0.16);
   top: 60%;
   right: 15%;
   animation-delay: -8s;
@@ -88,7 +88,7 @@
 .site-background .bg-orb:nth-child(3) {
   width: 240px;
   height: 240px;
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(20, 184, 166, 0.14);
   bottom: 20%;
   left: 25%;
   animation-delay: -16s;
@@ -103,9 +103,9 @@
 /* Dark theme: softer, darker background */
 [data-theme="dark"] .site-background::before {
   background:
-    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
-    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(34, 197, 94, 0.05) 0%, transparent 45%),
+    radial-gradient(ellipse 100% 80% at 70% 10%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 70% at 80% 70%, rgba(20, 184, 166, 0.06) 0%, transparent 45%),
     var(--bg-secondary);
 }
 
@@ -130,21 +130,21 @@
 
 /* Gradient text */
 .gradient-text-red {
-  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-blue {
-  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-green {
-  background: linear-gradient(135deg, #15803d, #22c55e);
+  background: linear-gradient(135deg, #0f766e, #2dd4bf);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -342,9 +342,9 @@
 }
 
 .theme-toggle-btn:hover {
-  background: var(--primary-red);
+  background: var(--gradient-red);
   color: white;
-  border-color: var(--primary-red);
+  border-color: transparent;
   transform: rotate(15deg) scale(1.1);
   box-shadow: var(--shadow-glow);
 }

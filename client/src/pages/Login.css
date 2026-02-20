@@ -38,11 +38,11 @@
   justify-content: center;
   font-size: 1.75rem;
   color: white;
-  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
 }
 
 .auth-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   text-align: center;
   font-size: 1.75rem;
   margin-bottom: 0.5rem;
@@ -92,7 +92,7 @@
 .toggle-btn.active {
   background: var(--gradient-red);
   color: white;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .auth-form {

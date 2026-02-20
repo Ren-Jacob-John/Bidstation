@@ -11,7 +11,7 @@
    ========================================================================= */
 
 .hero {
-  background: linear-gradient(160deg, #0f172a 0%, #1e293b 40%, #1f2937 100%);
+  background: linear-gradient(160deg, #1e1b4b 0%, #312e81 40%, #1e293b 100%);
   margin-top: calc(-1 * var(--navbar-height));
   padding: calc(var(--navbar-height) + 5rem) 2rem 6rem;
   position: relative;
@@ -22,9 +22,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(220, 38, 38, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(37, 99, 235, 0.06) 0%, transparent 45%),
-    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 40%);
+  background-image: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14, 165, 233, 0.07) 0%, transparent 45%),
+    radial-gradient(ellipse 50% 30% at 20% 80%, rgba(20, 184, 166, 0.06) 0%, transparent 40%);
   pointer-events: none;
 }
 
@@ -50,7 +50,7 @@
 .hero-blob-1 {
   width: 420px;
   height: 420px;
-  background: rgba(220, 38, 38, 0.25);
+  background: rgba(99, 102, 241, 0.28);
   top: -120px;
   left: -80px;
   animation-delay: 0s;
@@ -59,7 +59,7 @@
 .hero-blob-2 {
   width: 320px;
   height: 320px;
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(14, 165, 233, 0.2);
   top: 45%;
   right: -80px;
   animation-delay: -6s;
@@ -68,7 +68,7 @@
 .hero-blob-3 {
   width: 280px;
   height: 280px;
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(20, 184, 166, 0.18);
   bottom: -60px;
   left: 25%;
   animation-delay: -12s;
@@ -94,7 +94,7 @@
 }
 
 .hero-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 3.25rem;
   font-weight: 800;
   margin-bottom: 1.25rem;
@@ -124,7 +124,7 @@
 .hero-actions .btn {
   min-width: 160px;
   border-radius: var(--radius-md);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-weight: 600;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .features .section-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 2.25rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
@@ -264,7 +264,7 @@
 }
 
 .feature-card h3 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
@@ -289,7 +289,7 @@
 
 .cta {
   padding: 4.5rem 2rem;
-  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%);
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #818cf8 100%);
   color: white;
   position: relative;
   overflow: hidden;
@@ -356,7 +356,7 @@
 
 .cta-badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
   padding: 0.4rem 1rem;
   border-radius: var(--radius-full);
   font-size: 0.75rem;
@@ -364,11 +364,11 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin-bottom: 1.25rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
 }
 
 .cta h2 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   font-size: 2.25rem;
   font-weight: 700;
   margin-bottom: 0.875rem;
@@ -385,9 +385,9 @@
 
 .btn-light {
   background: #fff;
-  color: #b91c1c;
+  color: #4338ca;
   font-weight: 600;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Syne', sans-serif;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
   border: none;
 }
@@ -395,8 +395,8 @@
 .btn-light:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  background: #fef2f2;
-  color: #b91c1c;
+  background: #eef2ff;
+  color: #4338ca;
 }
 
 .btn-arrow {

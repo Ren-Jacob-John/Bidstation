@@ -14,7 +14,7 @@
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(circle at 20% 80%, rgba(220, 38, 38, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
   animation: particleFloat 20s ease-in-out infinite;
   pointer-events: none;
@@ -171,7 +171,7 @@
 .auction-type-btn.active {
   border-color: var(--primary-red);
   background: var(--error-light);
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .auction-type-btn .type-icon {
@@ -228,7 +228,7 @@ textarea {
 }
 
 textarea:focus {
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
   border-color: var(--primary-red);
 }
 
@@ -365,7 +365,7 @@ textarea:focus {
 
 .add-player-form:focus-within {
   border-color: var(--primary-red);
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .add-player-form h3 {

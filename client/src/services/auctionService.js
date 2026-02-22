@@ -46,6 +46,12 @@ export const createAuction = async (auctionData) => {
       await set(joinCodeRef, newAuctionRef.key);
     }
 
+    const startTime = new Date(auctionData.startDate).getTime();
+    const endTime = new Date(auctionData.endDate).getTime();
+    if (Number.isNaN(startTime) || Number.isNaN(endTime)) {
+      throw new Error('Invalid start or end date. Please provide valid dates.');
+    }
+
     const auction = {
       id: newAuctionRef.key,
       ...auctionData,
@@ -56,9 +62,9 @@ export const createAuction = async (auctionData) => {
       status: 'upcoming',
       playerCount: auctionData.players?.length || 0,
       itemCount: auctionData.itemCount ?? 0,
-      totalBudget: auctionData.totalBudget || 0,
-      startDate: new Date(auctionData.startDate).getTime(),
-      endDate: new Date(auctionData.endDate).getTime(),
+      totalBudget: Number(auctionData.totalBudget) || 0,
+      startDate: startTime,
+      endDate: endTime,
       ...(joinCode && { joinCode }),
     };
 
@@ -496,14 +502,15 @@ export const addItemToAuction = async (auctionId, itemData) => {
     const itemsRef = ref(database, `auctions/${auctionId}/items`);
     const newItemRef = push(itemsRef);
 
+    const basePriceNum = Number(itemData.basePrice ?? itemData.base_price) || 0;
     const item = {
       id: newItemRef.key,
-      name: itemData.name,
+      name: itemData.name || '',
       description: itemData.description || '',
-      basePrice: itemData.basePrice ?? itemData.base_price,
-      base_price: itemData.basePrice ?? itemData.base_price,
-      currentBid: itemData.basePrice ?? itemData.base_price,
-      current_price: itemData.basePrice ?? itemData.base_price,
+      basePrice: basePriceNum,
+      base_price: basePriceNum,
+      currentBid: basePriceNum,
+      current_price: basePriceNum,
       category: itemData.category || '',
       condition: itemData.condition || '',
       imageUrl: itemData.imageUrl || '',

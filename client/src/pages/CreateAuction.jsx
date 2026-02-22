@@ -108,15 +108,17 @@ const CreateAuction = () => {
   };
 
   const addItem = () => {
-    if (!currentItem.name || !currentItem.basePrice) {
-      setError('Item name and base price are required');
+    const trimmedName = (currentItem.name || '').trim();
+    const priceVal = parseFloat(String(currentItem.basePrice ?? '').trim());
+    if (!trimmedName) {
+      setError('Item name is required');
       return;
     }
-    if (isNaN(currentItem.basePrice) || parseFloat(currentItem.basePrice) <= 0) {
+    if (!currentItem.basePrice || String(currentItem.basePrice).trim() === '' || Number.isNaN(priceVal) || priceVal <= 0) {
       setError('Base price must be a positive number');
       return;
     }
-    setItems([...items, { ...currentItem, id: Date.now() }]);
+    setItems([...items, { ...currentItem, name: trimmedName, basePrice: priceVal, id: Date.now() }]);
     setCurrentItem({
       name: '',
       description: '',
@@ -220,7 +222,7 @@ const CreateAuction = () => {
           await addItemToAuction(auctionId, {
             name: item.name,
             description: item.description || '',
-            basePrice: parseFloat(item.basePrice),
+            basePrice: Number(parseFloat(item.basePrice)) || 0,
             category: item.category || formData.category,
             condition: item.condition || 'Good',
             imageUrl: item.imageUrl || ''

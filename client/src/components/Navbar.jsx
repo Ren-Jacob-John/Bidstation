@@ -4,6 +4,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import NotificationPanel from './NotificationPanel';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -72,6 +73,9 @@ const Navbar = () => {
                 </Link>
               )}
 
+              {/* Notifications */}
+              <NotificationPanel />
+
               {/* Theme Toggle */}
               <button 
                 onClick={toggleTheme} 
@@ -107,6 +111,9 @@ const Navbar = () => {
               <Link to="/auctions" className="nav-link">
                 Auctions
               </Link>
+
+              {/* Notifications */}
+              <NotificationPanel />
 
               {/* Theme Toggle */}
               <button

@@ -1,5 +1,5 @@
 /* =========================================================================
-   Footer
+   Footer - Redesigned
    ========================================================================= */
 
 .footer {
@@ -33,24 +33,29 @@
   gap: 0.5rem;
   text-decoration: none;
   color: var(--text-primary);
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
-  transition: opacity 0.2s, transform 0.2s;
+  transition: all var(--transition-bounce);
 }
 
 .footer-logo:hover {
+  transform: translateY(-2px);
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 .footer-logo-icon {
   font-size: 1.5rem;
+  transition: transform var(--transition-bounce);
+}
+
+.footer-logo:hover .footer-logo-icon {
+  transform: rotate(-8deg);
 }
 
 .footer-logo-text {
-  background: var(--gradient-red);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -70,6 +75,7 @@
   letter-spacing: 0.05em;
   color: var(--text-secondary);
   margin-bottom: 1rem;
+  font-family: 'Outfit', sans-serif;
 }
 
 .footer-links ul {
@@ -86,12 +92,13 @@
   font-size: 0.9375rem;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.2s, transform 0.2s;
+  transition: all var(--transition-fast);
+  display: inline-block;
 }
 
 .footer-links a:hover {
-  color: var(--primary-red);
-  transform: translateX(2px);
+  color: var(--primary);
+  transform: translateX(4px);
 }
 
 .footer-bottom {
@@ -113,15 +120,8 @@
     text-align: center;
   }
 
-  .footer-brand {
-    max-width: none;
-  }
-
-  .footer-logo {
-    justify-content: center;
-  }
-
-  .footer-links {
-    text-align: center;
-  }
+  .footer-brand { max-width: none; }
+  .footer-logo { justify-content: center; }
+  .footer-links { text-align: center; }
+  .footer-links a:hover { transform: translateY(-2px); }
 }

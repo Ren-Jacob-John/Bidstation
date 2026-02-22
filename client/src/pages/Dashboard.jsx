@@ -68,7 +68,10 @@ const Dashboard = () => {
     return (
       <div className="dashboard-page">
         <div className="container">
-          <div className="loading">Loading dashboard...</div>
+          <div className="loading loading-spinner">
+            <div className="spinner" />
+            <p>Loading dashboard...</p>
+          </div>
         </div>
       </div>
     );

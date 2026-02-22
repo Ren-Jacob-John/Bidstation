@@ -14,11 +14,13 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  transition: all var(--transition-bounce);
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .join-with-code-card:hover {
   box-shadow: var(--shadow-2xl);
+  transform: translateY(-4px);
 }
 
 .join-with-code-header {
@@ -33,7 +35,7 @@
 }
 
 .join-with-code-header h1 {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
   background: var(--gradient-red);

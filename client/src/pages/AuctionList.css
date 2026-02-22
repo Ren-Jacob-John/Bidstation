@@ -14,8 +14,8 @@
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(13, 148, 136, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(45, 212, 191, 0.04) 0%, transparent 50%);
   pointer-events: none;
   animation: particleFloat 20s ease-in-out infinite;
 }
@@ -106,10 +106,18 @@
 }
 
 .filter-tab.active {
-  background: var(--gradient-red);
+  background: var(--gradient-primary);
   color: white;
-  border-color: var(--primary-red);
+  border-color: var(--primary);
   box-shadow: var(--shadow-glow);
+}
+
+.filter-tab {
+  transition: all var(--transition-bounce);
+}
+
+.filter-tab:hover {
+  transform: translateY(-2px);
 }
 
 /* Auctions Grid */
@@ -158,9 +166,13 @@
 }
 
 .auction-card:hover {
-  transform: translateY(-6px);
-  border-color: var(--primary-red);
+  transform: translateY(-8px);
+  border-color: var(--primary);
   box-shadow: var(--shadow-xl);
+}
+
+.auction-card {
+  transition: all var(--transition-bounce);
 }
 
 .auction-card:hover::before {
@@ -266,8 +278,8 @@
 }
 
 .view-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
 }
 
 @keyframes pulse {

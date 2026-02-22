@@ -1,24 +1,24 @@
 /* =========================================================================
-   Navbar Styles
+   Navbar - Redesigned
    ========================================================================= */
 
 .navbar {
-  background: var(--bg-primary);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 1000;
   padding: 0;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
-  animation: slideDown 1s ease-out;
+  animation: navSlideDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes slideDown {
+@keyframes navSlideDown {
   from {
     opacity: 0;
-    transform: translateY(-16px);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
@@ -27,6 +27,7 @@
 }
 
 [data-theme="dark"] .navbar {
+  background: var(--glass-bg);
   border-bottom-color: var(--border-color);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
@@ -40,47 +41,51 @@
   align-items: center;
 }
 
-/* Logo */
+/* Logo - Hover animation */
 .navbar-logo {
   display: flex;
   align-items: center;
   gap: 0.625rem;
   text-decoration: none;
   color: var(--text-primary);
-  font-family: 'Syne', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 1.375rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  transition: all var(--transition-bounce);
 }
 
 .navbar-logo:hover {
-  opacity: 0.9;
-  transform: scale(1.02);
+  transform: scale(1.03);
+  opacity: 0.95;
 }
 
 .logo-icon {
   font-size: 1.75rem;
   line-height: 1;
+  transition: transform var(--transition-bounce);
+}
+
+.navbar-logo:hover .logo-icon {
+  transform: rotate(-10deg) scale(1.1);
 }
 
 .logo-text {
   font-size: 1.375rem;
   letter-spacing: -0.02em;
-  background: var(--gradient-red);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 [data-theme="dark"] .logo-text {
-  background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 100%);
+  background: linear-gradient(135deg, #2dd4bf 0%, #5eead4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-/* Navigation Menu */
+/* Nav Menu */
 .navbar-menu {
   display: flex;
   align-items: center;
@@ -94,8 +99,20 @@
   font-size: 0.9375rem;
   padding: 0.5rem 0.875rem;
   border-radius: var(--radius-md);
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition: all var(--transition-fast);
   position: relative;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--gradient-primary);
+  transition: all var(--transition-fast);
+  transform: translateX(-50%);
 }
 
 .nav-link:hover {
@@ -103,13 +120,17 @@
   background: var(--bg-tertiary);
 }
 
-.nav-link.active {
-  color: var(--primary-red);
-  background: rgba(99, 102, 241, 0.1);
+.nav-link:hover::before {
+  width: 60%;
 }
 
-[data-theme="dark"] .nav-link.active {
-  background: rgba(99, 102, 241, 0.2);
+.nav-link.active {
+  color: var(--primary);
+  background: rgba(13, 148, 136, 0.1);
+}
+
+.nav-link.active::before {
+  width: 60%;
 }
 
 /* User Menu */
@@ -128,12 +149,14 @@
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   text-decoration: none;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition: all var(--transition-bounce);
 }
 
 .user-info:hover {
   background: var(--bg-tertiary);
-  border-color: var(--gray-400);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-icon {
@@ -155,7 +178,7 @@
   cursor: help;
 }
 
-/* Buttons in Navbar */
+/* Buttons */
 .navbar .btn {
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
@@ -164,35 +187,34 @@
   text-decoration: none;
   border: none;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-bounce);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
 }
 
 .navbar .btn-primary {
-  background: var(--gradient-red);
+  background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
 }
 
 .navbar .btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
 }
 
 .navbar .btn-outline {
   background: transparent;
   color: var(--text-primary);
-  border: 1.5px solid var(--border-color);
+  border: 2px solid var(--border-color);
 }
 
 .navbar .btn-outline:hover {
   background: var(--bg-tertiary);
-  border-color: var(--primary-red);
-  color: var(--primary-red);
-  transform: translateY(-1px);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
 }
 
 .navbar .btn-logout {
@@ -206,13 +228,14 @@
   background: var(--error-light);
   color: var(--error);
   border-color: var(--error);
+  transform: translateY(-1px);
 }
 
 [data-theme="dark"] .navbar .btn-logout:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(239, 68, 68, 0.15);
 }
 
-/* Theme Toggle Button */
+/* Theme Toggle - Enhanced hover */
 .theme-toggle-btn {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -223,55 +246,34 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-bounce);
   color: var(--text-secondary);
   font-size: 1.1rem;
 }
 
 .theme-toggle-btn:hover {
   background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--gray-400);
-  transform: scale(1.05);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.1) rotate(12deg);
 }
 
 [data-theme="dark"] .theme-toggle-btn {
-  color: #a5b4fc;
+  color: #fcd34d;
 }
 
 [data-theme="dark"] .theme-toggle-btn:hover {
-  background: rgba(129, 140, 248, 0.2);
-  color: #c7d2fe;
-  border-color: rgba(129, 140, 248, 0.4);
+  background: rgba(45, 212, 191, 0.15);
+  color: #5eead4;
+  border-color: var(--primary-light);
 }
 
-/* =========================================================================
-   Responsive Design
-   ========================================================================= */
-
+/* Responsive */
 @media (max-width: 968px) {
-  .navbar-container {
-    padding: 0.75rem 1rem;
-  }
-
-  .navbar-menu {
-    gap: 0.25rem;
-  }
-
-  .nav-link {
-    padding: 0.4rem 0.625rem;
-    font-size: 0.875rem;
-  }
-
-  .username {
-    display: none;
-  }
-
-  .theme-toggle-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 1rem;
-  }
+  .navbar-container { padding: 0.75rem 1rem; }
+  .nav-link { padding: 0.4rem 0.625rem; font-size: 0.875rem; }
+  .username { display: none; }
+  .theme-toggle-btn { width: 34px; height: 34px; }
 }
 
 @media (max-width: 768px) {
@@ -288,36 +290,14 @@
     width: 100%;
   }
 
-  .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-  }
-
-  .logo-text {
-    font-size: 1.25rem;
-  }
-
-  .logo-icon {
-    font-size: 1.5rem;
-  }
-
-  .theme-toggle-btn {
-    order: -1;
-    width: 36px;
-    height: 36px;
-  }
-
-  .navbar-user {
-    width: 100%;
-    justify-content: center;
-  }
+  .nav-link { padding: 0.5rem 0.75rem; }
+  .logo-text { font-size: 1.25rem; }
+  .logo-icon { font-size: 1.5rem; }
+  .theme-toggle-btn { order: -1; }
+  .navbar-user { width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {
-  .navbar-menu {
-    width: 100%;
-  }
-
   .nav-link,
   .navbar .btn {
     font-size: 0.8125rem;
@@ -328,16 +308,5 @@
     width: 100%;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .user-info {
-    order: 1;
-    flex: 1;
-    justify-content: center;
-  }
-
-  .theme-toggle-btn {
-    order: 0;
   }
 }

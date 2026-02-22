@@ -80,9 +80,10 @@
 }
 
 [data-theme="dark"] .logo-text {
-  background: linear-gradient(135deg, #2dd4bf 0%, #5eead4 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Nav Menu */
@@ -201,7 +202,7 @@
 
 .navbar .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
+  box-shadow: var(--shadow-glow);
 }
 
 .navbar .btn-outline {
@@ -263,8 +264,8 @@
 }
 
 [data-theme="dark"] .theme-toggle-btn:hover {
-  background: rgba(45, 212, 191, 0.15);
-  color: #5eead4;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
   border-color: var(--primary-light);
 }
 

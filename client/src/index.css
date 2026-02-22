@@ -110,8 +110,22 @@
   --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark Theme */
+/* Dark Theme - Red accent */
 [data-theme="dark"] {
+  --primary: #ef4444;
+  --primary-light: #f87171;
+  --primary-dark: #dc2626;
+  --gradient-primary: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%);
+  --gradient-red: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%);
+  --primary-red: #ef4444;
+  --primary-red-light: #f87171;
+  --primary-red-dark: #dc2626;
+  --gradient-hero: linear-gradient(165deg, #0f172a 0%, #450a0a 40%, #b91c1c 100%);
+  --gradient-dark: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #7f1d1d 100%);
+  --shadow-glow: 0 0 32px rgba(239, 68, 68, 0.4);
+  --border-focus: #f87171;
+  --input-focus: #f87171;
+
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-light: #71717a;
@@ -119,10 +133,8 @@
   --bg-secondary: #18181b;
   --bg-tertiary: #27272a;
   --border-color: #3f3f46;
-  --border-focus: #2dd4bf;
   --input-bg: #18181b;
   --input-border: #3f3f46;
-  --input-focus: #2dd4bf;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.6);

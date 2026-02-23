@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
 // client/src/App.jsx   (Firebase version)
 // ---------------------------------------------------------------------------
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import './App.css';
@@ -26,6 +27,7 @@ import JoinWithCode     from './pages/JoinWithCode';
 // ── shared ─────────────────────────────────────────────────────────────────
 import Navbar           from './components/Navbar';
 import Footer           from './components/Footer';
+import MouseEntryEffect from './components/MouseEntryEffect';
 
 // ---------------------------------------------------------------------------
 // Firebase email-action router
@@ -76,49 +78,79 @@ const AdminRoute = ({ children }) => {
 };
 
 // ---------------------------------------------------------------------------
-const App = () => (
-  <div className="App">
-    <div className="site-background" aria-hidden="true">
-      <span className="bg-orb" />
-      <span className="bg-orb" />
-      <span className="bg-orb" />
+const App = () => {
+  const [showIntroLoader, setShowIntroLoader] = useState(true);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setShowIntroLoader(false), 1200);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
+    <div className="App">
+      {/* Global intro loading screen */}
+      <div
+        className={`intro-loader ${showIntroLoader ? 'intro-loader--visible' : 'intro-loader--hidden'}`}
+        aria-hidden={!showIntroLoader}
+      >
+        <div className="intro-loader-inner">
+          <div className="intro-logo-orb">
+            <div className="intro-logo-orb-glow" />
+            <div className="intro-logo-text">Bidstation</div>
+          </div>
+          <p className="intro-tagline">Preparing your live auction arena…</p>
+          <div className="intro-progress">
+            <span className="intro-progress-bar" />
+          </div>
+        </div>
+      </div>
+
+      <div className="site-background" aria-hidden="true">
+        <span className="bg-orb" />
+        <span className="bg-orb" />
+        <span className="bg-orb" />
+      </div>
+
+      {/* Cursor entrance animation */}
+      <MouseEntryEffect />
+
+      <Navbar />
+      <main className="main-content">
+        <Routes>
+          {/* public */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Firebase email action */}
+          <Route path="/auth/action" element={<FirebaseActionRouter />} />
+
+          {/* email verify / reset */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* public: browse & view auctions without signing up */}
+          <Route path="/auctions" element={<AuctionList />} />
+          <Route path="/auction/:id" element={<AuctionDetails />} />
+          <Route path="/join" element={<ProtectedRoute><JoinWithCode /></ProtectedRoute>} />
+
+          {/* protected */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/auction/create" element={<ProtectedRoute><CreateAuction /></ProtectedRoute>} />
+          <Route path="/auction/live/:id" element={<ProtectedRoute><LiveAuction /></ProtectedRoute>} />
+          <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
+          <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+          {/* admin */}
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+        </Routes>
+      </main>
+      <Footer />
     </div>
-    <Navbar />
-    <main className="main-content">
-    <Routes>
-      {/* public */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-      <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-
-      {/* Firebase email action */}
-      <Route path="/auth/action" element={<FirebaseActionRouter />} />
-
-      {/* email verify / reset */}
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-
-      {/* public: browse & view auctions without signing up */}
-      <Route path="/auctions" element={<AuctionList />} />
-      <Route path="/auction/:id" element={<AuctionDetails />} />
-      <Route path="/join" element={<ProtectedRoute><JoinWithCode /></ProtectedRoute>} />
-
-      {/* protected */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/auction/create" element={<ProtectedRoute><CreateAuction /></ProtectedRoute>} />
-      <Route path="/auction/live/:id" element={<ProtectedRoute><LiveAuction /></ProtectedRoute>} />
-      <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
-      <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-
-      {/* admin */}
-      <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-    </Routes>
-    </main>
-    <Footer />
-  </div>
-);
+  );
+};
 
 export default App;
 

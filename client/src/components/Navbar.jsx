@@ -25,7 +25,11 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         {/* Logo */}
-        <Link to="/" className="navbar-logo">
+        <Link
+          to="/"
+          className="navbar-logo"
+          title="Go to BidStation home"
+        >
           <span className="logo-icon">🏏</span>
           <span className="logo-text">BidStation</span>
         </Link>
@@ -35,17 +39,29 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               {/* Authenticated Menu */}
-              <Link to="/dashboard" className="nav-link">
+              <Link
+                to="/dashboard"
+                className="nav-link"
+                title="View your personalized dashboard"
+              >
                 Dashboard
               </Link>
 
               {/* Auctioneer-only links */}
               {user?.role === 'auctioneer' && (
                 <>
-                  <Link to="/auction/create" className="nav-link">
+                  <Link
+                    to="/auction/create"
+                    className="nav-link"
+                    title="Create a new auction"
+                  >
                     Create Auction
                   </Link>
-                  <Link to="/my-auctions" className="nav-link">
+                  <Link
+                    to="/my-auctions"
+                    className="nav-link"
+                    title="View and manage auctions you created"
+                  >
                     My Auctions
                   </Link>
                 </>
@@ -53,22 +69,38 @@ const Navbar = () => {
 
               {/* Bidder-only links */}
               {user?.role === 'bidder' && (
-                <Link to="/my-bids" className="nav-link">
+                <Link
+                  to="/my-bids"
+                  className="nav-link"
+                  title="View and track your bids"
+                >
                   My Bids
                 </Link>
               )}
 
               {/* Common links */}
-              <Link to="/auctions" className="nav-link">
+              <Link
+                to="/auctions"
+                className="nav-link"
+                title="Browse all available auctions"
+              >
                 Browse Auctions
               </Link>
-              <Link to="/join" className="nav-link">
+              <Link
+                to="/join"
+                className="nav-link"
+                title="Join an auction using a code"
+              >
                 Join with code
               </Link>
 
               {/* Admin link */}
               {isAdmin && (
-                <Link to="/admin" className="nav-link nav-link-admin">
+                <Link
+                  to="/admin"
+                  className="nav-link nav-link-admin"
+                  title="Open the admin panel"
+                >
                   Admin
                 </Link>
               )}
@@ -88,7 +120,11 @@ const Navbar = () => {
 
               {/* User Menu */}
               <div className="navbar-user">
-                <Link to="/profile" className="nav-link user-info">
+                <Link
+                  to="/profile"
+                  className="nav-link user-info"
+                  title="View and edit your profile"
+                >
                   <span className="user-icon">👤</span>
                   <span className="username">{user?.username || 'User'}</span>
                   {!user?.emailVerified && (
@@ -97,7 +133,11 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
-                <button onClick={handleLogout} className="btn btn-logout">
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-logout"
+                  title="Log out from your account"
+                >
                   Logout
                 </button>
               </div>
@@ -105,10 +145,18 @@ const Navbar = () => {
           ) : (
             <>
               {/* Public Menu */}
-              <Link to="/" className="nav-link">
+              <Link
+                to="/"
+                className="nav-link"
+                title="Go to BidStation home"
+              >
                 Home
               </Link>
-              <Link to="/auctions" className="nav-link">
+              <Link
+                to="/auctions"
+                className="nav-link"
+                title="Browse all available auctions"
+              >
                 Auctions
               </Link>
 
@@ -125,10 +173,18 @@ const Navbar = () => {
                 {isDark ? '☀️' : '🌙'}
               </button>
               
-              <Link to="/login" className="btn btn-outline">
+              <Link
+                to="/login"
+                className="btn btn-outline"
+                title="Sign in to your BidStation account"
+              >
                 Login
               </Link>
-              <Link to="/register" className="btn btn-primary">
+              <Link
+                to="/register"
+                className="btn btn-primary"
+                title="Create a new BidStation account"
+              >
                 Sign Up
               </Link>
             </>

@@ -30,21 +30,37 @@ const Home = () => {
 
             <div className="hero-actions">
               {user ? (
-                <Link to="/dashboard" className="btn btn-primary btn-lg">
+                <Link
+                  to="/dashboard"
+                  className="btn btn-primary btn-lg"
+                  title="Open your personalized auction dashboard"
+                >
                   <span className="btn-icon">📊</span>
                   Go to Dashboard
                 </Link>
               ) : (
                 <>
-                  <Link to="/auctions" className="btn btn-primary btn-lg">
+                  <Link
+                    to="/auctions"
+                    className="btn btn-primary btn-lg"
+                    title="Browse all live and upcoming auctions"
+                  >
                     <span className="btn-icon">🛒</span>
                     Browse Auctions
                   </Link>
-                  <Link to="/register" className="btn btn-primary btn-lg">
+                  <Link
+                    to="/register"
+                    className="btn btn-primary btn-lg"
+                    title="Create a free BidStation account"
+                  >
                     <span className="btn-icon">🚀</span>
                     Get Started
                   </Link>
-                  <Link to="/login" className="btn btn-secondary btn-lg">
+                  <Link
+                    to="/login"
+                    className="btn btn-secondary btn-lg"
+                    title="Log in if you already have an account"
+                  >
                     <span className="btn-icon">🔐</span>
                     Login
                   </Link>
@@ -154,7 +170,11 @@ const Home = () => {
               your free account now and start bidding!
             </p>
             {!user && (
-              <Link to="/register" className="btn btn-light btn-lg">
+              <Link
+                to="/register"
+                className="btn btn-light btn-lg"
+                title="Sign up and start bidding for free"
+              >
                 Create Free Account
                 <span className="btn-arrow">→</span>
               </Link>

@@ -131,21 +131,33 @@ const Dashboard = () => {
           <h2>Quick Actions</h2>
           <div className="actions-grid">
             {user?.role === 'auctioneer' && (
-              <Link to="/auction/create" className="action-card card">
+              <Link
+                to="/auction/create"
+                className="action-card card"
+                title="Create a new sports or item auction"
+              >
                 <span className="action-icon">➕</span>
                 <h3>Create Auction</h3>
                 <p>Start a new IPL or Item auction</p>
               </Link>
             )}
             
-            <Link to="/auctions" className="action-card card">
+            <Link
+              to="/auctions"
+              className="action-card card"
+              title="Browse all auctions available on BidStation"
+            >
               <span className="action-icon">🔍</span>
               <h3>Browse Auctions</h3>
               <p>View all available auctions</p>
             </Link>
 
             {user?.role === 'bidder' && (
-              <Link to="/my-bids" className="action-card card">
+              <Link
+                to="/my-bids"
+                className="action-card card"
+                title="See a summary of all your bids"
+              >
                 <span className="action-icon">📋</span>
                 <h3>My Bids</h3>
                 <p>Track your bidding activity</p>
@@ -158,14 +170,24 @@ const Dashboard = () => {
         <div className="recent-auctions mt-4">
           <div className="section-header">
             <h2>Recent Auctions</h2>
-            <Link to="/auctions" className="btn btn-outline btn-sm">View All</Link>
+            <Link
+              to="/auctions"
+              className="btn btn-outline btn-sm"
+              title="Open the full list of auctions"
+            >
+              View All
+            </Link>
           </div>
           
           {auctions.length === 0 ? (
             <div className="empty-state card">
               <p>No auctions available yet</p>
               {user?.role === 'auctioneer' && (
-                <Link to="/auction/create" className="btn btn-primary mt-2">
+                <Link
+                  to="/auction/create"
+                  className="btn btn-primary mt-2"
+                  title="Create your first auction"
+                >
                   Create Your First Auction
                 </Link>
               )}

@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getPlayerBids } from '../services/bidService';
+import { getPlayerBids, listenToAuctionBids } from '../services/bidService';
 import './BidHistory.css';
 
 const BidHistory = ({ playerId, playerName, auctionId }) => {
@@ -13,31 +13,52 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // all, my-bids
 
+  const normaliseBids = (data) =>
+    data.map((bid) => ({
+      ...bid,
+      timestamp: bid.timestamp ? new Date(bid.timestamp) : new Date(),
+    }));
+
+  const fetchBidHistory = async () => {
+    if (!playerId || !auctionId) return;
+    try {
+      setLoading(true);
+      setError('');
+      const data = await getPlayerBids(auctionId, playerId);
+      setBids(normaliseBids(data));
+    } catch (err) {
+      console.error('Failed to load bid history', err);
+      setError('Failed to load bid history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!playerId || !auctionId) {
       setBids([]);
       setLoading(false);
       return;
     }
-    const fetchBidHistory = async () => {
+
+    setLoading(true);
+    setError('');
+
+    const unsubscribe = listenToAuctionBids(auctionId, (allBids) => {
       try {
-        setLoading(true);
-        setError('');
-        const data = await getPlayerBids(auctionId, playerId);
-        // Timestamps come as numbers from RTDB; normalise to Date
-        const normalised = data.map((bid) => ({
-          ...bid,
-          timestamp: bid.timestamp ? new Date(bid.timestamp) : new Date(),
-        }));
-        setBids(normalised);
+        const filtered = allBids.filter((b) => b.playerId === playerId);
+        setBids(normaliseBids(filtered));
+        setLoading(false);
       } catch (err) {
-        console.error('Failed to load bid history', err);
+        console.error('Failed to update bid history', err);
         setError('Failed to load bid history');
-      } finally {
         setLoading(false);
       }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
     };
-    fetchBidHistory();
   }, [playerId, auctionId]);
 
   const formatPrice = (price) => {

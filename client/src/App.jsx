@@ -57,21 +57,108 @@ const FirebaseActionRouter = () => {
 // ---------------------------------------------------------------------------
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading)  return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading)  {
+    return (
+      <div className="loading-page">
+        <div className="app-loading-screen-inline">
+          <div className="app-loading-card">
+            <div className="app-loading-icon">
+              <div className="hammer-orbit">
+                <div className="hammer-head" />
+                <div className="hammer-handle" />
+              </div>
+            </div>
+            <div className="app-loading-text">
+              <h1>Loading BidStation…</h1>
+              <p>Checking your session and auctions.</p>
+            </div>
+            <div className="app-loading-progress">
+              <div className="progress-track">
+                <div className="progress-fill" />
+              </div>
+              <div className="progress-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!user)    return <Navigate to="/login" replace />;
   return children;
 };
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="app-loading-screen-inline">
+          <div className="app-loading-card">
+            <div className="app-loading-icon">
+              <div className="hammer-orbit">
+                <div className="hammer-head" />
+                <div className="hammer-handle" />
+              </div>
+            </div>
+            <div className="app-loading-text">
+              <h1>Loading BidStation…</h1>
+              <p>Preparing a smooth sign-in experience.</p>
+            </div>
+            <div className="app-loading-progress">
+              <div className="progress-track">
+                <div className="progress-fill" />
+              </div>
+              <div className="progress-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (user)    return <Navigate to="/dashboard" replace />;
   return children;
 };
 
 const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
-  if (loading) return <div className="loading-page"><div className="spinner" /></div>;
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="app-loading-screen-inline">
+          <div className="app-loading-card">
+            <div className="app-loading-icon">
+              <div className="hammer-orbit">
+                <div className="hammer-head" />
+                <div className="hammer-handle" />
+              </div>
+            </div>
+            <div className="app-loading-text">
+              <h1>Loading BidStation…</h1>
+              <p>Verifying your admin access.</p>
+            </div>
+            <div className="app-loading-progress">
+              <div className="progress-track">
+                <div className="progress-fill" />
+              </div>
+              <div className="progress-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!user)   return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
@@ -93,14 +180,31 @@ const App = () => {
         className={`intro-loader ${showIntroLoader ? 'intro-loader--visible' : 'intro-loader--hidden'}`}
         aria-hidden={!showIntroLoader}
       >
-        <div className="intro-loader-inner">
-          <div className="intro-logo-orb">
-            <div className="intro-logo-orb-glow" />
-            <div className="intro-logo-text">Bidstation</div>
+        <div className="intro-loader-inner app-loading-card">
+          <div className="intro-bg-nodes">
+            <span className="intro-node intro-node-1" />
+            <span className="intro-node intro-node-2" />
+            <span className="intro-node intro-node-3" />
           </div>
-          <p className="intro-tagline">Preparing your live auction arena…</p>
-          <div className="intro-progress">
-            <span className="intro-progress-bar" />
+          <div className="app-loading-icon">
+            <div className="hammer-orbit">
+              <div className="hammer-head" />
+              <div className="hammer-handle" />
+            </div>
+          </div>
+          <div className="app-loading-text">
+            <h1>Loading BidStation…</h1>
+            <p>Connecting to your auctions and bids.</p>
+          </div>
+          <div className="app-loading-progress">
+            <div className="progress-track">
+              <div className="progress-fill" />
+            </div>
+            <div className="progress-dots">
+              <span />
+              <span />
+              <span />
+            </div>
           </div>
         </div>
       </div>

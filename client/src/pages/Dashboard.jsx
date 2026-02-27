@@ -68,9 +68,30 @@ const Dashboard = () => {
     return (
       <div className="dashboard-page">
         <div className="container">
-          <div className="loading loading-spinner">
-            <div className="spinner" />
-            <p>Loading dashboard...</p>
+          <div className="welcome-overlay">
+            <div className="welcome-card">
+              <div className="welcome-icon">
+                <div className="welcome-gavel">
+                  <div className="welcome-gavel-head" />
+                  <div className="welcome-gavel-handle" />
+                  <div className="welcome-gavel-glow" />
+                </div>
+              </div>
+
+              <div className="welcome-text">
+                <h2>
+                  Welcome back, <span className="welcome-username">{user?.username || 'Bidder'}</span>!
+                </h2>
+                <p>Getting your auctions, teams, and bids ready…</p>
+              </div>
+
+              <div className="welcome-chart">
+                <span className="bar bar-1" />
+                <span className="bar bar-2" />
+                <span className="bar bar-3" />
+                <span className="bar bar-4" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

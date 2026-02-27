@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
+import BidHistory from '../components/BidHistory';
 import './LiveAuction.css';
 
 const LiveAuction = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
   
   const [auction, setAuction] = useState(null);
   const [items, setItems] = useState([]);
@@ -91,6 +94,14 @@ const LiveAuction = () => {
       const increment = auction?.minIncrement || 100000;
       setBidAmount((amount + increment).toString());
       setError('');
+
+      // In-app notification for successful bid
+      addNotification({
+        type: 'success',
+        title: 'Bid placed successfully',
+        message: `Your bid of ${formatCurrency(amount)} on ${currentItem.name} is now leading (if not outbid).`,
+        link: `/auction/live/${id}`,
+      });
     } catch (err) {
       setError(err.message || 'Failed to place bid');
     }
@@ -262,26 +273,11 @@ const LiveAuction = () => {
             )}
 
             {/* Bid History */}
-            <div className="bid-history card">
-              <h3>Bid History</h3>
-              {bids.length === 0 ? (
-                <p className="empty-bids">No bids yet</p>
-              ) : (
-                <div className="bids-list">
-                  {bids.map((bid, index) => (
-                    <div key={bid.id} className={`bid-item ${index === 0 ? 'highest' : ''}`}>
-                      <div className="bid-info">
-                        <span className="bidder-name">{bid.bidder_name}</span>
-                        {bid.team_name && (
-                          <span className="team-name">{bid.team_name}</span>
-                        )}
-                      </div>
-                      <span className="bid-amount">{formatCurrency(bid.bid_amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <BidHistory
+              auctionId={id}
+              playerId={currentItem?.id}
+              playerName={currentItem?.name}
+            />
           </div>
 
           {/* Items List Sidebar */}

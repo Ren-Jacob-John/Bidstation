@@ -1,63 +1,44 @@
 // ---------------------------------------------------------------------------
 // client/src/components/BidHistory.jsx
 // ---------------------------------------------------------------------------
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { getPlayerBids } from '../services/bidService';
 import './BidHistory.css';
 
 const BidHistory = ({ playerId, playerName, auctionId }) => {
+  const { user } = useAuth();
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // all, my-bids
 
   useEffect(() => {
+    if (!playerId || !auctionId) {
+      setBids([]);
+      setLoading(false);
+      return;
+    }
+    const fetchBidHistory = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const data = await getPlayerBids(auctionId, playerId);
+        // Timestamps come as numbers from RTDB; normalise to Date
+        const normalised = data.map((bid) => ({
+          ...bid,
+          timestamp: bid.timestamp ? new Date(bid.timestamp) : new Date(),
+        }));
+        setBids(normalised);
+      } catch (err) {
+        console.error('Failed to load bid history', err);
+        setError('Failed to load bid history');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchBidHistory();
   }, [playerId, auctionId]);
-
-  const fetchBidHistory = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // TODO: Replace with actual Firestore query
-      // For now, using mock data
-      const mockBids = [
-        {
-          id: '1',
-          bidderId: 'user1',
-          bidderName: 'Team Phoenix',
-          amount: 5000000,
-          timestamp: new Date(Date.now() - 3600000),
-          status: 'outbid',
-        },
-        {
-          id: '2',
-          bidderId: 'user2',
-          bidderName: 'Royal Warriors',
-          amount: 5500000,
-          timestamp: new Date(Date.now() - 1800000),
-          status: 'outbid',
-        },
-        {
-          id: '3',
-          bidderId: 'user3',
-          bidderName: 'Thunder Strikers',
-          amount: 6000000,
-          timestamp: new Date(Date.now() - 900000),
-          status: 'active',
-        },
-      ];
-
-      // Simulate API delay
-      setTimeout(() => {
-        setBids(mockBids);
-        setLoading(false);
-      }, 500);
-    } catch (err) {
-      setError('Failed to load bid history');
-      setLoading(false);
-    }
-  };
 
   const formatPrice = (price) => {
     const crores = price / 10000000;
@@ -95,17 +76,27 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
 
   const getHighestBid = () => {
     if (bids.length === 0) return null;
-    return bids.reduce((max, bid) => 
-      bid.amount > max.amount ? bid : max
-    , bids[0]);
+    return bids.reduce(
+      (max, bid) => (bid.amount > max.amount ? bid : max),
+      bids[0]
+    );
   };
 
-  const getBidIncrement = (index) => {
-    if (index === bids.length - 1) return null;
-    const current = bids[index];
-    const previous = bids[index + 1];
+  const getBidIncrement = (list, index) => {
+    if (index === list.length - 1) return null;
+    const current = list[index];
+    const previous = list[index + 1];
     return current.amount - previous.amount;
   };
+
+  const myUserId = user?.id || user?.uid;
+
+  const visibleBids = useMemo(() => {
+    if (filter === 'my-bids' && myUserId) {
+      return bids.filter((b) => b.bidderId === myUserId);
+    }
+    return bids;
+  }, [bids, filter, myUserId]);
 
   if (loading) {
     return (
@@ -189,6 +180,8 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
         <button
           className={`filter-btn ${filter === 'my-bids' ? 'active' : ''}`}
           onClick={() => setFilter('my-bids')}
+          disabled={!myUserId}
+          title={!myUserId ? 'Sign in to see your bids' : undefined}
         >
           My Bids
         </button>
@@ -196,17 +189,17 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
 
       {/* Bid List */}
       <div className="bid-list">
-        {bids.length === 0 ? (
+        {visibleBids.length === 0 ? (
           <div className="empty-state">
             <span className="empty-icon">📭</span>
             <p>No bids placed yet</p>
             <p className="empty-subtitle">Be the first to bid!</p>
           </div>
         ) : (
-          bids.map((bid, index) => {
-            const increment = getBidIncrement(index);
+          visibleBids.map((bid, index) => {
+            const increment = getBidIncrement(visibleBids, index);
             const isWinning = bid.status === 'active';
-            
+
             return (
               <div
                 key={bid.id}

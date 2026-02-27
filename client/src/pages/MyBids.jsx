@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import bidService from '../services/bidService';
 import auctionService from '../services/auctionService';
 import './MyBids.css';
 
 const MyBids = () => {
   const { user } = useAuth();
+  const { addNotification } = useNotification();
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -17,6 +19,7 @@ const MyBids = () => {
     totalSpent: 0,
     activeAuctions: 0
   });
+  const previousBidsRef = useRef([]);
 
   useEffect(() => {
     fetchMyBids();
@@ -52,12 +55,44 @@ const MyBids = () => {
         bid_amount: bid.amount,
         current_price: bid.amount,
         is_winning: bid.status === 'active',
-        item_status: bid.status === 'won' ? 'sold' : '',
+        item_status: bid.status === 'won' ? 'sold' : bid.status === 'lost' ? 'lost' : '',
         auction_status: auctionStatusMap[bid.auctionId] === 'upcoming' ? 'pending' : (auctionStatusMap[bid.auctionId] || 'live'),
         created_at: bid.timestamp,
         team_name: bid.teamName || null
       }));
 
+      // Diff against previous bids to generate notifications
+      const prevById = Object.fromEntries(
+        previousBidsRef.current.map((b) => [b.id, b])
+      );
+
+      bidsData.forEach((bid) => {
+        const prev = prevById[bid.id];
+        // Outbid alert: was winning, now not winning while auction still live
+        if (prev && prev.is_winning && !bid.is_winning && bid.auction_status === 'live') {
+          addNotification({
+            type: 'warning',
+            title: 'You have been outbid',
+            message: `Another bidder has outbid you on ${bid.item_name} in ${bid.auction_title}.`,
+            link: `/auction/live/${bid.auction_id}`,
+          });
+        }
+        // Winning confirmation when auction completes
+        if (
+          bid.item_status === 'sold' &&
+          bid.is_winning &&
+          (!prev || !prev.is_winning || prev.item_status !== 'sold')
+        ) {
+          addNotification({
+            type: 'success',
+            title: 'You won an item',
+            message: `You won ${bid.item_name} for ${formatCurrency(bid.bid_amount)}.`,
+            link: `/auction/${bid.auction_id}`,
+          });
+        }
+      });
+
+      previousBidsRef.current = bidsData;
       setBids(bidsData);
 
       const winningBids = bidsData.filter(bid => bid.is_winning).length;

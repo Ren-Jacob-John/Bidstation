@@ -26,6 +26,14 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     const userSnapshot = await get(userRef);
     const bidderName = userSnapshot.val()?.username || user.email;
 
+    // For sports auctions, check which team this user represents in this auction
+    const repRef = ref(database, `sportsAuctions/${auctionId}/representatives/${user.uid}`);
+    const repSnap = await get(repRef);
+    if (!repSnap.exists()) {
+      throw new Error('You are already representing a team in this auction.');
+    }
+    const teamName = typeof repSnap.val() === 'string' ? repSnap.val() : repSnap.val()?.teamName;
+
     // Use transaction to ensure atomic updates
     const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
     
@@ -52,6 +60,9 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
       player.currentBid = bidAmount;
       player.currentBidderId = user.uid;
       player.currentBidderName = bidderName;
+      if (teamName) {
+        player.currentBidderTeamName = teamName;
+      }
       player.lastBidAt = Date.now();
 
       return player;
@@ -71,6 +82,7 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
       playerName: playerData.name,
       bidderId: user.uid,
       bidderName,
+      teamName: teamName || null,
       amount: bidAmount,
       timestamp: Date.now(),
       status: 'active',

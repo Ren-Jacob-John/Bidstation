@@ -11,13 +11,17 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
-    email: ''
+    email: '',
+    phone: '',
+    address: ''
   });
 
   useEffect(() => {
     setFormData({
       username: user?.username || '',
-      email: user?.email || ''
+      email: user?.email || '',
+      phone: user?.contactDetails?.phone || '',
+      address: user?.contactDetails?.address || ''
     });
   }, [user]);
   const [passwordData, setPasswordData] = useState({
@@ -52,8 +56,28 @@ const Profile = () => {
     setSuccess('');
     setLoading(true);
 
+    // Basic phone validation if provided
+    const phoneTrimmed = formData.phone.trim();
+    if (phoneTrimmed) {
+      const phoneRegex = /^\+?[0-9]{7,15}$/;
+      if (!phoneRegex.test(phoneTrimmed)) {
+        setError('Please enter a valid phone number.');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       await updateProfileService({ username: formData.username });
+
+      // Update contact details separately
+      await updateProfileService({
+        contactDetails: {
+          ...(user?.contactDetails || {}),
+          phone: phoneTrimmed,
+          address: formData.address.trim(),
+        },
+      });
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
       await refreshUser();

@@ -456,6 +456,18 @@ const AuctionDetails = () => {
                 );
               })}
             </div>
+
+            {/* Auction Result – shared contact details */}
+            {auction.status === 'completed' && (
+              <div className="auction-result-contact card">
+                <h3>Auction Result – Contact Details</h3>
+                <p className="results-subtitle">
+                  Once this auction is completed, the winning bidder and auctioneer can see each other's contact details here.
+                </p>
+                {/* Actual contact details are protected and fetched via Realtime Database
+                    security rules under auctions/{auctionId}/sharedContacts. */}
+              </div>
+            )}
           </div>
         )}
 

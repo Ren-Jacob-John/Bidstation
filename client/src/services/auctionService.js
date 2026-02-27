@@ -9,7 +9,8 @@ import {
   update,
   remove,
   onValue,
-  off
+  off,
+  runTransaction
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
 import { generateJoinCode } from '../utils/helpers';
@@ -315,11 +316,137 @@ export const endAuction = async (auctionId) => {
       }
     }
 
+    // After items are marked sold / unsold, share winner & auctioneer contact details
+    try {
+      await shareWinnerAndAuctioneerContact(auctionId);
+    } catch (contactError) {
+      console.error('Error sharing contact details for auction:', contactError);
+    }
+
     return await updateAuctionStatus(auctionId, 'completed');
   } catch (error) {
     console.error('Error ending auction:', error);
     throw error;
   }
+};
+
+// ---------------------------------------------------------------------------
+// Share winner & auctioneer contact details after auction completion
+// ---------------------------------------------------------------------------
+const shareWinnerAndAuctioneerContact = async (auctionId) => {
+  const auctionRef = ref(database, `auctions/${auctionId}`);
+  const auctionSnap = await get(auctionRef);
+  if (!auctionSnap.exists()) return;
+
+  const auction = auctionSnap.val();
+  const auctioneerUserId = auction.createdBy;
+  if (!auctioneerUserId) return;
+
+  // Find the single highest winning bid for this auction
+  const bidsRef = ref(database, `bids/${auctionId}`);
+  const bidsSnap = await get(bidsRef);
+  if (!bidsSnap.exists()) return;
+
+  let topWinningBid = null;
+  bidsSnap.forEach((child) => {
+    const bid = child.val();
+    if (bid.status === 'won') {
+      if (!topWinningBid || (bid.amount || 0) > (topWinningBid.amount || 0)) {
+        topWinningBid = bid;
+      }
+    }
+  });
+
+  if (!topWinningBid) return;
+
+  const winnerUserId = topWinningBid.bidderId;
+  if (!winnerUserId) return;
+
+  // Fetch contact details for both users
+  const winnerContactRef = ref(database, `users/${winnerUserId}/contactDetails`);
+  const auctioneerContactRef = ref(database, `users/${auctioneerUserId}/contactDetails`);
+
+  const [winnerContactSnap, auctioneerContactSnap] = await Promise.all([
+    get(winnerContactRef),
+    get(auctioneerContactRef),
+  ]);
+
+  const winnerContact = winnerContactSnap.exists() ? winnerContactSnap.val() : null;
+  const auctioneerContact = auctioneerContactSnap.exists() ? auctioneerContactSnap.val() : null;
+
+  // Store shared contacts under auctions/{auctionId}/sharedContacts
+  const sharedContactsRef = ref(database, `auctions/${auctionId}/sharedContacts`);
+  await set(sharedContactsRef, {
+    winnerUserId,
+    auctioneerUserId,
+    winnerContact: winnerContact || null,
+    auctioneerContact: auctioneerContact || null,
+    sharedAt: Date.now(),
+  });
+
+  const flagRef = ref(database, `auctions/${auctionId}/winnerContactShared`);
+  await set(flagRef, true);
+};
+
+// ---------------------------------------------------------------------------
+// Register a team for a sports auction (enforces uniqueness & single rep)
+// ---------------------------------------------------------------------------
+export const registerTeamForSportsAuction = async (auctionId, teamName) => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+  const trimmedName = (teamName || '').trim();
+  if (!trimmedName) throw new Error('Team name is required');
+
+  const sportsAuctionRef = ref(database, `sportsAuctions/${auctionId}`);
+
+  await runTransaction(sportsAuctionRef, (data) => {
+    const next = data || {};
+    next.teams = next.teams || {};
+    next.representatives = next.representatives || {};
+
+    // Enforce: a user can represent only one team per auction
+    const existingTeamForUser = next.representatives[user.uid];
+    if (existingTeamForUser && existingTeamForUser !== trimmedName) {
+      throw new Error('You are already representing a team in this auction.');
+    }
+
+    // Enforce: a team can have only one representative
+    const teamEntry = next.teams[trimmedName];
+    if (teamEntry && teamEntry.representativeUserId !== user.uid) {
+      throw new Error('Team name already taken.');
+    }
+
+    // Register / confirm this team mapping
+    next.teams[trimmedName] = {
+      representativeUserId: user.uid,
+    };
+    next.representatives[user.uid] = trimmedName;
+
+    return next;
+  });
+
+  // Also keep a simple list of teams on the main auction node for UI display
+  const auctionTeamsRef = ref(database, `auctions/${auctionId}/teams`);
+  const teamsSnap = await get(auctionTeamsRef);
+  let teamsList = [];
+  if (teamsSnap.exists()) {
+    const value = teamsSnap.val();
+    if (Array.isArray(value)) {
+      teamsList = value;
+    } else if (typeof value === 'string') {
+      try {
+        teamsList = JSON.parse(value || '[]');
+      } catch {
+        teamsList = [];
+      }
+    }
+  }
+  if (!teamsList.includes(trimmedName)) {
+    teamsList.push(trimmedName);
+    await set(auctionTeamsRef, teamsList);
+  }
+
+  return { teamName: trimmedName };
 };
 
 // ---------------------------------------------------------------------------

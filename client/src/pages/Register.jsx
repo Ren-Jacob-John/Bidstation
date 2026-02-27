@@ -9,7 +9,9 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'bidder'
+    role: 'bidder',
+    phone: '',
+    address: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,14 @@ const Register = () => {
 
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    // Basic phone validation (E.164-like, digits with optional +, 7-15 chars)
+    const phoneTrimmed = formData.phone.trim();
+    const phoneRegex = /^\+?[0-9]{7,15}$/;
+    if (!phoneTrimmed || !phoneRegex.test(phoneTrimmed)) {
+      setError('Please enter a valid phone number.');
       return;
     }
 

@@ -20,7 +20,7 @@ import { fireAuth, database } from '../firebase/firebase.config';
 // ---------------------------------------------------------------------------
 // Register a new user
 // ---------------------------------------------------------------------------
-export const registerUser = async (email, password, username, role = 'bidder') => {
+export const registerUser = async (email, password, username, role = 'bidder', contactDetails = null) => {
   try {
     // Create Firebase Auth user
     const userCredential = await createUserWithEmailAndPassword(fireAuth, email, password);
@@ -37,6 +37,17 @@ export const registerUser = async (email, password, username, role = 'bidder') =
       createdAt: Date.now(),
     });
 
+    // Store contact details under users/{userId}/contactDetails
+    if (contactDetails) {
+      const contactRef = ref(database, `users/${user.uid}/contactDetails`);
+      await set(contactRef, {
+        email: contactDetails.email || email,
+        phone: contactDetails.phone || '',
+        address: contactDetails.address || '',
+        createdAt: Date.now(),
+      });
+    }
+
     // Send verification email
     await sendEmailVerification(user);
 
@@ -46,6 +57,7 @@ export const registerUser = async (email, password, username, role = 'bidder') =
       username: username,
       role: role,
       emailVerified: false,
+      contactDetails: contactDetails || null,
     };
   } catch (error) {
     console.error('Error registering user:', error);

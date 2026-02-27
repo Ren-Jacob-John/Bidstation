@@ -1,20 +1,57 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import auctionService from '../services/auctionService';
 import './JoinWithCode.css';
 
 const JoinWithCode = () => {
   const [code, setCode] = useState('');
+  const [teamName, setTeamName] = useState('');
+  const [requiresTeamName, setRequiresTeamName] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resolvedAuction, setResolvedAuction] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const auction = await auctionService.getAuctionByJoinCode(code);
+      let auction = resolvedAuction;
+      if (!auction) {
+        auction = await auctionService.getAuctionByJoinCode(code);
+        setResolvedAuction(auction);
+        if (auction.auction_type === 'sports_player') {
+          setRequiresTeamName(true);
+        }
+      }
+
+      // For sports auctions, require team registration before joining
+      if (auction.auction_type === 'sports_player') {
+        setRequiresTeamName(true);
+
+        if (!user) {
+          throw new Error('Please login before joining a sports auction.');
+        }
+
+        const trimmedTeam = teamName.trim();
+        if (!trimmedTeam) {
+          throw new Error('Team name is required to join this sports auction.');
+        }
+
+        try {
+          await auctionService.registerTeamForSportsAuction(auction.id, trimmedTeam);
+        } catch (err) {
+          // Surface friendly validation messages
+          if (err.message === 'Team name already taken.' || err.message === 'You are already representing a team in this auction.') {
+            throw err;
+          }
+          throw new Error(err.message || 'Failed to register team for this auction.');
+        }
+      }
+
       if (auction.status === 'live') {
         navigate(`/auction/live/${auction.id}`);
       } else {
@@ -58,6 +95,19 @@ const JoinWithCode = () => {
                 required
               />
             </div>
+            {requiresTeamName && (
+              <div className="form-group">
+                <label htmlFor="team-name">Team / Franchise Name</label>
+                <input
+                  id="team-name"
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Enter your team name"
+                  required
+                />
+              </div>
+            )}
             <button
               type="submit"
               className="btn btn-primary btn-block"

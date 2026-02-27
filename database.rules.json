@@ -3,7 +3,14 @@
     "users": {
       "$uid": {
         ".read": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        ".write": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".write": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "contactDetails": {
+          // Only the user themselves and admins can edit contact details
+          ".write": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          // Readable by the user, admins, and (via auctions) winners/auctioneers where details
+          // have been duplicated under auctions/{auctionId}/sharedContacts.
+          ".read": "$uid === auth.uid || (auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        }
       }
     },
     "joinCodes": {
@@ -17,6 +24,22 @@
       "$auctionId": {
         ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         ".validate": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "winnerContactShared": {
+          // Only creator or admin can flip the flag
+          ".write": "auth != null && (data.parent().child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".read": "auth != null"
+        },
+        "sharedContacts": {
+          // Only expose after auction is completed and only to winner, auctioneer, or admin
+          ".read": "auth != null && " +
+                   "data.parent().child('status').val() === 'completed' && " +
+                   "(" +
+                     "auth.uid === data.child('winnerUserId').val() || " +
+                     "auth.uid === data.child('auctioneerUserId').val() || " +
+                     "root.child('users').child(auth.uid).child('role').val() === 'admin'" +
+                   ")",
+          ".write": "false"
+        },
         "players": {
           "$playerId": {
             ".read": "auth != null",
@@ -27,6 +50,24 @@
           "$itemId": {
             ".read": "auth != null",
             ".write": "auth != null"
+          }
+        }
+      }
+    },
+    "sportsAuctions": {
+      "$auctionId": {
+        ".read": "auth != null",
+        "teams": {
+          "$teamName": {
+            // Only authenticated users can register a team; actual uniqueness and single
+            // representation are enforced via Realtime Database transactions.
+            ".write": "auth != null && (!data.exists() || data.child('representativeUserId').val() === auth.uid)"
+          }
+        },
+        "representatives": {
+          "$userId": {
+            ".read": "auth != null && ($userId === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+            ".write": "auth != null && ($userId === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
           }
         }
       }

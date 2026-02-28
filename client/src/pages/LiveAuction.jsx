@@ -36,13 +36,50 @@ const LiveAuction = () => {
       const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
 
-      const itemsData = await auctionService.getAuctionItems(id, { auctionType: auctionData.auction_type });
+      const itemsData = await auctionService.getAuctionItems(id, {
+        auctionType: auctionData.auction_type,
+      });
       setItems(itemsData);
 
       if (itemsData.length > 0) {
-        setCurrentItem(itemsData[0]);
-        const price = itemsData[0].current_price ?? itemsData[0].base_price ?? itemsData[0].currentBid ?? itemsData[0].basePrice;
-        setBidAmount(String(price ?? ''));
+        // For sports auctions, pick a random AVAILABLE player and
+        // keep showing the same one until they are auctioned (status !== 'available').
+        let nextItem = null;
+        if (auctionData.auction_type === 'sports_player') {
+          // Try to find the updated record for the current item (to check latest status)
+          const updatedCurrent =
+            currentItem && itemsData.find((it) => it.id === currentItem.id);
+
+          if (updatedCurrent && updatedCurrent.status === 'available') {
+            nextItem = updatedCurrent;
+          } else {
+            const availableItems = itemsData.filter(
+              (it) => it.status === 'available'
+            );
+            if (availableItems.length > 0) {
+              const randomIndex = Math.floor(
+                Math.random() * availableItems.length
+              );
+              nextItem = availableItems[randomIndex];
+            } else {
+              // Fallback: no available players, keep current or use first
+              nextItem = updatedCurrent || itemsData[0];
+            }
+          }
+        } else {
+          // For item auctions, keep the existing behaviour: first item.
+          nextItem = itemsData[0];
+        }
+
+        if (nextItem) {
+          setCurrentItem(nextItem);
+          const price =
+            nextItem.current_price ??
+            nextItem.base_price ??
+            nextItem.currentBid ??
+            nextItem.basePrice;
+          setBidAmount(String(price ?? ''));
+        }
       }
     } catch (err) {
       console.error('Error fetching auction data:', err);
@@ -68,7 +105,13 @@ const LiveAuction = () => {
     setError('');
 
     const amount = parseFloat(bidAmount);
-    const currentPrice = currentItem.current_price || currentItem.base_price;
+    if (!currentItem || Number.isNaN(amount)) {
+      setError('Invalid bid amount or player selection.');
+      return;
+    }
+
+    const currentPrice =
+      currentItem.current_price ?? currentItem.base_price ?? 0;
 
     if (amount <= currentPrice) {
       setError('Bid must be higher than current price');
@@ -76,7 +119,10 @@ const LiveAuction = () => {
     }
 
     try {
-      if (auction?.auctionType === 'item') {
+      const auctionType = auction?.auction_type || auction?.auctionType;
+      const isItemAuction = auctionType === 'item';
+
+      if (isItemAuction) {
         await bidService.placeBidForItem(id, currentItem.id, amount);
       } else {
         await bidService.placeBid(id, currentItem.id, amount);

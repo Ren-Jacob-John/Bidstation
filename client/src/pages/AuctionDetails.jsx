@@ -213,8 +213,8 @@ const AuctionDetails = () => {
             </div>
           </div>
 
-          {/* Join code (sports auctions only) */}
-          {auction.auction_type === 'sports_player' && (auction.joinCode || auction.join_code) && (
+          {/* Join code (sports auctions only, visible only to auctioneer) */}
+          {auction.auction_type === 'sports_player' && isCreator && (auction.joinCode || auction.join_code) && (
             <div className="join-code-box">
               <span className="join-code-label">Share this code to join</span>
               <div className="join-code-value-wrap">

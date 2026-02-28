@@ -17,6 +17,12 @@ const JoinWithCode = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Require login before any sports auction join (join codes are sports-only)
+    if (!user) {
+      setError('Please login before joining a sports auction.');
+      return;
+    }
+
     setLoading(true);
     try {
       let auction = resolvedAuction;
@@ -31,11 +37,6 @@ const JoinWithCode = () => {
       // For sports auctions, require team registration before joining
       if (auction.auction_type === 'sports_player') {
         setRequiresTeamName(true);
-
-        if (!user) {
-          throw new Error('Please login before joining a sports auction.');
-        }
-
         const trimmedTeam = teamName.trim();
         if (!trimmedTeam) {
           throw new Error('Team name is required to join this sports auction.');

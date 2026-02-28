@@ -46,6 +46,7 @@
     "sportsAuctions": {
       "$auctionId": {
         ".read": "auth != null",
+        ".write": "auth != null",
         "teams": {
           "$teamName": {
             ".write": "auth != null && (!data.exists() || data.child('representativeUserId').val() === auth.uid)"

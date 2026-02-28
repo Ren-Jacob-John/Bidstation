@@ -37,26 +37,6 @@ const LiveAuction = () => {
       const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
 
-      // For sports auctions, allow access for:
-      // - auction creator/admins, OR
-      // - bidders who have already registered a team for this auction.
-      const isCreator =
-        user?.uid === auctionData.creator_id || user?.id === auctionData.creator_id;
-      const canManage = user && (isCreator || user?.role === 'admin');
-
-      if (auctionData.auction_type === 'sports_player' && !canManage) {
-        try {
-          const userTeam = await auctionService.getUserTeamForSportsAuction(id);
-          if (!userTeam) {
-            navigate('/join');
-            return;
-          }
-        } catch {
-          navigate('/join');
-          return;
-        }
-      }
-
       const itemsData = await auctionService.getAuctionItems(id, { auctionType: auctionData.auction_type });
       setItems(itemsData);
 
@@ -64,6 +44,19 @@ const LiveAuction = () => {
         setCurrentItem(itemsData[0]);
         const price = itemsData[0].current_price ?? itemsData[0].base_price ?? itemsData[0].currentBid ?? itemsData[0].basePrice;
         setBidAmount(String(price ?? ''));
+      }
+
+      // For sports auctions, if this user already represents a team,
+      // pre-select that team in the dropdown so they can bid immediately.
+      if (auctionData.auction_type === 'sports_player') {
+        try {
+          const userTeam = await auctionService.getUserTeamForSportsAuction(id);
+          if (userTeam) {
+            setSelectedTeam(userTeam);
+          }
+        } catch {
+          // Ignore – bidding logic will still enforce team registration.
+        }
       }
     } catch (err) {
       console.error('Error fetching auction data:', err);

@@ -30,9 +30,10 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     const repRef = ref(database, `sportsAuctions/${auctionId}/representatives/${user.uid}`);
     const repSnap = await get(repRef);
     if (!repSnap.exists()) {
-      throw new Error('You are already representing a team in this auction.');
+      throw new Error('You must register a team for this sports auction before bidding. Join via the auction code first.');
     }
-    const teamName = typeof repSnap.val() === 'string' ? repSnap.val() : repSnap.val()?.teamName;
+    const repValue = repSnap.val();
+    const teamName = typeof repValue === 'string' ? repValue : repValue?.teamName;
 
     // Use transaction to ensure atomic updates
     const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);

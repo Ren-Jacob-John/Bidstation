@@ -493,6 +493,30 @@ export const getSportsAuctionTeams = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
+// Get the current user's team name for a sports auction (or null if none)
+// ---------------------------------------------------------------------------
+export const getUserTeamForSportsAuction = async (auctionId) => {
+  try {
+    const user = fireAuth.currentUser;
+    if (!user) return null;
+
+    const repRef = ref(database, `sportsAuctions/${auctionId}/representatives/${user.uid}`);
+    const snap = await get(repRef);
+
+    if (!snap.exists()) {
+      return null;
+    }
+
+    const value = snap.val();
+    const teamName = typeof value === 'string' ? value.trim() : '';
+    return teamName || null;
+  } catch (error) {
+    console.error('Error getting user team for sports auction:', error);
+    throw error;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Delete an auction
 // ---------------------------------------------------------------------------
 export const deleteAuction = async (auctionId) => {
@@ -823,4 +847,5 @@ export default {
   listenToAuction,
   registerTeamForSportsAuction,
   getSportsAuctionTeams,
+  getUserTeamForSportsAuction,
 };

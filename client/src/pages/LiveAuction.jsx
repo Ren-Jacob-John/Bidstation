@@ -37,6 +37,26 @@ const LiveAuction = () => {
       const auctionData = await auctionService.getAuction(id);
       setAuction(auctionData);
 
+      // For sports auctions, allow access for:
+      // - auction creator/admins, OR
+      // - bidders who have already registered a team for this auction.
+      const isCreator =
+        user?.uid === auctionData.creator_id || user?.id === auctionData.creator_id;
+      const canManage = user && (isCreator || user?.role === 'admin');
+
+      if (auctionData.auction_type === 'sports_player' && !canManage) {
+        try {
+          const userTeam = await auctionService.getUserTeamForSportsAuction(id);
+          if (!userTeam) {
+            navigate('/join');
+            return;
+          }
+        } catch {
+          navigate('/join');
+          return;
+        }
+      }
+
       const itemsData = await auctionService.getAuctionItems(id, { auctionType: auctionData.auction_type });
       setItems(itemsData);
 
@@ -144,16 +164,6 @@ const LiveAuction = () => {
         </div>
       </div>
     );
-  }
-
-  // For sports auctions, enforce joining via code only:
-  // if a non-creator/non-admin user somehow navigates directly here
-  // without going through the join-code flow, send them back.
-  const isCreator = user?.uid === auction.creator_id || user?.id === auction.creator_id;
-  const canManage = user && (isCreator || user?.role === 'admin');
-  if (auction.auction_type === 'sports_player' && !canManage) {
-    navigate('/join');
-    return null;
   }
 
   return (

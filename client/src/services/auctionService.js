@@ -397,6 +397,19 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
   const trimmedName = (teamName || '').trim();
   if (!trimmedName) throw new Error('Team name is required');
 
+  // Resolve a human‑friendly representative name (username > displayName > email)
+  let representativeName = user.displayName || user.email || '';
+  try {
+    const userRef = ref(database, `users/${user.uid}`);
+    const userSnap = await get(userRef);
+    if (userSnap.exists()) {
+      const profile = userSnap.val();
+      representativeName = profile.username || profile.name || representativeName;
+    }
+  } catch (profileError) {
+    console.error('Error loading user profile for team registration:', profileError);
+  }
+
   const sportsAuctionRef = ref(database, `sportsAuctions/${auctionId}`);
 
   await runTransaction(sportsAuctionRef, (data) => {
@@ -419,6 +432,7 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
     // Register / confirm this team mapping
     next.teams[trimmedName] = {
       representativeUserId: user.uid,
+      representativeName,
     };
     next.representatives[user.uid] = trimmedName;
 
@@ -447,6 +461,35 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
   }
 
   return { teamName: trimmedName };
+};
+
+// ---------------------------------------------------------------------------
+// Get teams and their representatives for a sports auction
+// ---------------------------------------------------------------------------
+export const getSportsAuctionTeams = async (auctionId) => {
+  try {
+    const teamsRef = ref(database, `sportsAuctions/${auctionId}/teams`);
+    const snap = await get(teamsRef);
+
+    if (!snap.exists()) {
+      return [];
+    }
+
+    const teams = [];
+    snap.forEach((child) => {
+      const value = child.val() || {};
+      teams.push({
+        name: child.key,
+        representativeUserId: value.representativeUserId || null,
+        representativeName: value.representativeName || null,
+      });
+    });
+
+    return teams;
+  } catch (error) {
+    console.error('Error getting sports auction teams:', error);
+    throw error;
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -779,4 +822,5 @@ export default {
   getAuctionStats,
   listenToAuction,
   registerTeamForSportsAuction,
+  getSportsAuctionTeams,
 };

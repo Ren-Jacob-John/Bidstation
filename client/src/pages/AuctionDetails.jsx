@@ -14,6 +14,7 @@ const AuctionDetails = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [teamReps, setTeamReps] = useState([]);
   
   // Add item form
   const [showAddItem, setShowAddItem] = useState(false);
@@ -48,6 +49,24 @@ const AuctionDetails = () => {
       setLoading(false);
     }
   };
+
+  // For sports auctions, load team representatives metadata from sportsAuctions/{auctionId}/teams
+  useEffect(() => {
+    const loadTeamReps = async () => {
+      if (!auction || auction.auction_type !== 'sports_player') {
+        setTeamReps([]);
+        return;
+      }
+      try {
+        const teams = await auctionService.getSportsAuctionTeams(id);
+        setTeamReps(teams);
+      } catch (err) {
+        console.error('Error loading team representatives:', err);
+        setTeamReps([]);
+      }
+    };
+    loadTeamReps();
+  }, [auction, id]);
 
   const handleStartAuction = async () => {
     if (!window.confirm('Are you sure you want to start this auction?')) return;
@@ -300,12 +319,20 @@ const AuctionDetails = () => {
             <div className="teams-section card">
               <h2>Participating Teams / Franchises</h2>
               <div className="teams-grid">
-                {teamsList.map((team, index) => (
-                  <div key={index} className="team-card">
-                    <span className="team-icon">⚽</span>
-                    <span className="team-name">{team}</span>
-                  </div>
-                ))}
+                {teamsList.map((team, index) => {
+                  const rep = teamReps.find(t => t.name === team);
+                  return (
+                    <div key={index} className="team-card">
+                      <span className="team-icon">⚽</span>
+                      <span className="team-name">{team}</span>
+                      {canManage && rep?.representativeName && (
+                        <span className="team-rep">
+                          Representative: {rep.representativeName}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

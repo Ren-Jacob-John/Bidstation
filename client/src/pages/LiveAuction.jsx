@@ -18,7 +18,6 @@ const LiveAuction = () => {
   const [currentItem, setCurrentItem] = useState(null);
   const [bids, setBids] = useState([]);
   const [bidAmount, setBidAmount] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,19 +43,6 @@ const LiveAuction = () => {
         setCurrentItem(itemsData[0]);
         const price = itemsData[0].current_price ?? itemsData[0].base_price ?? itemsData[0].currentBid ?? itemsData[0].basePrice;
         setBidAmount(String(price ?? ''));
-      }
-
-      // For sports auctions, if this user already represents a team,
-      // pre-select that team in the dropdown so they can bid immediately.
-      if (auctionData.auction_type === 'sports_player') {
-        try {
-          const userTeam = await auctionService.getUserTeamForSportsAuction(id);
-          if (userTeam) {
-            setSelectedTeam(userTeam);
-          }
-        } catch {
-          // Ignore – bidding logic will still enforce team registration.
-        }
       }
     } catch (err) {
       console.error('Error fetching auction data:', err);
@@ -86,11 +72,6 @@ const LiveAuction = () => {
 
     if (amount <= currentPrice) {
       setError('Bid must be higher than current price');
-      return;
-    }
-
-    if (auction.auction_type === 'sports_player' && !selectedTeam) {
-      setError('Please select a team');
       return;
     }
 
@@ -236,30 +217,6 @@ const LiveAuction = () => {
                         {error}
                       </div>
                     )}
-
-                    {auction.auction_type === 'sports_player' && (() => {
-                      const teamsRaw = auction.teams;
-                      let teamsList = [];
-                      try {
-                        if (typeof teamsRaw === 'string') teamsList = JSON.parse(teamsRaw || '[]');
-                        else if (Array.isArray(teamsRaw)) teamsList = teamsRaw;
-                      } catch (_) { teamsList = []; }
-                      return (
-                        <div className="form-group">
-                          <label>Select Team / Franchise</label>
-                          <select
-                            value={selectedTeam}
-                            onChange={(e) => setSelectedTeam(e.target.value)}
-                            required
-                          >
-                            <option value="">Choose a team...</option>
-                            {teamsList.map(team => (
-                              <option key={team} value={team}>{team}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })()}
 
                     <div className="form-group">
                       <label>Your Bid Amount</label>

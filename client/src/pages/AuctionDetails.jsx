@@ -268,9 +268,15 @@ const AuctionDetails = () => {
 
           {!canManage && auction.status === 'live' && (
             <div className="action-buttons">
-              <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
-                🔴 Join Live Auction
-              </button>
+              {auction.auction_type === 'sports_player' ? (
+                <button onClick={() => navigate('/join')} className="btn btn-primary">
+                  🔒 Join via Code
+                </button>
+              ) : (
+                <button onClick={() => navigate(`/auction/live/${id}`)} className="btn btn-primary">
+                  🔴 Join Live Auction
+                </button>
+              )}
             </div>
           )}
 

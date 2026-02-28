@@ -146,6 +146,16 @@ const LiveAuction = () => {
     );
   }
 
+  // For sports auctions, enforce joining via code only:
+  // if a non-creator/non-admin user somehow navigates directly here
+  // without going through the join-code flow, send them back.
+  const isCreator = user?.uid === auction.creator_id || user?.id === auction.creator_id;
+  const canManage = user && (isCreator || user?.role === 'admin');
+  if (auction.auction_type === 'sports_player' && !canManage) {
+    navigate('/join');
+    return null;
+  }
+
   return (
     <div className="live-auction-page">
       <div className="container">

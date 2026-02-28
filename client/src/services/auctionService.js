@@ -778,4 +778,5 @@ export default {
   searchAuctions,
   getAuctionStats,
   listenToAuction,
+  registerTeamForSportsAuction,
 };

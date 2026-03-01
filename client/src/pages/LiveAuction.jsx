@@ -7,6 +7,19 @@ import bidService from '../services/bidService';
 import BidHistory from '../components/BidHistory';
 import './LiveAuction.css';
 
+// Format seconds as HH:MM:SS or MM:SS
+const formatTimeUnits = (totalSeconds) => {
+  if (totalSeconds == null || totalSeconds < 0) return { text: '--:--:--', hours: 0, minutes: 0, seconds: 0 };
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  const pad = (n) => String(n).padStart(2, '0');
+  const text = hours > 0
+    ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+    : `${pad(minutes)}:${pad(seconds)}`;
+  return { text, hours, minutes, seconds };
+};
+
 const LiveAuction = () => {
   const { id } = useParams();
   const { user } = useAuth();
@@ -20,6 +33,7 @@ const LiveAuction = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     fetchAuctionData();
@@ -30,6 +44,13 @@ const LiveAuction = () => {
       fetchItemBids(currentItem.id);
     }
   }, [currentItem]);
+
+  // Timer tick for sports auction (elapsed + countdown)
+  useEffect(() => {
+    if (!auction || auction.status !== 'live') return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [auction?.id, auction?.status]);
 
   const fetchAuctionData = async () => {
     try {
@@ -161,6 +182,18 @@ const LiveAuction = () => {
     }).format(amount);
   };
 
+  const startMs = auction?.startDate ?? auction?.start_time;
+  const endMs = auction?.endDate ?? auction?.end_time;
+  const elapsedSeconds = startMs != null ? Math.max(0, (now - startMs) / 1000) : null;
+  const remainingSeconds = endMs != null ? Math.max(0, (endMs - now) / 1000) : null;
+  const elapsedDisplay = elapsedSeconds != null ? formatTimeUnits(elapsedSeconds).text : '--:--';
+  const remainingDisplay = remainingSeconds != null ? formatTimeUnits(remainingSeconds).text : '--:--';
+  const isSportsAuction = auction?.auction_type === 'sports_player' || auction?.auctionType === 'sports_player';
+  const itemLabel = isSportsAuction ? 'players' : 'items';
+  const soldCount = items.filter((i) => i.status === 'sold').length;
+  const totalCount = items.length;
+  const progressPercent = totalCount > 0 ? Math.round((soldCount / totalCount) * 100) : 0;
+
   if (loading) {
     return (
       <div className="live-auction-page">
@@ -198,6 +231,54 @@ const LiveAuction = () => {
             </span>
           </div>
           <p>{auction.description}</p>
+
+          {/* Timer + Progress bar (live auction) */}
+          {auction.status === 'live' && (
+            <div className="live-auction-bar">
+              <div className="live-timer-row">
+                {isSportsAuction && startMs != null && (
+                  <div className="live-timer-block">
+                    <span className="live-timer-label">Time elapsed</span>
+                    <span className="live-timer-value live-timer-elapsed">{elapsedDisplay}</span>
+                  </div>
+                )}
+                {endMs != null && (
+                  <div className="live-timer-block">
+                    <span className="live-timer-label">{remainingSeconds !== null && remainingSeconds <= 0 ? 'Ended' : 'Time remaining'}</span>
+                    <span className={`live-timer-value live-timer-remaining ${remainingSeconds !== null && remainingSeconds <= 0 ? 'ended' : ''}`}>
+                      {remainingSeconds !== null && remainingSeconds <= 0 ? '0:00' : remainingDisplay}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="live-progress-wrap">
+                <div className="live-progress-header">
+                  <span className="live-progress-title">Live progress</span>
+                  <span className="live-progress-count">
+                    {soldCount} / {totalCount} {itemLabel} sold
+                  </span>
+                </div>
+                <div className="live-progress-track">
+                  <div
+                    className="live-progress-fill"
+                    style={{ width: `${progressPercent}%` }}
+                    role="progressbar"
+                    aria-valuenow={soldCount}
+                    aria-valuemin={0}
+                    aria-valuemax={totalCount}
+                    aria-label={`${soldCount} of ${totalCount} ${itemLabel} sold`}
+                  />
+                </div>
+                {currentItem && (
+                  <div className="live-now-bidding">
+                    <span className="live-now-label">Now bidding on:</span>
+                    <span className="live-now-name">{currentItem.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {auction.auction_type === 'sports_player' && (auction.joinCode || auction.join_code) && (
             <div className="join-code-box">
               <span className="join-code-label">Join code</span>

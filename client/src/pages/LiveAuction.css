@@ -79,6 +79,115 @@
   flex-shrink: 0;
 }
 
+/* Live auction timer + progress bar */
+.live-auction-bar {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.live-timer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 1.25rem;
+}
+
+.live-timer-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.live-timer-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.live-timer-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.live-timer-elapsed {
+  color: var(--primary-red);
+}
+
+.live-timer-remaining {
+  color: var(--success);
+}
+
+.live-timer-remaining.ended {
+  color: var(--text-secondary);
+}
+
+.live-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.live-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.live-progress-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.live-progress-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-progress-track {
+  height: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.live-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-red), #e11d48);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.live-now-bidding {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.live-now-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.live-now-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary-red);
+}
+
 .auction-content {
   display: grid;
   grid-template-columns: 1fr 350px;

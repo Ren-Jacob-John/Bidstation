@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import { functions } from '../firebase/firebase.config';
+import { httpsCallable } from 'firebase/functions';
 import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
 import BidHistory from '../components/BidHistory';
@@ -31,6 +33,7 @@ const LiveAuction = () => {
   const [currentItem, setCurrentItem] = useState(null);
   const [bids, setBids] = useState([]);
   const [bidAmount, setBidAmount] = useState('');
+  const [autoBidMax, setAutoBidMax] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
@@ -172,6 +175,36 @@ const LiveAuction = () => {
     setCurrentItem(item);
     setBidAmount((item.current_price || item.base_price).toString());
     setError('');
+  };
+
+  const handleSetAutoBid = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!currentItem) {
+      setError('Select a player or item before enabling auto-bid.');
+      return;
+    }
+    const max = parseFloat(autoBidMax);
+    if (!Number.isFinite(max) || max <= 0) {
+      setError('Enter a valid maximum auto-bid amount.');
+      return;
+    }
+    try {
+      const callable = httpsCallable(functions, 'autobid-setAutoBid');
+      await callable({
+        auctionId: id,
+        playerId: currentItem.id,
+        maxAmount: max,
+      });
+      addNotification({
+        type: 'success',
+        title: 'Auto-bid enabled',
+        message: `Auto-bid up to ${formatCurrency(max)} has been set for ${currentItem.name}.`,
+        link: `/auction/live/${id}`,
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to set auto-bid');
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -355,6 +388,26 @@ const LiveAuction = () => {
                         step="100000"
                         required
                       />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Max Auto-Bid Amount (optional)</label>
+                      <div className="auto-bid-row">
+                        <input
+                          type="number"
+                          value={autoBidMax}
+                          onChange={(e) => setAutoBidMax(e.target.value)}
+                          placeholder="Set maximum auto-bid"
+                          step="100000"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={handleSetAutoBid}
+                        >
+                          Enable Auto-Bid
+                        </button>
+                      </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary w-full">

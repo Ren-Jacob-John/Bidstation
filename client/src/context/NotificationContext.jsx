@@ -2,6 +2,8 @@
 // client/src/context/NotificationContext.jsx
 // ---------------------------------------------------------------------------
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { onValue, off, ref } from 'firebase/database';
+import { database, fireAuth } from '../firebase/firebase.config';
 
 const NotificationContext = createContext();
 const WELCOME_SHOWN_KEY = 'bidstation-welcome-notif-shown';
@@ -42,6 +44,7 @@ const saveStored = (list) => {
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(loadStored);
 
+  // Bootstrap a welcome notification for first-time local users
   useEffect(() => {
     const stored = loadStored();
     if (stored.length === 0 && !localStorage.getItem(WELCOME_SHOWN_KEY)) {
@@ -49,7 +52,7 @@ export const NotificationProvider = ({ children }) => {
         id: genId(),
         type: 'info',
         title: 'Welcome to BidStation',
-        message: 'You\'ll see bid updates, auction alerts, and other notifications here.',
+        message: "You'll see bid updates, auction alerts, and other notifications here.",
         read: false,
         timestamp: new Date(),
         link: '/dashboard',
@@ -58,6 +61,63 @@ export const NotificationProvider = ({ children }) => {
       saveStored([welcome]);
       localStorage.setItem(WELCOME_SHOWN_KEY, '1');
     }
+  }, []);
+
+  // Subscribe to Firebase notifications for the current user
+  useEffect(() => {
+    const unsubscribers = [];
+
+    const attach = (uid) => {
+      if (!uid) return;
+      const notifRef = ref(database, `notifications/${uid}`);
+      const handler = (snapshot) => {
+        if (!snapshot.exists()) {
+          return;
+        }
+        const raw = snapshot.val() || {};
+        const fromServer = Object.entries(raw)
+          .map(([id, value]) => ({
+            id,
+            type: 'info',
+            title: value.type || 'Notification',
+            message: value.message || '',
+            read: !!value.read,
+            timestamp: new Date(value.createdAt || Date.now()),
+            link: value.auctionId ? `/auction/${value.auctionId}` : undefined,
+          }))
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 50);
+
+        setNotifications((prevLocal) => {
+          const merged = [...fromServer, ...prevLocal].slice(0, 50);
+          saveStored(merged);
+          return merged;
+        });
+      };
+      onValue(notifRef, handler);
+      unsubscribers.push(() => off(notifRef, 'value', handler));
+    };
+
+    const auth = fireAuth;
+    const current = auth.currentUser;
+    if (current?.uid) {
+      attach(current.uid);
+    }
+
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      unsubscribers.forEach((fn) => fn());
+      unsubscribers.length = 0;
+      if (user?.uid) {
+        attach(user.uid);
+      } else {
+        setNotifications(loadStored);
+      }
+    });
+
+    return () => {
+      unsubscribers.forEach((fn) => fn());
+      unsubAuth();
+    };
   }, []);
 
   const addNotification = useCallback(({ type = 'info', title, message, link }) => {

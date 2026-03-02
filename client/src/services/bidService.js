@@ -35,6 +35,15 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     const repValue = repSnap.val();
     const teamName = typeof repValue === 'string' ? repValue : repValue?.teamName;
 
+    // Load auction for minIncrement and lock
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnap = await get(auctionRef);
+    const auction = auctionSnap.exists() ? auctionSnap.val() : {};
+    if (auction.locked) {
+      throw new Error('This auction is locked and no longer accepts bids.');
+    }
+    const minIncrement = Number(auction.minIncrement) || 100000;
+
     // Use transaction to ensure atomic updates
     const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
     
@@ -52,9 +61,9 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
 
       const currentBid = player.currentBid || player.basePrice;
 
-      // Validate bid amount
-      if (bidAmount <= currentBid) {
-        throw new Error(`Bid must be higher than current bid of ₹${currentBid.toLocaleString()}`);
+      const minAllowed = (currentBid || 0) + minIncrement;
+      if (bidAmount < minAllowed) {
+        throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${currentBid.toLocaleString()}`);
       }
 
       // Update player data
@@ -128,13 +137,22 @@ export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
     const userSnapshot = await get(userRef);
     const bidderName = userSnapshot.val()?.username || user.email;
 
+    const auctionRef = ref(database, `auctions/${auctionId}`);
+    const auctionSnap = await get(auctionRef);
+    const auction = auctionSnap.exists() ? auctionSnap.val() : {};
+    if (auction.locked) {
+      throw new Error('This auction is locked and no longer accepts bids.');
+    }
+    const minIncrement = Number(auction.minIncrement) || 100;
+
     const itemRef = ref(database, `auctions/${auctionId}/items/${itemId}`);
 
     await runTransaction(itemRef, (item) => {
       if (item === null) throw new Error('Item not found');
       const currentBid = item.currentBid ?? item.current_price ?? item.basePrice ?? item.base_price;
-      if (bidAmount <= (currentBid || 0)) {
-        throw new Error(`Bid must be higher than current bid of ₹${Number(currentBid).toLocaleString()}`);
+      const minAllowed = (currentBid || 0) + minIncrement;
+      if (bidAmount < minAllowed) {
+        throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${Number(currentBid).toLocaleString()}`);
       }
       item.currentBid = bidAmount;
       item.currentBidderId = user.uid;

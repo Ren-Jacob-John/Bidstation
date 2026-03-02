@@ -65,9 +65,41 @@
       "$auctionId": {
         ".read": "auth != null",
         "$bidId": {
-          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid)"
+          // Allow creating bids for self; once created, core fields are immutable.
+          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid)",
+          ".validate": "newData.exists() && newData.child('bidderId').val() === data.child('bidderId').val() && newData.child('amount').val() === data.child('amount').val()"
         }
       }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$notificationId": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "autoBids": {
+      "$auctionId": {
+        "$playerId": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".read": "false"
+          }
+        }
+      }
+    },
+    "watchlists": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$auctionId": {
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+    "analytics": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "false"
     },
     "players": {
       ".read": true,

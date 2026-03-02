@@ -22,6 +22,8 @@ import VerifyEmail      from './pages/VerifyEmail';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
 import Admin            from './pages/Admin';
+import Terms            from './pages/Terms';
+import Privacy          from './pages/Privacy';
 import JoinWithCode     from './pages/JoinWithCode';
 
 // ── shared ─────────────────────────────────────────────────────────────────
@@ -226,6 +228,8 @@ const App = () => {
           <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
           <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* Firebase email action */}
           <Route path="/auth/action" element={<FirebaseActionRouter />} />

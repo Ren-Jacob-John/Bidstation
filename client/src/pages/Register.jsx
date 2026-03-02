@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
+import { functions } from '../firebase/firebase.config';
 import './Register.css';
 
 const Register = () => {
@@ -15,6 +17,7 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -49,9 +52,33 @@ const Register = () => {
       return;
     }
 
+    if (!acceptedTerms) {
+      setError('You must agree to the Terms & Conditions and Privacy Policy to create an account.');
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Verify reCAPTCHA if configured on the page
+      let recaptchaToken = null;
+      if (window.grecaptcha && window.grecaptcha.getResponse) {
+        recaptchaToken = window.grecaptcha.getResponse();
+        if (!recaptchaToken) {
+          setError('Please complete the CAPTCHA before registering.');
+          setLoading(false);
+          return;
+        }
+        try {
+          const verify = httpsCallable(functions, 'recaptcha-verifyRecaptcha');
+          await verify({ token: recaptchaToken });
+        } catch (verifyErr) {
+          setError(verifyErr.message || 'CAPTCHA verification failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const { confirmPassword, ...registerData } = formData;
       await register(registerData);
       navigate('/dashboard');
@@ -192,6 +219,22 @@ const Register = () => {
                   <option value="bidder">Bidder - Participate in auctions</option>
                   <option value="auctioneer">Auctioneer - Create and manage auctions</option>
                 </select>
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  />
+                  <span>
+                    I agree to the{' '}
+                    <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.
+                  </span>
+                </label>
               </div>
 
               <button 

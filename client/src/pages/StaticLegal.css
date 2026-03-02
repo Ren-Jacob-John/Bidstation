@@ -1,0 +1,22 @@
+.legal-page {
+  padding: 2rem 0;
+}
+
+.legal-card {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.legal-card h1 {
+  margin-bottom: 1rem;
+}
+
+.legal-card h2 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.legal-card p {
+  margin-bottom: 0.75rem;
+}
+

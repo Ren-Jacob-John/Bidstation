@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { getAllUsers, banUser, unbanUser } from '../services/authService';
 import { getAllAuctions, deleteAuction } from '../services/auctionService';
+import { functions } from '../firebase/firebase.config';
+import { httpsCallable } from 'firebase/functions';
 import './Admin.css';
 
 const Admin = () => {
@@ -13,6 +15,8 @@ const Admin = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [activeTab, setActiveTab] = useState('users');
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -28,10 +32,29 @@ const Admin = () => {
       ]);
       setUsers(usersData);
       setAuctions(auctionsData);
+      // Prefetch analytics for admins
+      if (user?.role === 'admin') {
+        await loadAnalytics(false);
+      }
     } catch (err) {
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAnalytics = async (showSpinner = true) => {
+    if (!user || user.role !== 'admin') return;
+    if (showSpinner) setAnalyticsLoading(true);
+    try {
+      const callable = httpsCallable(functions, 'analytics-getAdminAnalytics');
+      const res = await callable();
+      setAnalytics(res.data || {});
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setError(err.message || 'Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -126,6 +149,13 @@ const Admin = () => {
             onClick={() => setActiveTab('auctions')}
           >
             🏛️ Auction Management
+          </button>
+          <button
+            className={`admin-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+            disabled={user?.role !== 'admin'}
+          >
+            📈 Analytics
           </button>
         </div>
 
@@ -276,6 +306,43 @@ const Admin = () => {
                     </tbody>
                   </table>
                 </div>
+              </section>
+            )}
+
+            {activeTab === 'analytics' && user?.role === 'admin' && (
+              <section className="admin-section">
+                <div className="admin-section-header">
+                  <h2>Platform Analytics</h2>
+                  <button onClick={() => loadAnalytics(true)} className="admin-refresh-btn">
+                    {analyticsLoading ? 'Loading…' : '🔄 Refresh'}
+                  </button>
+                </div>
+
+                {analyticsLoading && (
+                  <div className="admin-loading">
+                    <div className="spinner" />
+                    <p>Loading analytics…</p>
+                  </div>
+                )}
+
+                {!analyticsLoading && (
+                  <div className="analytics-grid">
+                    <div className="stat-card card">
+                      <div className="stat-icon">📦</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.totalAuctions ?? '—'}</h3>
+                        <p>Total auctions</p>
+                      </div>
+                    </div>
+                    <div className="stat-card card">
+                      <div className="stat-icon">👥</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.totalUsers ?? '—'}</h3>
+                        <p>Total users</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
           </>

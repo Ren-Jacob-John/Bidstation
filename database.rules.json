@@ -65,7 +65,7 @@
       "$auctionId": {
         ".read": "auth != null",
         "$bidId": {
-          // Allow creating bids for self; once created, core fields are immutable.
+         
           ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid)",
           ".validate": "newData.exists() && newData.child('bidderId').val() === data.child('bidderId').val() && newData.child('amount').val() === data.child('amount').val()"
         }

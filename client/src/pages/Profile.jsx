@@ -369,7 +369,7 @@ const Profile = () => {
                 <div className="stat-content">
                   <span className="stat-label">Member Since</span>
                   <span className="stat-value">
-                    {new Date(user?.created_at || Date.now()).toLocaleDateString('en-US', {
+                    {new Date(user?.createdAt || Date.now()).toLocaleDateString('en-US', {
                       month: 'long',
                       year: 'numeric'
                     })}

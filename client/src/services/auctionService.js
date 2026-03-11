@@ -227,7 +227,13 @@ export const updateAuction = async (auctionId, updates) => {
     }
 
     const auction = snapshot.val();
-    if (auction.createdBy !== user.uid) {
+
+    // Check if the current user is an admin (same pattern as deleteAuction)
+    const userRef = ref(database, `users/${user.uid}`);
+    const userSnapshot = await get(userRef);
+    const isAdmin = userSnapshot.exists() && userSnapshot.val().role === 'admin';
+
+    if (auction.createdBy !== user.uid && !isAdmin) {
       throw new Error('Unauthorized: You can only update your own auctions');
     }
 

@@ -25,7 +25,8 @@ const Dashboard = () => {
       setAuctions(auctionsData);
       
       // Calculate stats
-      const myAuctions = auctionsData.filter(a => a.creator_id === user.id);
+      // getAllAuctions() returns raw DB records which use createdBy, not creator_id
+      const myAuctions = auctionsData.filter(a => a.createdBy === user.uid);
       const liveAuctions = auctionsData.filter(a => a.status === 'live');
       
       setStats({

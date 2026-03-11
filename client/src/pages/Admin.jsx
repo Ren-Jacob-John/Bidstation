@@ -47,7 +47,7 @@ const Admin = () => {
     if (!user || user.role !== 'admin') return;
     if (showSpinner) setAnalyticsLoading(true);
     try {
-      const callable = httpsCallable(functions, 'analytics-getAdminAnalytics');
+      const callable = httpsCallable(functions, 'getAdminAnalytics');
       const res = await callable();
       setAnalytics(res.data || {});
     } catch (err) {

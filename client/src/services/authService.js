@@ -165,8 +165,11 @@ export const verifyEmail = async (actionCode) => {
     // Apply the action code
     await applyActionCode(fireAuth, actionCode);
 
-    // Reload the user to get updated emailVerified status
-    await fireAuth.currentUser.reload();
+    // Reload the user to get updated emailVerified status.
+    // currentUser may be null if the link was opened in a different browser/tab.
+    if (fireAuth.currentUser) {
+      await fireAuth.currentUser.reload();
+    }
 
     // Update emailVerified in Realtime Database
     const user = fireAuth.currentUser;

@@ -8,8 +8,7 @@ import {
   get,
   update,
   runTransaction,
-  onValue,
-  off
+  onValue
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
 
@@ -555,7 +554,9 @@ export const listenToAuctionBids = (auctionId, callback) => {
     callback(bids);
   });
 
-  return () => off(bidsRef);
+  // Return the specific unsubscribe for THIS listener only.
+  // off(bidsRef) would detach ALL listeners on the ref.
+  return unsubscribe;
 };
 
 export default {

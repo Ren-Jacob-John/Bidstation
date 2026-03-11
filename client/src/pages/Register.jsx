@@ -70,7 +70,7 @@ const Register = () => {
           return;
         }
         try {
-          const verify = httpsCallable(functions, 'recaptcha-verifyRecaptcha');
+          const verify = httpsCallable(functions, 'verifyRecaptcha');
           await verify({ token: recaptchaToken });
         } catch (verifyErr) {
           setError(verifyErr.message || 'CAPTCHA verification failed. Please try again.');

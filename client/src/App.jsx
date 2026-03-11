@@ -129,7 +129,43 @@ const AuthRoute = ({ children }) => {
   return children;
 };
 
-const AdminRoute = ({ children }) => {
+const AuctioneerRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="app-loading-screen-inline">
+          <div className="app-loading-card">
+            <div className="app-loading-icon">
+              <div className="hammer-orbit">
+                <div className="hammer-head" />
+                <div className="hammer-handle" />
+              </div>
+            </div>
+            <div className="app-loading-text">
+              <h1>Loading BidStation…</h1>
+              <p>Checking your permissions.</p>
+            </div>
+            <div className="app-loading-progress">
+              <div className="progress-track">
+                <div className="progress-fill" />
+              </div>
+              <div className="progress-dots">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (!user)               return <Navigate to="/login" replace />;
+  // Bidders cannot create auctions — redirect to dashboard
+  if (user.role === 'bidder') return <Navigate to="/dashboard" replace />;
+  return children;
+};
   const { user, loading, isAdmin } = useAuth();
   if (loading) {
     return (
@@ -245,7 +281,7 @@ const App = () => {
 
           {/* protected */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/auction/create" element={<ProtectedRoute><CreateAuction /></ProtectedRoute>} />
+          <Route path="/auction/create" element={<AuctioneerRoute><CreateAuction /></AuctioneerRoute>} />
           <Route path="/auction/live/:id" element={<ProtectedRoute><LiveAuction /></ProtectedRoute>} />
           <Route path="/my-bids" element={<ProtectedRoute><MyBids /></ProtectedRoute>} />
           <Route path="/my-auctions" element={<ProtectedRoute><MyAuctions /></ProtectedRoute>} />

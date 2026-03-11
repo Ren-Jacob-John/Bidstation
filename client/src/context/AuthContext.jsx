@@ -58,8 +58,9 @@ export const AuthProvider = ({ children }) => {
   // login
   // -----------------------------------------------------------------------
   const login = async (email, password) => {
+    // loginUser() returns the user object directly, not wrapped in { user: … }
     const response = await loginUser(email, password);
-    setUser(response.user);
+    setUser(response);
     return response;
   };
 

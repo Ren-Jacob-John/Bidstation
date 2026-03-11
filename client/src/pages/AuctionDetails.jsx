@@ -194,7 +194,9 @@ const AuctionDetails = () => {
     );
   }
 
-  const isCreator = user?.uid === auction.creator_id || user?.id === auction.creator_id;
+  // user.uid is always present (set by AuthContext from firebaseUser.uid).
+  // auction.creator_id is the normalized alias for createdBy set in getAuction().
+  const isCreator = !!user?.uid && user.uid === auction.creator_id;
   const canManage = user && (isCreator || user?.role === 'admin');
 
   return (

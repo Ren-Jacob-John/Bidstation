@@ -190,7 +190,7 @@ const LiveAuction = () => {
       return;
     }
     try {
-      const callable = httpsCallable(functions, 'autobid-setAutoBid');
+      const callable = httpsCallable(functions, 'setAutoBid');
       await callable({
         auctionId: id,
         playerId: currentItem.id,
@@ -370,7 +370,10 @@ const LiveAuction = () => {
                   </div>
                 </div>
 
-                {auction.status === 'live' && user?.role === 'bidder' && (
+                {(() => {
+                  const auctionCreatorId = auction?.createdBy ?? auction?.creator_id;
+                  const isAuctioneer = user && auctionCreatorId && user.uid === auctionCreatorId;
+                  return auction.status === 'live' && user && !isAuctioneer && (
                   <form onSubmit={handlePlaceBid} className="bid-form">
                     {error && (
                       <div className="alert alert-error">
@@ -414,7 +417,8 @@ const LiveAuction = () => {
                       Place Bid
                     </button>
                   </form>
-                )}
+                  );
+                })()}
               </div>
             ) : (
               <div className="card">

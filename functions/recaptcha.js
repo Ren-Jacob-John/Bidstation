@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
-const fetch = require('node-fetch');
+// Node 18 (configured in package.json engines) provides fetch as a global.
+// node-fetch v3 is ESM-only and cannot be require()'d in CommonJS Cloud Functions.
 
 const RECAPTCHA_SECRET = functions.config().recaptcha && functions.config().recaptcha.secret;
 

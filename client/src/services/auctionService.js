@@ -9,7 +9,6 @@ import {
   update,
   remove,
   onValue,
-  off,
   runTransaction
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
@@ -818,15 +817,16 @@ export const getAuctionStats = async (auctionId) => {
 // ---------------------------------------------------------------------------
 export const listenToAuction = (auctionId, callback) => {
   const auctionRef = ref(database, `auctions/${auctionId}`);
-  
+
+  // onValue returns a specific unsubscribe function for THIS listener only.
+  // Using off(auctionRef) instead would detach ALL listeners on the ref.
   const unsubscribe = onValue(auctionRef, (snapshot) => {
     if (snapshot.exists()) {
       callback(snapshot.val());
     }
   });
 
-  // Return unsubscribe function
-  return () => off(auctionRef);
+  return unsubscribe;
 };
 
 export default {

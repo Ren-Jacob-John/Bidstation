@@ -8,6 +8,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   applyActionCode,
+  confirmPasswordReset,
   updatePassword,
   deleteUser,
   EmailAuthProvider,
@@ -201,17 +202,9 @@ export const forgotPassword = async (email) => {
 // ---------------------------------------------------------------------------
 export const resetPassword = async (actionCode, newPassword) => {
   try {
-    // Verify the action code is valid
-    await applyActionCode(fireAuth, actionCode);
-
-    // Get the user's email from the action code
-    const email = fireAuth.currentUser?.email;
-
-    // Update the password
-    if (fireAuth.currentUser) {
-      await updatePassword(fireAuth.currentUser, newPassword);
-    }
-
+    // confirmPasswordReset verifies the oobCode and sets the new password in one call.
+    // This is the correct API for password-reset flows (applyActionCode is for email verification only).
+    await confirmPasswordReset(fireAuth, actionCode, newPassword);
     return { success: true };
   } catch (error) {
     console.error('Error resetting password:', error);

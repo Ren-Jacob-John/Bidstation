@@ -100,8 +100,7 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
 
     await set(newBidRef, newBid);
 
-    // Mark this user's previous active bids for this player as outbid.
-    // (We only update bids where bidderId === current user to satisfy security rules.)
+    // Mark previous active bids for this player as outbid
     const allBidsRef = ref(database, `bids/${auctionId}`);
     const allBidsSnapshot = await get(allBidsRef);
 
@@ -109,12 +108,7 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
       const updates = {};
       allBidsSnapshot.forEach((bidSnapshot) => {
         const bid = bidSnapshot.val();
-        if (
-          bid.playerId === playerId &&
-          bid.status === 'active' &&
-          bid.id !== newBid.id &&
-          bid.bidderId === user.uid
-        ) {
+        if (bid.playerId === playerId && bid.status === 'active' && bid.id !== newBid.id) {
           updates[`${bidSnapshot.key}/status`] = 'outbid';
         }
       });
@@ -185,18 +179,12 @@ export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
     };
     await set(newBidRef, newBid);
 
-    // Mark this user's previous active bids for this item as outbid.
     const allBidsSnap = await get(bidsRef);
     if (allBidsSnap.exists()) {
       const updates = {};
       allBidsSnap.forEach((snap) => {
         const bid = snap.val();
-        if (
-          bid.playerId === itemId &&
-          bid.status === 'active' &&
-          bid.id !== newBid.id &&
-          bid.bidderId === user.uid
-        ) {
+        if (bid.playerId === itemId && bid.status === 'active' && bid.id !== newBid.id) {
           updates[`${snap.key}/status`] = 'outbid';
         }
       });
@@ -306,10 +294,15 @@ export const getMyBids = async () => {
     // Get auction titles
     const auctionsRef = ref(database, 'auctions');
     const auctionsSnapshot = await get(auctionsRef);
-    
+
     if (auctionsSnapshot.exists()) {
+      // Build a plain lookup map — DataSnapshot has no .child() in the modular SDK
+      const auctionsMap = {};
+      auctionsSnapshot.forEach((snap) => {
+        auctionsMap[snap.key] = snap.val();
+      });
       allBids.forEach(bid => {
-        const auction = auctionsSnapshot.child(bid.auctionId).val();
+        const auction = auctionsMap[bid.auctionId];
         if (auction) {
           bid.auctionTitle = auction.title;
         }

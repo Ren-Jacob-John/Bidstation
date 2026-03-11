@@ -26,7 +26,7 @@
         },
         "sharedContacts": {
           ".read": "auth != null && data.parent().child('status').val() === 'completed' && (auth.uid === data.child('winnerUserId').val() || auth.uid === data.child('auctioneerUserId').val() || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-          ".write": "false"
+          ".write": "auth != null && root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid"
         },
         "players": {
           "$playerId": {
@@ -98,6 +98,10 @@
     },
     "analytics": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "false"
+    },
+    "rateLimits": {
+      ".read": "false",
       ".write": "false"
     },
     "players": {

@@ -100,7 +100,8 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
 
     await set(newBidRef, newBid);
 
-    // Mark previous active bids for this player as outbid
+    // Mark this user's previous active bids for this player as outbid.
+    // (We only update bids where bidderId === current user to satisfy security rules.)
     const allBidsRef = ref(database, `bids/${auctionId}`);
     const allBidsSnapshot = await get(allBidsRef);
 
@@ -108,7 +109,12 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
       const updates = {};
       allBidsSnapshot.forEach((bidSnapshot) => {
         const bid = bidSnapshot.val();
-        if (bid.playerId === playerId && bid.status === 'active' && bid.id !== newBid.id) {
+        if (
+          bid.playerId === playerId &&
+          bid.status === 'active' &&
+          bid.id !== newBid.id &&
+          bid.bidderId === user.uid
+        ) {
           updates[`${bidSnapshot.key}/status`] = 'outbid';
         }
       });
@@ -179,12 +185,18 @@ export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
     };
     await set(newBidRef, newBid);
 
+    // Mark this user's previous active bids for this item as outbid.
     const allBidsSnap = await get(bidsRef);
     if (allBidsSnap.exists()) {
       const updates = {};
       allBidsSnap.forEach((snap) => {
         const bid = snap.val();
-        if (bid.playerId === itemId && bid.status === 'active' && bid.id !== newBid.id) {
+        if (
+          bid.playerId === itemId &&
+          bid.status === 'active' &&
+          bid.id !== newBid.id &&
+          bid.bidderId === user.uid
+        ) {
           updates[`${snap.key}/status`] = 'outbid';
         }
       });

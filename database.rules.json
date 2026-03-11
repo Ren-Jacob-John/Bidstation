@@ -20,7 +20,10 @@
       ".read": "auth != null",
       "$auctionId": {
         ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
-        ".validate": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        // NOTE: Parent `.validate` is evaluated for child writes (e.g. bidders updating
+        // `auctions/$auctionId/items/$itemId` during bidding). Keep auction-level writes
+        // protected via `.write`, but allow authenticated child writes to pass validation.
+        ".validate": "auth != null",
         "winnerContactShared": {
           ".write": "auth != null && (data.parent().child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".read": "auth != null"

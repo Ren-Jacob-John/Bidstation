@@ -31,13 +31,13 @@
         "players": {
           "$playerId": {
             ".read": "auth != null",
-            ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+            ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'auctioneer')"
           }
         },
         "items": {
           "$itemId": {
             ".read": "auth != null",
-            ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+            ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'auctioneer')"
           }
         }
       }

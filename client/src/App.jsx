@@ -166,6 +166,8 @@ const AuctioneerRoute = ({ children }) => {
   if (user.role === 'bidder') return <Navigate to="/dashboard" replace />;
   return children;
 };
+
+const AdminRoute = ({ children }) => {
   const { user, loading, isAdmin } = useAuth();
   if (loading) {
     return (

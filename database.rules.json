@@ -19,7 +19,7 @@
     "auctions": {
       ".read": "auth != null",
       "$auctionId": {
-        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || data.child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
         "status": {
           ".read": "auth != null",
           ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('auctions').child($auctionId).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
@@ -68,8 +68,7 @@
       "$auctionId": {
         ".read": "auth != null",
         "$bidId": {
-         
-          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid)",
+          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid || root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('auctions').child($auctionId).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".validate": "newData.exists() && (!newData.child('bidderId').exists() || newData.child('bidderId').val() === data.child('bidderId').val()) && (!newData.child('amount').exists() || newData.child('amount').val() === data.child('amount').val())"
         }
       }

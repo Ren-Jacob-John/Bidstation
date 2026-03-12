@@ -20,6 +20,10 @@
       ".read": "auth != null",
       "$auctionId": {
         ".write": "auth != null && (!data.exists() || data.child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "status": {
+          ".read": "auth != null",
+          ".write": "auth != null && (root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('auctions').child($auctionId).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        },
         "winnerContactShared": {
           ".write": "auth != null && (data.parent().child('createdBy').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".read": "auth != null"

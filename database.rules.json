@@ -29,7 +29,7 @@
           ".read": "auth != null"
         },
         "sharedContacts": {
-          ".read": "auth != null && data.parent().child('status').val() === 'completed' && (auth.uid === data.child('winnerUserId').val() || auth.uid === data.child('auctioneerUserId').val() || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".read": "auth != null && root.child('auctions').child($auctionId).child('status').val() === 'completed' && (auth.uid === root.child('auctions').child($auctionId).child('winnerUserId').val() || auth.uid === root.child('auctions').child($auctionId).child('auctioneerUserId').val() || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".write": "auth != null && root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid"
         },
         "players": {

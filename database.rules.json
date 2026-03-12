@@ -65,10 +65,12 @@
     },
     "bids": {
       ".read": "auth != null",
-      "$auctionId": {
+      "$key": {
         ".read": "auth != null",
+        ".write": "auth != null && ( (!data.exists() && newData.child('auctionId').exists() && newData.child('bidderId').val() === auth.uid) || (data.exists() && (data.child('bidderId').val() === auth.uid || root.child('auctions').child(data.child('auctionId').val()).child('createdBy').val() === auth.uid || root.child('auctions').child(data.child('auctionId').val()).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')) )",
+        ".validate": "newData.exists() && ( (!newData.hasChildren(['auctionId','bidderId'])) || (newData.child('auctionId').exists() && newData.child('bidderId').exists()) )",
         "$bidId": {
-          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid || root.child('auctions').child($auctionId).child('createdBy').val() === auth.uid || root.child('auctions').child($auctionId).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".write": "auth != null && (!data.exists() || data.child('bidderId').val() === auth.uid || root.child('auctions').child($key).child('createdBy').val() === auth.uid || root.child('auctions').child($key).child('auctioneerUserId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
           ".validate": "newData.exists() && (!newData.child('bidderId').exists() || newData.child('bidderId').val() === data.child('bidderId').val()) && (!newData.child('amount').exists() || newData.child('amount').val() === data.child('amount').val())"
         }
       }

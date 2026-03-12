@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
@@ -8,6 +8,8 @@ import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
 import BidHistory from '../components/BidHistory';
 import './LiveAuction.css';
+import { ref, onValue } from 'firebase/database';
+import { database } from '../firebase/firebase.config';
 
 // Format seconds as HH:MM:SS or MM:SS
 const formatTimeUnits = (totalSeconds) => {
@@ -38,15 +40,102 @@ const LiveAuction = () => {
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
+  const shouldSuppressUiError = (err) => {
+    const msg = String(err?.message || err || '').toLowerCase();
+    return msg.includes('permission_denied') || msg.includes('permission denied');
+  };
+
   useEffect(() => {
     fetchAuctionData();
   }, [id]);
 
+  const isSportsAuction = useMemo(
+    () => auction?.auction_type === 'sports_player' || auction?.auctionType === 'sports_player',
+    [auction?.auction_type, auction?.auctionType]
+  );
+
+  // Real-time auction + item/player updates (keeps UI in sync, incl. auto-bids)
   useEffect(() => {
-    if (currentItem) {
-      fetchItemBids(currentItem.id);
-    }
-  }, [currentItem]);
+    if (!id) return;
+
+    setLoading(true);
+    setError('');
+
+    const unsubAuction = auctionService.listenToAuction(id, (auctionData) => {
+      setAuction({ id, ...auctionData });
+      setLoading(false);
+    });
+
+    return () => {
+      if (typeof unsubAuction === 'function') unsubAuction();
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !auction) return;
+
+    const path = isSportsAuction ? `auctions/${id}/players` : `auctions/${id}/items`;
+    const itemsRef = ref(database, path);
+
+    const unsubItems = onValue(itemsRef, (snap) => {
+      const list = [];
+      if (snap.exists()) {
+        snap.forEach((child) => {
+          list.push({ id: child.key, ...child.val() });
+        });
+      }
+
+      // Map to the item shape the UI expects
+      const mapped = isSportsAuction
+        ? list.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.role ? `Role: ${p.role}` : '',
+            base_price: p.basePrice,
+            current_price: p.currentBid ?? p.basePrice,
+            status: p.status || 'available',
+            current_bidder_name: p.currentBidderName || null,
+            player_details: JSON.stringify({
+              role: p.role,
+              age: p.age,
+              nationality: p.nationality,
+            }),
+          }))
+        : list.map((it) => ({
+            id: it.id,
+            ...it,
+            base_price: it.base_price ?? it.basePrice ?? it.base_price,
+            current_price: it.currentBid ?? it.current_price ?? it.current_price,
+          }));
+
+      setItems(mapped);
+
+      // Keep current selection stable
+      if (mapped.length === 0) {
+        setCurrentItem(null);
+        return;
+      }
+
+      const updatedCurrent = currentItem && mapped.find((it) => it.id === currentItem.id);
+      if (updatedCurrent) {
+        setCurrentItem(updatedCurrent);
+        return;
+      }
+
+      if (isSportsAuction) {
+        const available = mapped.filter((it) => it.status === 'available');
+        const next = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : mapped[0];
+        setCurrentItem(next);
+      } else {
+        setCurrentItem(mapped[0]);
+      }
+    });
+
+    return () => {
+      if (typeof unsubItems === 'function') unsubItems();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, auction?.auction_type, auction?.auctionType]);
 
   // Timer tick for sports auction (elapsed + countdown)
   useEffect(() => {
@@ -66,61 +155,17 @@ const LiveAuction = () => {
       setItems(itemsData);
 
       if (itemsData.length > 0) {
-        // For sports auctions, pick a random AVAILABLE player and
-        // keep showing the same one until they are auctioned (status !== 'available').
-        let nextItem = null;
-        if (auctionData.auction_type === 'sports_player') {
-          // Try to find the updated record for the current item (to check latest status)
-          const updatedCurrent =
-            currentItem && itemsData.find((it) => it.id === currentItem.id);
-
-          if (updatedCurrent && updatedCurrent.status === 'available') {
-            nextItem = updatedCurrent;
-          } else {
-            const availableItems = itemsData.filter(
-              (it) => it.status === 'available'
-            );
-            if (availableItems.length > 0) {
-              const randomIndex = Math.floor(
-                Math.random() * availableItems.length
-              );
-              nextItem = availableItems[randomIndex];
-            } else {
-              // Fallback: no available players, keep current or use first
-              nextItem = updatedCurrent || itemsData[0];
-            }
-          }
-        } else {
-          // For item auctions, keep the existing behaviour: first item.
-          nextItem = itemsData[0];
-        }
-
-        if (nextItem) {
-          setCurrentItem(nextItem);
-          const price =
-            nextItem.current_price ??
-            nextItem.base_price ??
-            nextItem.currentBid ??
-            nextItem.basePrice;
-          setBidAmount(String(price ?? ''));
-        }
+        const updatedCurrent = currentItem && itemsData.find((it) => it.id === currentItem.id);
+        const nextItem = updatedCurrent || itemsData[0];
+        setCurrentItem(nextItem);
+        const price = nextItem.current_price ?? nextItem.base_price ?? nextItem.currentBid ?? nextItem.basePrice;
+        setBidAmount(String(price ?? ''));
       }
     } catch (err) {
       console.error('Error fetching auction data:', err);
       setError('Failed to load auction data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchItemBids = async (itemId) => {
-    if (!itemId) return;
-    try {
-      const allBids = await bidService.getAuctionBids(id);
-      setBids(allBids.filter(b => b.playerId === itemId));
-    } catch (err) {
-      console.error('Error fetching bids:', err);
-      setBids([]);
     }
   };
 
@@ -135,7 +180,11 @@ const LiveAuction = () => {
     }
 
     const currentPrice =
-      currentItem.current_price ?? currentItem.base_price ?? 0;
+      currentItem.current_price ??
+      currentItem.currentBid ??
+      currentItem.base_price ??
+      currentItem.basePrice ??
+      0;
 
     if (amount <= currentPrice) {
       setError('Bid must be higher than current price');
@@ -152,9 +201,6 @@ const LiveAuction = () => {
         await bidService.placeBid(id, currentItem.id, amount);
       }
 
-      await fetchAuctionData();
-      await fetchItemBids(currentItem.id);
-
       const increment = auction?.minIncrement || 100000;
       setBidAmount((amount + increment).toString());
       setError('');
@@ -167,9 +213,32 @@ const LiveAuction = () => {
         link: `/auction/live/${id}`,
       });
     } catch (err) {
+      if (shouldSuppressUiError(err)) {
+        console.error('Bid failed (suppressed UI error):', err);
+        setError('');
+        return;
+      }
       setError(err.message || 'Failed to place bid');
     }
   };
+
+  // Keep suggested bid amount aligned with the live current price.
+  // Don’t override if user already typed a higher amount.
+  useEffect(() => {
+    if (!currentItem) return;
+    const increment = Number(auction?.minIncrement) || (isSportsAuction ? 100000 : 100);
+    const currentPrice =
+      currentItem.current_price ??
+      currentItem.currentBid ??
+      currentItem.base_price ??
+      currentItem.basePrice ??
+      0;
+    const suggested = Number(currentPrice) + increment;
+    const typed = Number(bidAmount);
+    if (!bidAmount || !Number.isFinite(typed) || typed <= Number(currentPrice)) {
+      setBidAmount(String(suggested));
+    }
+  }, [currentItem?.id, currentItem?.current_price, currentItem?.currentBid, auction?.minIncrement, isSportsAuction]);
 
   const selectItem = (item) => {
     setCurrentItem(item);
@@ -203,6 +272,11 @@ const LiveAuction = () => {
         link: `/auction/live/${id}`,
       });
     } catch (err) {
+      if (shouldSuppressUiError(err)) {
+        console.error('Auto-bid failed (suppressed UI error):', err);
+        setError('');
+        return;
+      }
       setError(err.message || 'Failed to set auto-bid');
     }
   };
@@ -221,7 +295,6 @@ const LiveAuction = () => {
   const remainingSeconds = endMs != null ? Math.max(0, (endMs - now) / 1000) : null;
   const elapsedDisplay = elapsedSeconds != null ? formatTimeUnits(elapsedSeconds).text : '--:--';
   const remainingDisplay = remainingSeconds != null ? formatTimeUnits(remainingSeconds).text : '--:--';
-  const isSportsAuction = auction?.auction_type === 'sports_player' || auction?.auctionType === 'sports_player';
   const itemLabel = isSportsAuction ? 'players' : 'items';
   const soldCount = items.filter((i) => i.status === 'sold').length;
   const totalCount = items.length;
@@ -429,8 +502,8 @@ const LiveAuction = () => {
             {/* Bid History */}
             <BidHistory
               auctionId={id}
-              playerId={currentItem?.id}
-              playerName={currentItem?.name}
+              playerId={null}
+              playerName={null}
             />
           </div>
 

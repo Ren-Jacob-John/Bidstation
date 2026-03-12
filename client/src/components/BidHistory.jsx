@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getPlayerBids, listenToAuctionBids } from '../services/bidService';
+import { getAuctionBids, getPlayerBids, listenToAuctionBids } from '../services/bidService';
 import './BidHistory.css';
 
 const BidHistory = ({ playerId, playerName, auctionId }) => {
@@ -14,17 +14,21 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
   const [filter, setFilter] = useState('all'); // all, my-bids
 
   const normaliseBids = (data) =>
-    data.map((bid) => ({
-      ...bid,
-      timestamp: bid.timestamp ? new Date(bid.timestamp) : new Date(),
-    }));
+    data
+      .map((bid) => ({
+        ...bid,
+        timestamp: bid.timestamp ? new Date(bid.timestamp) : new Date(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp);
 
   const fetchBidHistory = async () => {
-    if (!playerId || !auctionId) return;
+    if (!auctionId) return;
     try {
       setLoading(true);
       setError('');
-      const data = await getPlayerBids(auctionId, playerId);
+      const data = playerId
+        ? await getPlayerBids(auctionId, playerId)
+        : await getAuctionBids(auctionId);
       setBids(normaliseBids(data));
     } catch (err) {
       console.error('Failed to load bid history', err);
@@ -35,7 +39,7 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
   };
 
   useEffect(() => {
-    if (!playerId || !auctionId) {
+    if (!auctionId) {
       setBids([]);
       setLoading(false);
       return;
@@ -46,7 +50,7 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
 
     const unsubscribe = listenToAuctionBids(auctionId, (allBids) => {
       try {
-        const filtered = allBids.filter((b) => b.playerId === playerId);
+        const filtered = playerId ? allBids.filter((b) => b.playerId === playerId) : allBids;
         setBids(normaliseBids(filtered));
         setLoading(false);
       } catch (err) {

@@ -19,6 +19,8 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
+    if (!auctionId) throw new Error('Auction not found. Please refresh and try again.');
+    if (!playerId) throw new Error('Player not found. Please refresh and try again.');
 
     // Get user profile for bidder name
     const userRef = ref(database, `users/${user.uid}`);
@@ -131,6 +133,8 @@ export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
+    if (!auctionId) throw new Error('Auction not found. Please refresh and try again.');
+    if (!itemId) throw new Error('Item not found. Please refresh and try again.');
 
     const userRef = ref(database, `users/${user.uid}`);
     const userSnapshot = await get(userRef);
@@ -539,9 +543,24 @@ export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
 // Listen to auction bids (real-time)
 // ---------------------------------------------------------------------------
 export const listenToAuctionBids = (auctionId, callback) => {
-  const bidsRef = ref(database, `bids/${auctionId}`);
-  
-  const unsubscribe = onValue(bidsRef, (snapshot) => {
+  const scopedRef = ref(database, `bids/${auctionId}`);
+  const rootRef = ref(database, 'bids');
+
+  let scopedBids = [];
+  let flatBids = [];
+
+  const emit = () => {
+    const map = new Map();
+    [...scopedBids, ...flatBids].forEach((b) => {
+      if (!b) return;
+      const id = b.id || b.key;
+      if (!id) return;
+      map.set(id, b);
+    });
+    callback(Array.from(map.values()));
+  };
+
+  const unsubScoped = onValue(scopedRef, (snapshot) => {
     const bids = [];
     if (snapshot.exists()) {
       snapshot.forEach((childSnapshot) => {
@@ -551,12 +570,33 @@ export const listenToAuctionBids = (auctionId, callback) => {
         });
       });
     }
-    callback(bids);
+    scopedBids = bids;
+    emit();
   });
 
-  // Return the specific unsubscribe for THIS listener only.
-  // off(bidsRef) would detach ALL listeners on the ref.
-  return unsubscribe;
+  // Fallback for installations that write bids as /bids/<bidId>
+  // (we still prefer /bids/<auctionId>/<bidId> above).
+  const unsubRoot = onValue(rootRef, (snapshot) => {
+    const bids = [];
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const val = childSnapshot.val();
+
+        // Flat bid object at /bids/<bidId>
+        if (val && typeof val === 'object' && val.auctionId === auctionId) {
+          bids.push({ id: childSnapshot.key, ...val });
+          return;
+        }
+      });
+    }
+    flatBids = bids;
+    emit();
+  });
+
+  return () => {
+    if (typeof unsubScoped === 'function') unsubScoped();
+    if (typeof unsubRoot === 'function') unsubRoot();
+  };
 };
 
 export default {

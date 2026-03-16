@@ -8,8 +8,7 @@ import {
   get,
   update,
   runTransaction,
-  onValue,
-  onChildAdded
+  onValue
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
 
@@ -550,38 +549,42 @@ export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
 // ---------------------------------------------------------------------------
 // Listen to auction bids (real-time)
 // ---------------------------------------------------------------------------
-export const listenToAuctionBids = (auctionId, callback) => {
+// FIX: Use only onValue for bid history — no onChildAdded.
+// The previous implementation had a race condition: onChildAdded started with an
+// empty local array and would overwrite the complete list delivered by onValue,
+// causing bid history to appear blank or show only the most recent single bid.
+// onValue alone handles both initial load and all subsequent changes (adds, updates).
+export const listenToAuctionBids = (auctionId, callback, onError) => {
   const bidsRef = ref(database, `bids/${auctionId}`);
 
-  // Use child_added for stable incremental updates (prevents flicker/blank state).
-  const seen = new Set();
-  const bids = [];
-
-  // Initial load + subsequent changes (also handles removals/updates)
-  const unsubValue = onValue(bidsRef, (snapshot) => {
-    if (!snapshot.exists()) {
-      callback([]);
-      return;
+  const handleError = (err) => {
+    if (typeof onError === 'function') {
+      onError(err);
+    } else {
+      console.error('listenToAuctionBids error:', err);
     }
-    const all = [];
-    snapshot.forEach((childSnapshot) => {
-      all.push({ id: childSnapshot.key, ...childSnapshot.val() });
-    });
-    callback(all);
-  });
+  };
 
-  // Ensure immediate append behavior as bids arrive
-  const unsubChild = onChildAdded(bidsRef, (snap) => {
-    const id = snap.key;
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    bids.push({ id, ...snap.val() });
-    callback([...bids]);
-  });
+  const unsubValue = onValue(
+    bidsRef,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        callback([]);
+        return;
+      }
+      const all = [];
+      snapshot.forEach((childSnapshot) => {
+        all.push({ id: childSnapshot.key, ...childSnapshot.val() });
+      });
+      // Sort newest first so BidHistory always shows latest at top
+      all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      callback(all);
+    },
+    handleError
+  );
 
   return () => {
     if (typeof unsubValue === 'function') unsubValue();
-    if (typeof unsubChild === 'function') unsubChild();
   };
 };
 

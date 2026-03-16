@@ -688,11 +688,11 @@ const LiveAuction = () => {
               </div>
             )}
 
-            {/* Bid History */}
+            {/* Bid History — FIX: scoped to the currently active player/item */}
             <BidHistory
               auctionId={id}
-              playerId={null}
-              playerName={null}
+              playerId={currentItem?.id ?? null}
+              playerName={currentItem?.name ?? null}
             />
           </div>
 
@@ -701,21 +701,42 @@ const LiveAuction = () => {
             <div className="items-list card">
               <h3>All Items ({items.length})</h3>
               <div className="items-scroll">
-                {items.map(item => (
-                  <div
-                    key={item.id}
-                    className={`item-card ${currentItem?.id === item.id ? 'active' : ''}`}
-                    onClick={() => selectItem(item)}
-                  >
-                    <h4>{item.name}</h4>
-                    <div className="item-price">
-                      {formatCurrency(item.current_price || item.base_price)}
+                {items.map(item => {
+                  // FIX: For sports auctions, only the auctioneer can change the active lot.
+                  // Bidders see a read-only list — clicking does nothing for them.
+                  const isClickable = !isSportsAuction || isAuctioneer;
+                  const isCurrentLot = currentItem?.id === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className={[
+                        'item-card',
+                        isCurrentLot ? 'active' : '',
+                        isSportsAuction && !isAuctioneer ? 'item-card-readonly' : '',
+                        isCurrentLot && isSportsAuction ? 'item-card-current-lot' : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={isClickable ? () => selectItem(item) : undefined}
+                      title={
+                        isSportsAuction && !isAuctioneer && !isCurrentLot
+                          ? 'The auctioneer controls which player is up for bidding'
+                          : undefined
+                      }
+                    >
+                      {isCurrentLot && isSportsAuction && (
+                        <span className="current-lot-badge">🎯 On Auction</span>
+                      )}
+                      <h4>{item.name}</h4>
+                      <div className="item-price">
+                        {formatCurrency(item.current_price || item.base_price)}
+                      </div>
+                      <span className={`item-status ${item.status}`}>
+                        {item.status === 'available' && isCurrentLot && isSportsAuction
+                          ? 'bidding'
+                          : item.status}
+                      </span>
                     </div>
-                    <span className={`item-status ${item.status}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

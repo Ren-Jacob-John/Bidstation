@@ -9,7 +9,8 @@ A complete web application for conducting live player auctions across 9 differen
 ## 🚀 Features
 
 ### Core Functionality
-- ✅ **Multi-Sport Support** - 9 different sports leagues (Cricket, Kabaddi, Football, etc.)
+- ✅ **Multi-Sport Support** -  Different sports leagues (Cricket, Kabaddi, Football, etc.)
+- ✅ **Multiple Item Auction** -  Different Item categories
 - ✅ **User Authentication** - Firebase Auth with email verification
 - ✅ **Role-Based Access** - Bidder and Auctioneer roles
 - ✅ **Live Auctions** - Real-time bidding interface

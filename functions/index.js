@@ -16,6 +16,7 @@ exports.onBidWrite        = notifications.onBidWrite;
 exports.onAuctionWrite    = notifications.onAuctionWrite;
 exports.onEndingSoonCheck = notifications.onEndingSoonCheck;
 exports.onAutoLockCheck   = notifications.onAutoLockCheck;
+exports.onSportsLotInactivityCheck = notifications.onSportsLotInactivityCheck;
 
 // ---------------------------------------------------------------------------
 // Callable Cloud Functions

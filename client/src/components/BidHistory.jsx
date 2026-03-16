@@ -118,9 +118,9 @@ const BidHistory = ({ playerId, playerName, auctionId }) => {
 
   const visibleBids = useMemo(() => {
     if (filter === 'my-bids' && myUserId) {
-      return bids.filter((b) => b.bidderId === myUserId);
+      return bids.filter((b) => b.bidderId === myUserId).slice(0, 10);
     }
-    return bids;
+    return bids.slice(0, 10);
   }, [bids, filter, myUserId]);
 
   if (loading) {

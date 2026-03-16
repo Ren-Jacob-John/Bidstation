@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
+import { ref, get } from 'firebase/database';
+import { database } from '../firebase/firebase.config';
 import './AuctionDetails.css';
 
 const AuctionDetails = () => {
@@ -15,6 +17,8 @@ const AuctionDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [teamReps, setTeamReps] = useState([]);
+  const [sharedContacts, setSharedContacts] = useState(null);
+  const [sharedContactsError, setSharedContactsError] = useState('');
   
   // Add item form
   const [showAddItem, setShowAddItem] = useState(false);
@@ -67,6 +71,38 @@ const AuctionDetails = () => {
     };
     loadTeamReps();
   }, [auction, id]);
+
+  // Load shared contact details for completed auctions
+  useEffect(() => {
+    const shouldFetch =
+      auction &&
+      auction.status === 'completed' &&
+      (auction.winnerContactShared || auction.winner_contact_shared);
+
+    if (!shouldFetch) {
+      setSharedContacts(null);
+      setSharedContactsError('');
+      return;
+    }
+
+    const fetchSharedContacts = async () => {
+      try {
+        setSharedContactsError('');
+        const contactsRef = ref(database, `auctions/${id}/sharedContacts`);
+        const snap = await get(contactsRef);
+        if (!snap.exists()) {
+          setSharedContacts(null);
+          return;
+        }
+        setSharedContacts(snap.val());
+      } catch (err) {
+        console.error('Error loading shared contacts:', err);
+        setSharedContactsError('Unable to load contact details. Please try again later.');
+      }
+    };
+
+    fetchSharedContacts();
+  }, [auction?.status, auction?.winnerContactShared, auction?.winner_contact_shared, id]);
 
   const handleStartAuction = async () => {
     if (!window.confirm('Are you sure you want to start this auction?')) return;
@@ -496,11 +532,30 @@ const AuctionDetails = () => {
             {auction.status === 'completed' && (
               <div className="auction-result-contact card">
                 <h3>Auction Result – Contact Details</h3>
-                <p className="results-subtitle">
-                  Once this auction is completed, the winning bidder and auctioneer can see each other's contact details here.
-                </p>
-                {/* Actual contact details are protected and fetched via Realtime Database
-                    security rules under auctions/{auctionId}/sharedContacts. */}
+                {sharedContactsError && (
+                  <p className="results-subtitle text-error">{sharedContactsError}</p>
+                )}
+                {!sharedContacts && !sharedContactsError && (
+                  <p className="results-subtitle">
+                    Contact details are not yet available for this auction.
+                  </p>
+                )}
+                {sharedContacts && (
+                  <div className="contact-details-grid">
+                    <div className="contact-card">
+                      <h4>Auctioneer Contact</h4>
+                      <p><strong>Name:</strong> {sharedContacts.auctioneerContact?.name || '—'}</p>
+                      <p><strong>Email:</strong> {sharedContacts.auctioneerContact?.email || '—'}</p>
+                      <p><strong>Phone:</strong> {sharedContacts.auctioneerContact?.phone || '—'}</p>
+                    </div>
+                    <div className="contact-card">
+                      <h4>Winner Contact</h4>
+                      <p><strong>Name:</strong> {sharedContacts.winnerContact?.name || '—'}</p>
+                      <p><strong>Email:</strong> {sharedContacts.winnerContact?.email || '—'}</p>
+                      <p><strong>Phone:</strong> {sharedContacts.winnerContact?.phone || '—'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

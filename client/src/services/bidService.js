@@ -8,7 +8,8 @@ import {
   get,
   update,
   runTransaction,
-  onValue
+  onValue,
+  onChildAdded
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
 
@@ -58,6 +59,10 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     await runTransaction(playerRef, (player) => {
       if (player === null) {
         throw new Error('Player not found');
+      }
+
+      if (player.status && player.status !== 'available') {
+        throw new Error('Bidding has ended for this player.');
       }
 
       const currentBid = player.currentBid || player.basePrice;
@@ -152,6 +157,9 @@ export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
 
     await runTransaction(itemRef, (item) => {
       if (item === null) throw new Error('Item not found');
+      if (item.status && item.status !== 'available') {
+        throw new Error('Bidding has ended for this item.');
+      }
       const currentBid = item.currentBid ?? item.current_price ?? item.basePrice ?? item.base_price;
       const minAllowed = (currentBid || 0) + minIncrement;
       if (bidAmount < minAllowed) {
@@ -543,59 +551,37 @@ export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
 // Listen to auction bids (real-time)
 // ---------------------------------------------------------------------------
 export const listenToAuctionBids = (auctionId, callback) => {
-  const scopedRef = ref(database, `bids/${auctionId}`);
-  const rootRef = ref(database, 'bids');
+  const bidsRef = ref(database, `bids/${auctionId}`);
 
-  let scopedBids = [];
-  let flatBids = [];
+  // Use child_added for stable incremental updates (prevents flicker/blank state).
+  const seen = new Set();
+  const bids = [];
 
-  const emit = () => {
-    const map = new Map();
-    [...scopedBids, ...flatBids].forEach((b) => {
-      if (!b) return;
-      const id = b.id || b.key;
-      if (!id) return;
-      map.set(id, b);
-    });
-    callback(Array.from(map.values()));
-  };
-
-  const unsubScoped = onValue(scopedRef, (snapshot) => {
-    const bids = [];
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        bids.push({
-          id: childSnapshot.key,
-          ...childSnapshot.val(),
-        });
-      });
+  // Initial load + subsequent changes (also handles removals/updates)
+  const unsubValue = onValue(bidsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([]);
+      return;
     }
-    scopedBids = bids;
-    emit();
+    const all = [];
+    snapshot.forEach((childSnapshot) => {
+      all.push({ id: childSnapshot.key, ...childSnapshot.val() });
+    });
+    callback(all);
   });
 
-  // Fallback for installations that write bids as /bids/<bidId>
-  // (we still prefer /bids/<auctionId>/<bidId> above).
-  const unsubRoot = onValue(rootRef, (snapshot) => {
-    const bids = [];
-    if (snapshot.exists()) {
-      snapshot.forEach((childSnapshot) => {
-        const val = childSnapshot.val();
-
-        // Flat bid object at /bids/<bidId>
-        if (val && typeof val === 'object' && val.auctionId === auctionId) {
-          bids.push({ id: childSnapshot.key, ...val });
-          return;
-        }
-      });
-    }
-    flatBids = bids;
-    emit();
+  // Ensure immediate append behavior as bids arrive
+  const unsubChild = onChildAdded(bidsRef, (snap) => {
+    const id = snap.key;
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    bids.push({ id, ...snap.val() });
+    callback([...bids]);
   });
 
   return () => {
-    if (typeof unsubScoped === 'function') unsubScoped();
-    if (typeof unsubRoot === 'function') unsubRoot();
+    if (typeof unsubValue === 'function') unsubValue();
+    if (typeof unsubChild === 'function') unsubChild();
   };
 };
 

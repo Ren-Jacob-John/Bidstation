@@ -8,7 +8,7 @@ import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
 import BidHistory from '../components/BidHistory';
 import './LiveAuction.css';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, get, update } from 'firebase/database';
 import { database } from '../firebase/firebase.config';
 
 // Format seconds as HH:MM:SS or MM:SS
@@ -39,6 +39,8 @@ const LiveAuction = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  const [controllerRunning, setControllerRunning] = useState(false);
+  const [controllerLastTickAt, setControllerLastTickAt] = useState(null);
 
   const shouldSuppressUiError = (err) => {
     const msg = String(err?.message || err || '').toLowerCase();
@@ -53,6 +55,11 @@ const LiveAuction = () => {
     () => auction?.auction_type === 'sports_player' || auction?.auctionType === 'sports_player',
     [auction?.auction_type, auction?.auctionType]
   );
+
+  const isAuctioneer = useMemo(() => {
+    const auctioneerId = auction?.auctioneerUserId ?? auction?.createdBy ?? auction?.creator_id;
+    return Boolean(user?.uid && auctioneerId && user.uid === auctioneerId);
+  }, [auction?.auctioneerUserId, auction?.createdBy, auction?.creator_id, user?.uid]);
 
   // Real-time auction + item/player updates (keeps UI in sync, incl. auto-bids)
   useEffect(() => {
@@ -95,6 +102,9 @@ const LiveAuction = () => {
             current_price: p.currentBid ?? p.basePrice,
             status: p.status || 'available',
             current_bidder_name: p.currentBidderName || null,
+            currentBid: p.currentBid ?? null,
+            currentBidderId: p.currentBidderId || null,
+            lastBidAt: p.lastBidAt || null,
             player_details: JSON.stringify({
               role: p.role,
               age: p.age,
@@ -110,24 +120,20 @@ const LiveAuction = () => {
 
       setItems(mapped);
 
-      // Keep current selection stable
+      // Select current lot.
+      // For sports auctions, selection is server-authoritative via auction.currentPlayerId.
       if (mapped.length === 0) {
         setCurrentItem(null);
         return;
       }
 
-      const updatedCurrent = currentItem && mapped.find((it) => it.id === currentItem.id);
-      if (updatedCurrent) {
-        setCurrentItem(updatedCurrent);
-        return;
-      }
-
       if (isSportsAuction) {
-        const available = mapped.filter((it) => it.status === 'available');
-        const next = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : mapped[0];
-        setCurrentItem(next);
+        const currentId = auction?.currentPlayerId;
+        const current = currentId ? mapped.find((it) => it.id === currentId) : null;
+        setCurrentItem(current || null);
       } else {
-        setCurrentItem(mapped[0]);
+        const updatedCurrent = currentItem && mapped.find((it) => it.id === currentItem.id);
+        setCurrentItem(updatedCurrent || mapped[0]);
       }
     });
 
@@ -136,6 +142,134 @@ const LiveAuction = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, auction?.auction_type, auction?.auctionType]);
+
+  // Spark-plan fallback: auctioneer drives "one player at a time" sports lots.
+  // All users follow auction.currentPlayerId in real time.
+  useEffect(() => {
+    if (!id || !auction || !isSportsAuction) return;
+    if (auction.status !== 'live' || auction.locked) return;
+    if (!isAuctioneer) return;
+
+    const inactivityMs = 5 * 60 * 1000;
+    let stopped = false;
+    setControllerRunning(true);
+
+    const pickRandomAvailable = () => {
+      const available = items.filter((it) => (it.status || 'available') === 'available');
+      if (available.length === 0) return null;
+      return available[Math.floor(Math.random() * available.length)];
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        setControllerLastTickAt(Date.now());
+        const auctionRef = ref(database, `auctions/${id}`);
+        const auctionSnap = await get(auctionRef);
+        if (!auctionSnap.exists()) return;
+        const a = auctionSnap.val();
+        if (!a || a.status !== 'live' || a.locked) return;
+
+        // Ensure there is a current player
+        if (!a.currentPlayerId) {
+          const next = pickRandomAvailable();
+          if (!next) {
+            await update(auctionRef, { status: 'completed', locked: true, currentPlayerId: null });
+            return;
+          }
+          await update(auctionRef, {
+            currentPlayerId: next.id,
+            currentLotStartedAt: Date.now(),
+            currentLotLastBidAt: Date.now(),
+          });
+          return;
+        }
+
+        const playerId = a.currentPlayerId;
+        const playerRef = ref(database, `auctions/${id}/players/${playerId}`);
+        const playerSnap = await get(playerRef);
+        if (!playerSnap.exists()) {
+          await update(auctionRef, { currentPlayerId: null });
+          return;
+        }
+        const p = playerSnap.val();
+        const status = (p && p.status) || 'available';
+        if (status !== 'available') {
+          await update(auctionRef, { currentPlayerId: null });
+          return;
+        }
+
+        const lastBidAt = Number(p.lastBidAt || a.currentLotLastBidAt || a.currentLotStartedAt || 0);
+        if (!lastBidAt) return;
+        if (Date.now() - lastBidAt < inactivityMs) return;
+
+        // Auto-close this lot
+        const soldToId = p.currentBidderId || null;
+        const soldToName = p.currentBidderName || null;
+        const soldToTeam = p.currentBidderTeamName || null;
+        const soldPrice = Number(p.currentBid || 0);
+
+        if (soldToId && soldPrice > 0) {
+          await update(playerRef, {
+            status: 'sold',
+            soldToUserId: soldToId,
+            soldToName,
+            soldToTeamName: soldToTeam,
+            soldPrice,
+            soldAt: Date.now(),
+          });
+        } else {
+          await update(playerRef, {
+            status: 'unsold',
+            soldAt: Date.now(),
+          });
+        }
+
+        // Mark bids for this player (active -> won, outbid -> lost)
+        try {
+          const bidsRef = ref(database, `bids/${id}`);
+          const bidsSnap = await get(bidsRef);
+          if (bidsSnap.exists()) {
+            const updates = {};
+            bidsSnap.forEach((c) => {
+              const bid = c.val();
+              if (!bid || bid.playerId !== playerId) return;
+              if (bid.status === 'active') updates[`${c.key}/status`] = 'won';
+              if (bid.status === 'outbid') updates[`${c.key}/status`] = 'lost';
+            });
+            if (Object.keys(updates).length > 0) {
+              await update(bidsRef, updates);
+            }
+          }
+        } catch (bidStatusErr) {
+          console.error('Error updating bid statuses:', bidStatusErr);
+        }
+
+        // Pick next player
+        const next = pickRandomAvailable();
+        if (!next) {
+          await update(auctionRef, { status: 'completed', locked: true, currentPlayerId: null });
+          return;
+        }
+        await update(auctionRef, {
+          currentPlayerId: next.id,
+          currentLotStartedAt: Date.now(),
+          currentLotLastBidAt: Date.now(),
+        });
+      } catch (e) {
+        console.error('Sports lot tick error:', e);
+      }
+    };
+
+    const interval = setInterval(tick, 15000);
+    tick();
+
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+      setControllerRunning(false);
+    };
+  }, [id, auction?.status, auction?.locked, isSportsAuction, isAuctioneer, items]);
 
   // Timer tick for sports auction (elapsed + countdown)
   useEffect(() => {
@@ -335,6 +469,18 @@ const LiveAuction = () => {
             <span className={`badge badge-${auction.status === 'live' ? 'success' : 'warning'}`}>
               {auction.status === 'live' ? '🔴 Live' : auction.status}
             </span>
+            {isSportsAuction && isAuctioneer && (
+              <span
+                className={`badge badge-${controllerRunning ? 'success' : 'warning'}`}
+                title={
+                  controllerRunning
+                    ? `Controller running${controllerLastTickAt ? ` (last tick: ${new Date(controllerLastTickAt).toLocaleTimeString()})` : ''}`
+                    : 'Controller paused'
+                }
+              >
+                {controllerRunning ? 'Controller: ON' : 'Controller: OFF'}
+              </span>
+            )}
           </div>
           <p>{auction.description}</p>
 

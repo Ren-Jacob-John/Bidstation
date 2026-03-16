@@ -211,6 +211,33 @@ exports.onAuctionWrite = functions.database
     // Auction start: notify watchlist users
     if (newStatus === 'live' && prevStatus !== 'live') {
       try {
+        // Sports auctions: pick an initial random player to auction (server-authoritative)
+        if ((after.auction_type === 'sports_player' || after.auctionType === 'sports_player') && !after.currentPlayerId) {
+          try {
+            const playersSnap = await db.ref(`auctions/${auctionId}/players`).get();
+            if (playersSnap.exists()) {
+              const available = [];
+              playersSnap.forEach((c) => {
+                const p = c.val();
+                const status = (p && p.status) || 'available';
+                if (status === 'available') {
+                  available.push({ id: c.key, ...p });
+                }
+              });
+              if (available.length > 0) {
+                const next = available[Math.floor(Math.random() * available.length)];
+                await db.ref(`auctions/${auctionId}`).update({
+                  currentPlayerId: next.id,
+                  currentLotStartedAt: Date.now(),
+                  currentLotLastBidAt: Date.now(),
+                });
+              }
+            }
+          } catch (pickErr) {
+            console.error('Error picking initial sports player:', pickErr);
+          }
+        }
+
         const watchlistsSnap = await db.ref('watchlists').get();
         if (watchlistsSnap.exists()) {
           const tasks = [];
@@ -261,6 +288,154 @@ exports.onAuctionWrite = functions.database
       } catch (e) {
         console.error('Error sending WINNER notifications:', e);
       }
+    }
+
+    return null;
+  });
+
+/**
+ * Scheduled function: every minute, for live sports auctions,
+ * auto-sell the current player if no new bid for 5 minutes,
+ * then pick the next random available player until exhausted.
+ */
+exports.onSportsLotInactivityCheck = functions.pubsub
+  .schedule('every 1 minutes')
+  .onRun(async () => {
+    const now = Date.now();
+    const inactivityMs = 5 * 60 * 1000;
+
+    try {
+      const auctionsSnap = await db.ref('auctions').get();
+      if (!auctionsSnap.exists()) return null;
+
+      const tasks = [];
+
+      auctionsSnap.forEach((child) => {
+        const auctionId = child.key;
+        const auction = child.val();
+        if (!auction) return;
+        if (auction.status !== 'live') return;
+        if (auction.locked) return;
+        if (!(auction.auction_type === 'sports_player' || auction.auctionType === 'sports_player')) return;
+
+        tasks.push((async () => {
+          const auctionRef = db.ref(`auctions/${auctionId}`);
+
+          // Ensure there is a current player
+          let currentPlayerId = auction.currentPlayerId;
+          if (!currentPlayerId) {
+            const playersSnap = await db.ref(`auctions/${auctionId}/players`).get();
+            if (!playersSnap.exists()) return;
+            const available = [];
+            playersSnap.forEach((c) => {
+              const p = c.val();
+              const status = (p && p.status) || 'available';
+              if (status === 'available') available.push({ id: c.key, ...p });
+            });
+            if (available.length === 0) {
+              await auctionRef.update({ status: 'completed', locked: true });
+              return;
+            }
+            const next = available[Math.floor(Math.random() * available.length)];
+            await auctionRef.update({
+              currentPlayerId: next.id,
+              currentLotStartedAt: now,
+              currentLotLastBidAt: now,
+            });
+            return;
+          }
+
+          const playerRef = db.ref(`auctions/${auctionId}/players/${currentPlayerId}`);
+          const playerSnap = await playerRef.get();
+          if (!playerSnap.exists()) {
+            await auctionRef.update({ currentPlayerId: null });
+            return;
+          }
+          const player = playerSnap.val();
+          const status = (player && player.status) || 'available';
+          if (status !== 'available') {
+            await auctionRef.update({ currentPlayerId: null });
+            return;
+          }
+
+          const lastBidAt = Number(player.lastBidAt || auction.currentLotLastBidAt || auction.currentLotStartedAt || 0);
+          if (!lastBidAt || now - lastBidAt < inactivityMs) {
+            return;
+          }
+
+          // Time to auto-stop this player's auction and sell to highest bidder (if any)
+          const soldToId = player.currentBidderId || null;
+          const soldToName = player.currentBidderName || null;
+          const soldToTeam = player.currentBidderTeamName || null;
+          const soldPrice = Number(player.currentBid || 0);
+
+          if (soldToId && soldPrice > 0) {
+            await playerRef.update({
+              status: 'sold',
+              soldToUserId: soldToId,
+              soldToName,
+              soldToTeamName: soldToTeam,
+              soldPrice,
+              soldAt: now,
+            });
+          } else {
+            await playerRef.update({
+              status: 'unsold',
+              soldAt: now,
+            });
+          }
+
+          // Mark bid statuses for this player (active -> won, outbid -> lost)
+          try {
+            const bidsSnap = await db.ref(`bids/${auctionId}`).get();
+            if (bidsSnap.exists()) {
+              const updates = {};
+              bidsSnap.forEach((c) => {
+                const bid = c.val();
+                if (!bid || bid.playerId !== currentPlayerId) return;
+                if (bid.status === 'active') updates[`${c.key}/status`] = 'won';
+                if (bid.status === 'outbid') updates[`${c.key}/status`] = 'lost';
+              });
+              if (Object.keys(updates).length > 0) {
+                await db.ref(`bids/${auctionId}`).update(updates);
+              }
+            }
+          } catch (bidStatusErr) {
+            console.error('Error updating bid statuses for sold player:', bidStatusErr);
+          }
+
+          // Pick next available player
+          const playersSnap = await db.ref(`auctions/${auctionId}/players`).get();
+          const available = [];
+          if (playersSnap.exists()) {
+            playersSnap.forEach((c) => {
+              const p = c.val();
+              const st = (p && p.status) || 'available';
+              if (st === 'available') available.push({ id: c.key, ...p });
+            });
+          }
+
+          if (available.length === 0) {
+            await auctionRef.update({
+              currentPlayerId: null,
+              status: 'completed',
+              locked: true,
+            });
+            return;
+          }
+
+          const next = available[Math.floor(Math.random() * available.length)];
+          await auctionRef.update({
+            currentPlayerId: next.id,
+            currentLotStartedAt: now,
+            currentLotLastBidAt: now,
+          });
+        })());
+      });
+
+      await Promise.all(tasks);
+    } catch (e) {
+      console.error('Error in onSportsLotInactivityCheck:', e);
     }
 
     return null;
@@ -371,5 +546,6 @@ module.exports = {
   onAuctionWrite: exports.onAuctionWrite,
   onEndingSoonCheck: exports.onEndingSoonCheck,
   onAutoLockCheck: exports.onAutoLockCheck,
+  onSportsLotInactivityCheck: exports.onSportsLotInactivityCheck,
 };
 

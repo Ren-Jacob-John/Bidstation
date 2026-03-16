@@ -146,6 +146,67 @@ exports.onBidWrite = functions.database
         return null;
       }
 
+      // FIX: resolve auto-bidder display name
+      let autoBidderName = 'Auto-bidder';
+      try {
+        const userSnap = await db.ref(`users/${best.uid}`).get();
+        if (userSnap.exists()) {
+          autoBidderName = userSnap.val().username || userSnap.val().displayName || autoBidderName;
+        }
+      } catch (_) { /* ignore profile fetch error */ }
+
+      // FIX: resolve auto-bidder team name for sports auctions
+      let autoBidderTeamName = null;
+      try {
+        const repSnap = await db.ref(`sportsAuctions/${auctionId}/representatives/${best.uid}`).get();
+        if (repSnap.exists()) {
+          const v = repSnap.val();
+          autoBidderTeamName = typeof v === 'string' ? v : (v && v.teamName) || null;
+        }
+      } catch (_) { /* ignore */ }
+
+      // FIX (Bug 3): Update the player node so the new auto-bid price is reflected in the UI.
+      // Without this the player's currentBid stays stale and the bid appears to have no effect.
+      const playerRef = db.ref(`auctions/${auctionId}/players/${playerId}`);
+      try {
+        const playerSnap = await playerRef.get();
+        if (playerSnap.exists()) {
+          const player = playerSnap.val();
+          if (!player.status || player.status === 'available') {
+            const playerUpdate = {
+              currentBid: nextAmount,
+              currentBidderId: best.uid,
+              currentBidderName: autoBidderName,
+              lastBidAt: Date.now(),
+            };
+            if (autoBidderTeamName) playerUpdate.currentBidderTeamName = autoBidderTeamName;
+            await playerRef.update(playerUpdate);
+          }
+        }
+      } catch (playerUpdateErr) {
+        console.error('Auto-bid: error updating player node:', playerUpdateErr);
+      }
+
+      // FIX: Mark prior active bids for this player as outbid
+      try {
+        const allBidsSnap = await db.ref(`bids/${auctionId}`).get();
+        if (allBidsSnap.exists()) {
+          const outbidUpdates = {};
+          allBidsSnap.forEach((child) => {
+            const b = child.val();
+            // We'll get the new bid key below; mark everything currently active as outbid
+            if (b && b.playerId === playerId && b.status === 'active') {
+              outbidUpdates[`${child.key}/status`] = 'outbid';
+            }
+          });
+          if (Object.keys(outbidUpdates).length > 0) {
+            await db.ref(`bids/${auctionId}`).update(outbidUpdates);
+          }
+        }
+      } catch (outbidErr) {
+        console.error('Auto-bid: error marking previous bids as outbid:', outbidErr);
+      }
+
       const newBidRef = db.ref(`bids/${auctionId}`).push();
       await newBidRef.set({
         id: newBidRef.key,
@@ -153,7 +214,8 @@ exports.onBidWrite = functions.database
         playerId,
         playerName: after.playerName || null,
         bidderId: best.uid,
-        bidderName: 'Auto-bidder',
+        bidderName: autoBidderName,
+        teamName: autoBidderTeamName || null,
         amount: nextAmount,
         timestamp: Date.now(),
         status: 'active',

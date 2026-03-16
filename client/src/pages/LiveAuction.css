@@ -528,3 +528,38 @@
     padding: 1.5rem;
   }
 }
+
+/* ── Bug 2 Fix: Per-player lot countdown timer ─────────────────────────── */
+.live-now-bidding {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.lot-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  background: rgba(255, 200, 50, 0.15);
+  border: 1px solid rgba(255, 200, 50, 0.4);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #f5c842;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.lot-countdown-urgent {
+  background: rgba(255, 60, 60, 0.18);
+  border-color: rgba(255, 60, 60, 0.55);
+  color: #ff4d4d;
+  animation: lot-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes lot-pulse {
+  from { opacity: 1; }
+  to   { opacity: 0.65; }
+}

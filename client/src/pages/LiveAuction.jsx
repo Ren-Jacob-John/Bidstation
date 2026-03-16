@@ -41,8 +41,13 @@ const LiveAuction = () => {
   const [now, setNow] = useState(() => Date.now());
   const [controllerRunning, setControllerRunning] = useState(false);
   const [controllerLastTickAt, setControllerLastTickAt] = useState(null);
+  // FIX (Bug 2): per-player lot countdown
+  const LOT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — must match inactivityMs in tick
+  const [lotLastBidAt, setLotLastBidAt] = useState(null);
 
-  const shouldSuppressUiError = (err) => {
+  // FIX (Bug 4): Only suppress permission_denied for background real-time listeners,
+  // NOT for user-triggered bid actions (those should surface real errors).
+  const shouldSuppressListenerError = (err) => {
     const msg = String(err?.message || err || '').toLowerCase();
     return msg.includes('permission_denied') || msg.includes('permission denied');
   };
@@ -83,6 +88,15 @@ const LiveAuction = () => {
 
     const path = isSportsAuction ? `auctions/${id}/players` : `auctions/${id}/items`;
     const itemsRef = ref(database, path);
+
+    const handleItemsError = (err) => {
+      const msg = String(err?.message || err || '').toLowerCase();
+      if (msg.includes('permission_denied') || msg.includes('permission denied')) {
+        console.warn('LiveAuction items listener: permission_denied suppressed');
+        return;
+      }
+      console.error('LiveAuction items listener error:', err);
+    };
 
     const unsubItems = onValue(itemsRef, (snap) => {
       const list = [];
@@ -131,11 +145,19 @@ const LiveAuction = () => {
         const currentId = auction?.currentPlayerId;
         const current = currentId ? mapped.find((it) => it.id === currentId) : null;
         setCurrentItem(current || null);
+        // FIX (Bug 2): track when the last bid on current lot happened
+        if (current && current.lastBidAt) {
+          setLotLastBidAt(current.lastBidAt);
+        } else if (auction?.currentLotLastBidAt) {
+          setLotLastBidAt(auction.currentLotLastBidAt);
+        } else if (auction?.currentLotStartedAt) {
+          setLotLastBidAt(auction.currentLotStartedAt);
+        }
       } else {
         const updatedCurrent = currentItem && mapped.find((it) => it.id === currentItem.id);
         setCurrentItem(updatedCurrent || mapped[0]);
       }
-    });
+    }, handleItemsError);
 
     return () => {
       if (typeof unsubItems === 'function') unsubItems();
@@ -154,8 +176,18 @@ const LiveAuction = () => {
     let stopped = false;
     setControllerRunning(true);
 
-    const pickRandomAvailable = () => {
-      const available = items.filter((it) => (it.status || 'available') === 'available');
+    // FIX (Bug 1): Read players fresh from DB inside tick — don't rely on stale
+    // closed-over `items` state which causes random selection to stop working.
+    const pickRandomAvailable = async () => {
+      const playersSnap = await get(ref(database, `auctions/${id}/players`));
+      if (!playersSnap.exists()) return null;
+      const available = [];
+      playersSnap.forEach((child) => {
+        const p = child.val();
+        if (!p) return;
+        const status = p.status || 'available';
+        if (status === 'available') available.push({ id: child.key, ...p });
+      });
       if (available.length === 0) return null;
       return available[Math.floor(Math.random() * available.length)];
     };
@@ -172,7 +204,7 @@ const LiveAuction = () => {
 
         // Ensure there is a current player
         if (!a.currentPlayerId) {
-          const next = pickRandomAvailable();
+          const next = await pickRandomAvailable();
           if (!next) {
             await update(auctionRef, { status: 'completed', locked: true, currentPlayerId: null });
             return;
@@ -245,8 +277,8 @@ const LiveAuction = () => {
           console.error('Error updating bid statuses:', bidStatusErr);
         }
 
-        // Pick next player
-        const next = pickRandomAvailable();
+        // Pick next player (FIX Bug 1: await fresh DB read)
+        const next = await pickRandomAvailable();
         if (!next) {
           await update(auctionRef, { status: 'completed', locked: true, currentPlayerId: null });
           return;
@@ -347,11 +379,8 @@ const LiveAuction = () => {
         link: `/auction/live/${id}`,
       });
     } catch (err) {
-      if (shouldSuppressUiError(err)) {
-        console.error('Bid failed (suppressed UI error):', err);
-        setError('');
-        return;
-      }
+      // FIX (Bug 4): Don't suppress bid errors — show them to the user
+      // (Only background listeners should suppress permission_denied)
       setError(err.message || 'Failed to place bid');
     }
   };
@@ -406,11 +435,7 @@ const LiveAuction = () => {
         link: `/auction/live/${id}`,
       });
     } catch (err) {
-      if (shouldSuppressUiError(err)) {
-        console.error('Auto-bid failed (suppressed UI error):', err);
-        setError('');
-        return;
-      }
+      // FIX (Bug 4): Don't suppress auto-bid errors either
       setError(err.message || 'Failed to set auto-bid');
     }
   };
@@ -429,6 +454,15 @@ const LiveAuction = () => {
   const remainingSeconds = endMs != null ? Math.max(0, (endMs - now) / 1000) : null;
   const elapsedDisplay = elapsedSeconds != null ? formatTimeUnits(elapsedSeconds).text : '--:--';
   const remainingDisplay = remainingSeconds != null ? formatTimeUnits(remainingSeconds).text : '--:--';
+  // FIX (Bug 2): Compute per-player lot countdown
+  const lotRemainingSeconds = isSportsAuction && lotLastBidAt != null
+    ? Math.max(0, (LOT_TIMEOUT_MS - (now - lotLastBidAt)) / 1000)
+    : null;
+  const lotRemainingDisplay = lotRemainingSeconds != null
+    ? formatTimeUnits(Math.round(lotRemainingSeconds)).text
+    : null;
+  const lotUrgent = lotRemainingSeconds != null && lotRemainingSeconds <= 30;
+
   const itemLabel = isSportsAuction ? 'players' : 'items';
   const soldCount = items.filter((i) => i.status === 'sold').length;
   const totalCount = items.length;
@@ -525,6 +559,15 @@ const LiveAuction = () => {
                   <div className="live-now-bidding">
                     <span className="live-now-label">Now bidding on:</span>
                     <span className="live-now-name">{currentItem.name}</span>
+                    {/* FIX (Bug 2): Per-player lot timeout countdown */}
+                    {isSportsAuction && lotRemainingDisplay && (
+                      <span
+                        className={`lot-countdown${lotUrgent ? ' lot-countdown-urgent' : ''}`}
+                        title="Time before this lot auto-closes due to inactivity"
+                      >
+                        ⏱ Lot closes in: <strong>{lotRemainingDisplay}</strong>
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

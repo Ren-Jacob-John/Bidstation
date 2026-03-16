@@ -588,6 +588,168 @@ export const listenToAuctionBids = (auctionId, callback, onError) => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// CLIENT-SIDE AUTO-BID (replaces Cloud Function — works on Spark plan)
+// ---------------------------------------------------------------------------
+
+/**
+ * Save an auto-bid config for the current user on a specific player.
+ * Writes directly to autoBids/{auctionId}/{playerId}/{uid} in RTDB.
+ */
+export const setAutoBid = async (auctionId, playerId, maxAmount) => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+
+  const max = Number(maxAmount);
+  if (!Number.isFinite(max) || max <= 0) {
+    throw new Error('Invalid auto-bid amount');
+  }
+
+  const autoBidRef = ref(database, `autoBids/${auctionId}/${playerId}/${user.uid}`);
+  await set(autoBidRef, {
+    maxAmount: max,
+    active: true,
+    createdAt: Date.now(),
+  });
+
+  return { success: true };
+};
+
+/**
+ * Cancel an auto-bid for the current user on a specific player.
+ */
+export const cancelAutoBid = async (auctionId, playerId) => {
+  const user = fireAuth.currentUser;
+  if (!user) throw new Error('User not authenticated');
+
+  const autoBidRef = ref(database, `autoBids/${auctionId}/${playerId}/${user.uid}`);
+  await update(autoBidRef, { active: false });
+  return { success: true };
+};
+
+/**
+ * Run auto-bid logic after a new bid is placed.
+ * Called client-side by the auctioneer's browser (which stays open during live auction).
+ *
+ * Checks all autoBid configs for this player and places a counter-bid for the
+ * highest eligible auto-bidder (excluding the current bid's owner).
+ *
+ * @param {string} auctionId
+ * @param {string} playerId
+ * @param {number} currentBidAmount - the amount of the bid that just landed
+ * @param {string} currentBidderId  - uid of the person who just bid
+ */
+export const runAutoBidCheck = async (auctionId, playerId, currentBidAmount, currentBidderId) => {
+  try {
+    // Load auction for minIncrement
+    const auctionSnap = await get(ref(database, `auctions/${auctionId}`));
+    if (!auctionSnap.exists()) return;
+    const auction = auctionSnap.val();
+    if (auction.locked || auction.status !== 'live') return;
+    const minIncrement = Number(auction.minIncrement) || 100000;
+
+    // Load player — make sure it's still available
+    const playerSnap = await get(ref(database, `auctions/${auctionId}/players/${playerId}`));
+    if (!playerSnap.exists()) return;
+    const player = playerSnap.val();
+    if (player.status && player.status !== 'available') return;
+
+    // Load all auto-bid configs for this player
+    const autoBidsSnap = await get(ref(database, `autoBids/${auctionId}/${playerId}`));
+    if (!autoBidsSnap.exists()) return;
+
+    // Find the best eligible auto-bidder:
+    // - must be active
+    // - must NOT be the person who just bid
+    // - their maxAmount must cover currentBid + minIncrement
+    let best = null;
+    autoBidsSnap.forEach((child) => {
+      const cfg = child.val();
+      const uid = child.key;
+      if (!cfg || cfg.active === false) return;
+      if (uid === currentBidderId) return; // don't auto-bid against own bid
+      const maxAmt = Number(cfg.maxAmount || 0);
+      if (!Number.isFinite(maxAmt)) return;
+      const nextAmount = currentBidAmount + minIncrement;
+      if (maxAmt < nextAmount) return; // can't afford next increment
+      if (!best || maxAmt > best.maxAmount) {
+        best = { uid, maxAmount: maxAmt };
+      }
+    });
+
+    if (!best) return;
+
+    const nextAmount = currentBidAmount + minIncrement;
+    if (nextAmount > best.maxAmount) return;
+
+    // Resolve auto-bidder display name
+    let autoBidderName = 'Auto-bidder';
+    try {
+      const userSnap = await get(ref(database, `users/${best.uid}`));
+      if (userSnap.exists()) {
+        autoBidderName = userSnap.val().username || userSnap.val().displayName || autoBidderName;
+      }
+    } catch (_) { /* ignore */ }
+
+    // Resolve auto-bidder team name
+    let autoBidderTeamName = null;
+    try {
+      const repSnap = await get(ref(database, `sportsAuctions/${auctionId}/representatives/${best.uid}`));
+      if (repSnap.exists()) {
+        const v = repSnap.val();
+        autoBidderTeamName = typeof v === 'string' ? v : (v && v.teamName) || null;
+      }
+    } catch (_) { /* ignore */ }
+
+    // Update player node with new auto-bid
+    const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
+    const playerUpdate = {
+      currentBid: nextAmount,
+      currentBidderId: best.uid,
+      currentBidderName: autoBidderName,
+      lastBidAt: Date.now(),
+    };
+    if (autoBidderTeamName) playerUpdate.currentBidderTeamName = autoBidderTeamName;
+    await update(playerRef, playerUpdate);
+
+    // Mark all previous active bids for this player as outbid
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const allBidsSnap = await get(bidsRef);
+    if (allBidsSnap.exists()) {
+      const outbidUpdates = {};
+      allBidsSnap.forEach((child) => {
+        const b = child.val();
+        if (b && b.playerId === playerId && b.status === 'active') {
+          outbidUpdates[`${child.key}/status`] = 'outbid';
+        }
+      });
+      if (Object.keys(outbidUpdates).length > 0) {
+        await update(bidsRef, outbidUpdates);
+      }
+    }
+
+    // Write the new auto-bid record
+    const newBidRef = push(bidsRef);
+    await set(newBidRef, {
+      id: newBidRef.key,
+      auctionId,
+      playerId,
+      playerName: player.name || null,
+      bidderId: best.uid,
+      bidderName: autoBidderName,
+      teamName: autoBidderTeamName || null,
+      amount: nextAmount,
+      timestamp: Date.now(),
+      status: 'active',
+      autoBid: true,
+    });
+
+    console.log(`[AutoBid] Placed ₹${nextAmount} for ${autoBidderName} on player ${playerId}`);
+  } catch (err) {
+    console.error('[AutoBid] runAutoBidCheck error:', err);
+  }
+};
+
 export default {
   placeBid,
   placeBidForItem,
@@ -603,4 +765,7 @@ export default {
   getHighestBid,
   getBidLeaderboard,
   listenToAuctionBids,
+  setAutoBid,
+  cancelAutoBid,
+  runAutoBidCheck,
 };

@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { functions } from '../firebase/firebase.config';
-import { httpsCallable } from 'firebase/functions';
 import auctionService from '../services/auctionService';
 import bidService from '../services/bidService';
 import BidHistory from '../components/BidHistory';
@@ -371,16 +369,21 @@ const LiveAuction = () => {
       setBidAmount((amount + increment).toString());
       setError('');
 
-      // In-app notification for successful bid
       addNotification({
         type: 'success',
         title: 'Bid placed successfully',
-        message: `Your bid of ${formatCurrency(amount)} on ${currentItem.name} is now leading (if not outbid).`,
+        message: `Your bid of ${formatCurrency(amount)} on ${currentItem.name} is now leading.`,
         link: `/auction/live/${id}`,
       });
+
+      // CLIENT-SIDE AUTO-BID: check if any auto-bidder should respond.
+      // Run after a short delay so the player node update settles first.
+      if (!isItemAuction) {
+        setTimeout(() => {
+          bidService.runAutoBidCheck(id, currentItem.id, amount, user?.uid);
+        }, 800);
+      }
     } catch (err) {
-      // FIX (Bug 4): Don't suppress bid errors — show them to the user
-      // (Only background listeners should suppress permission_denied)
       setError(err.message || 'Failed to place bid');
     }
   };
@@ -422,20 +425,16 @@ const LiveAuction = () => {
       return;
     }
     try {
-      const callable = httpsCallable(functions, 'setAutoBid');
-      await callable({
-        auctionId: id,
-        playerId: currentItem.id,
-        maxAmount: max,
-      });
+      // CLIENT-SIDE: write directly to RTDB — no Cloud Function needed
+      await bidService.setAutoBid(id, currentItem.id, max);
+      setAutoBidMax('');
       addNotification({
         type: 'success',
         title: 'Auto-bid enabled',
-        message: `Auto-bid up to ${formatCurrency(max)} has been set for ${currentItem.name}.`,
+        message: `Auto-bid up to ${formatCurrency(max)} set for ${currentItem.name}.`,
         link: `/auction/live/${id}`,
       });
     } catch (err) {
-      // FIX (Bug 4): Don't suppress auto-bid errors either
       setError(err.message || 'Failed to set auto-bid');
     }
   };

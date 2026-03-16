@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { getAllUsers, banUser, unbanUser } from '../services/authService';
 import { getAllAuctions, deleteAuction } from '../services/auctionService';
-import { functions } from '../firebase/firebase.config';
-import { httpsCallable } from 'firebase/functions';
+import { ref, get } from 'firebase/database';
+import { database } from '../firebase/firebase.config';
 import './Admin.css';
 
 const Admin = () => {
@@ -47,9 +47,39 @@ const Admin = () => {
     if (!user || user.role !== 'admin') return;
     if (showSpinner) setAnalyticsLoading(true);
     try {
-      const callable = httpsCallable(functions, 'getAdminAnalytics');
-      const res = await callable();
-      setAnalytics(res.data || {});
+      // CLIENT-SIDE analytics — no Cloud Function needed on Spark plan.
+      const [auctionsSnap, usersSnap, bidsSnap] = await Promise.all([
+        get(ref(database, 'auctions')),
+        get(ref(database, 'users')),
+        get(ref(database, 'bids')),
+      ]);
+
+      let totalAuctions = 0, liveAuctions = 0, completedAuctions = 0;
+      if (auctionsSnap.exists()) {
+        auctionsSnap.forEach((child) => {
+          totalAuctions++;
+          const s = child.val()?.status;
+          if (s === 'live') liveAuctions++;
+          if (s === 'completed') completedAuctions++;
+        });
+      }
+
+      let totalUsers = 0, bannedUsers = 0;
+      if (usersSnap.exists()) {
+        usersSnap.forEach((child) => {
+          totalUsers++;
+          if (child.val()?.banned) bannedUsers++;
+        });
+      }
+
+      let totalBids = 0;
+      if (bidsSnap.exists()) {
+        bidsSnap.forEach((auctionBids) => {
+          auctionBids.forEach(() => totalBids++);
+        });
+      }
+
+      setAnalytics({ totalAuctions, liveAuctions, completedAuctions, totalUsers, bannedUsers, totalBids });
     } catch (err) {
       console.error('Error loading analytics:', err);
       setError(err.message || 'Failed to load analytics');
@@ -331,14 +361,42 @@ const Admin = () => {
                       <div className="stat-icon">📦</div>
                       <div className="stat-content">
                         <h3>{analytics?.totalAuctions ?? '—'}</h3>
-                        <p>Total auctions</p>
+                        <p>Total Auctions</p>
+                      </div>
+                    </div>
+                    <div className="stat-card card">
+                      <div className="stat-icon">🔴</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.liveAuctions ?? '—'}</h3>
+                        <p>Live Now</p>
+                      </div>
+                    </div>
+                    <div className="stat-card card">
+                      <div className="stat-icon">✅</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.completedAuctions ?? '—'}</h3>
+                        <p>Completed</p>
                       </div>
                     </div>
                     <div className="stat-card card">
                       <div className="stat-icon">👥</div>
                       <div className="stat-content">
                         <h3>{analytics?.totalUsers ?? '—'}</h3>
-                        <p>Total users</p>
+                        <p>Total Users</p>
+                      </div>
+                    </div>
+                    <div className="stat-card card">
+                      <div className="stat-icon">🔨</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.totalBids ?? '—'}</h3>
+                        <p>Total Bids</p>
+                      </div>
+                    </div>
+                    <div className="stat-card card">
+                      <div className="stat-icon">🚫</div>
+                      <div className="stat-content">
+                        <h3>{analytics?.bannedUsers ?? '—'}</h3>
+                        <p>Banned Users</p>
                       </div>
                     </div>
                   </div>

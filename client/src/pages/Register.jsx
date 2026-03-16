@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
-import { functions } from '../firebase/firebase.config';
 import './Register.css';
 
 const Register = () => {
@@ -60,24 +58,8 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Verify reCAPTCHA if configured on the page
-      let recaptchaToken = null;
-      if (window.grecaptcha && window.grecaptcha.getResponse) {
-        recaptchaToken = window.grecaptcha.getResponse();
-        if (!recaptchaToken) {
-          setError('Please complete the CAPTCHA before registering.');
-          setLoading(false);
-          return;
-        }
-        try {
-          const verify = httpsCallable(functions, 'verifyRecaptcha');
-          await verify({ token: recaptchaToken });
-        } catch (verifyErr) {
-          setError(verifyErr.message || 'CAPTCHA verification failed. Please try again.');
-          setLoading(false);
-          return;
-        }
-      }
+      // reCAPTCHA verification removed (Cloud Functions not available on Spark plan).
+      // Firebase Auth provides built-in abuse protection (rate limiting, email verification).
 
       const { confirmPassword, ...registerData } = formData;
       await register(registerData);

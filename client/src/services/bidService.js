@@ -1,20 +1,11 @@
 // ---------------------------------------------------------------------------
-// client/src/services/bidService.js - Realtime Database Bid Operations
+// client/src/services/bidService.js
 // ---------------------------------------------------------------------------
-import { 
-  ref, 
-  push,
-  set,
-  get,
-  update,
-  runTransaction,
-  onValue
+import {
+  ref, push, set, get, update, runTransaction, onValue,
 } from 'firebase/database';
 import { database, fireAuth } from '../firebase/firebase.config';
 
-// ---------------------------------------------------------------------------
-// Place a bid on a player (with transaction for atomicity)
-// ---------------------------------------------------------------------------
 export const placeBid = async (auctionId, playerId, bidAmount) => {
   try {
     const user = fireAuth.currentUser;
@@ -22,750 +13,311 @@ export const placeBid = async (auctionId, playerId, bidAmount) => {
     if (!auctionId) throw new Error('Auction not found. Please refresh and try again.');
     if (!playerId) throw new Error('Player not found. Please refresh and try again.');
 
-    // Get user profile for bidder name
     const userRef = ref(database, `users/${user.uid}`);
     const userSnapshot = await get(userRef);
     const bidderName = userSnapshot.val()?.username || user.email;
 
-    // For sports auctions, check which team this user represents in this auction
     const repRef = ref(database, `sportsAuctions/${auctionId}/representatives/${user.uid}`);
     const repSnap = await get(repRef);
-    if (!repSnap.exists()) {
-      throw new Error('You must register a team for this sports auction before bidding. Join via the auction code first.');
-    }
+    if (!repSnap.exists()) throw new Error('You must register a team for this sports auction before bidding. Join via the auction code first.');
     const repValue = repSnap.val();
     const teamName = typeof repValue === 'string' ? repValue : repValue?.teamName;
 
-    // Load auction for minIncrement and lock
     const auctionRef = ref(database, `auctions/${auctionId}`);
     const auctionSnap = await get(auctionRef);
     const auction = auctionSnap.exists() ? auctionSnap.val() : {};
-    if (auction.locked) {
-      throw new Error('This auction is locked and no longer accepts bids.');
-    }
+    if (auction.locked) throw new Error('This auction is locked and no longer accepts bids.');
     const minIncrement = Number(auction.minIncrement) || 100000;
 
-    // Use transaction to ensure atomic updates
     const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
-    
     const playerSnap = await get(playerRef);
-    if (!playerSnap.exists()) {
-      throw new Error('Player not found. Make sure you are bidding in a sports auction and the player exists.');
-    }
+    if (!playerSnap.exists()) throw new Error('Player not found.');
 
     let newBid = null;
-
     await runTransaction(playerRef, (player) => {
-      if (player === null) {
-        throw new Error('Player not found');
-      }
-
-      if (player.status && player.status !== 'available') {
-        throw new Error('Bidding has ended for this player.');
-      }
-
+      if (player === null) throw new Error('Player not found');
+      if (player.status && player.status !== 'available') throw new Error('Bidding has ended for this player.');
       const currentBid = player.currentBid || player.basePrice;
-
       const minAllowed = (currentBid || 0) + minIncrement;
-      if (bidAmount < minAllowed) {
-        throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${currentBid.toLocaleString()}`);
-      }
-
-      // Update player data
+      if (bidAmount < minAllowed) throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${currentBid.toLocaleString()}`);
       player.currentBid = bidAmount;
       player.currentBidderId = user.uid;
       player.currentBidderName = bidderName;
-      if (teamName) {
-        player.currentBidderTeamName = teamName;
-      }
+      if (teamName) player.currentBidderTeamName = teamName;
       player.lastBidAt = Date.now();
-
       return player;
     });
 
-    // Create bid record
     const bidsRef = ref(database, `bids/${auctionId}`);
     const newBidRef = push(bidsRef);
-
     const playerSnapshot = await get(playerRef);
     const playerData = playerSnapshot.val();
-
-    newBid = {
-      id: newBidRef.key,
-      auctionId,
-      playerId,
-      playerName: playerData.name,
-      bidderId: user.uid,
-      bidderName,
-      teamName: teamName || null,
-      amount: bidAmount,
-      timestamp: Date.now(),
-      status: 'active',
-    };
-
+    newBid = { id: newBidRef.key, auctionId, playerId, playerName: playerData.name, bidderId: user.uid, bidderName, teamName: teamName || null, amount: bidAmount, timestamp: Date.now(), status: 'active' };
     await set(newBidRef, newBid);
 
-    // Mark previous active bids for this player as outbid
-    const allBidsRef = ref(database, `bids/${auctionId}`);
-    const allBidsSnapshot = await get(allBidsRef);
-
-    if (allBidsSnapshot.exists()) {
+    const allBidsSnap = await get(bidsRef);
+    if (allBidsSnap.exists()) {
       const updates = {};
-      allBidsSnapshot.forEach((bidSnapshot) => {
-        const bid = bidSnapshot.val();
-        if (bid.playerId === playerId && bid.status === 'active' && bid.id !== newBid.id) {
-          updates[`${bidSnapshot.key}/status`] = 'outbid';
-        }
-      });
-
-      if (Object.keys(updates).length > 0) {
-        await update(allBidsRef, updates);
-      }
+      allBidsSnap.forEach((s) => { const b = s.val(); if (b.playerId === playerId && b.status === 'active' && b.id !== newBid.id) updates[`${s.key}/status`] = 'outbid'; });
+      if (Object.keys(updates).length > 0) await update(bidsRef, updates);
     }
-
     return newBid;
-  } catch (error) {
-    console.error('Error placing bid:', error);
-    throw error;
-  }
+  } catch (error) { console.error('Error placing bid:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Place a bid on an item (item auctions)
-// ---------------------------------------------------------------------------
 export const placeBidForItem = async (auctionId, itemId, bidAmount) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
-    if (!auctionId) throw new Error('Auction not found. Please refresh and try again.');
-    if (!itemId) throw new Error('Item not found. Please refresh and try again.');
-
-    const userRef = ref(database, `users/${user.uid}`);
-    const userSnapshot = await get(userRef);
+    const userSnapshot = await get(ref(database, `users/${user.uid}`));
     const bidderName = userSnapshot.val()?.username || user.email;
-
-    const auctionRef = ref(database, `auctions/${auctionId}`);
-    const auctionSnap = await get(auctionRef);
+    const auctionSnap = await get(ref(database, `auctions/${auctionId}`));
     const auction = auctionSnap.exists() ? auctionSnap.val() : {};
-    if (auction.locked) {
-      throw new Error('This auction is locked and no longer accepts bids.');
-    }
+    if (auction.locked) throw new Error('This auction is locked and no longer accepts bids.');
     const minIncrement = Number(auction.minIncrement) || 100;
-
     const itemRef = ref(database, `auctions/${auctionId}/items/${itemId}`);
-
     await runTransaction(itemRef, (item) => {
       if (item === null) throw new Error('Item not found');
-      if (item.status && item.status !== 'available') {
-        throw new Error('Bidding has ended for this item.');
-      }
+      if (item.status && item.status !== 'available') throw new Error('Bidding has ended for this item.');
       const currentBid = item.currentBid ?? item.current_price ?? item.basePrice ?? item.base_price;
       const minAllowed = (currentBid || 0) + minIncrement;
-      if (bidAmount < minAllowed) {
-        throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${Number(currentBid).toLocaleString()}`);
-      }
-      item.currentBid = bidAmount;
-      item.currentBidderId = user.uid;
-      item.currentBidderName = bidderName;
-      item.lastBidAt = Date.now();
+      if (bidAmount < minAllowed) throw new Error(`Bid must be at least ₹${minIncrement.toLocaleString()} higher than current bid of ₹${Number(currentBid).toLocaleString()}`);
+      item.currentBid = bidAmount; item.currentBidderId = user.uid; item.currentBidderName = bidderName; item.lastBidAt = Date.now();
       return item;
     });
-
     const itemSnapshot = await get(itemRef);
     const itemData = itemSnapshot.val();
-
     const bidsRef = ref(database, `bids/${auctionId}`);
     const newBidRef = push(bidsRef);
-    const newBid = {
-      id: newBidRef.key,
-      auctionId,
-      playerId: itemId,
-      playerName: itemData.name,
-      bidderId: user.uid,
-      bidderName,
-      amount: bidAmount,
-      timestamp: Date.now(),
-      status: 'active',
-    };
+    const newBid = { id: newBidRef.key, auctionId, playerId: itemId, playerName: itemData.name, bidderId: user.uid, bidderName, amount: bidAmount, timestamp: Date.now(), status: 'active' };
     await set(newBidRef, newBid);
-
     const allBidsSnap = await get(bidsRef);
     if (allBidsSnap.exists()) {
       const updates = {};
-      allBidsSnap.forEach((snap) => {
-        const bid = snap.val();
-        if (bid.playerId === itemId && bid.status === 'active' && bid.id !== newBid.id) {
-          updates[`${snap.key}/status`] = 'outbid';
-        }
-      });
+      allBidsSnap.forEach((s) => { const b = s.val(); if (b.playerId === itemId && b.status === 'active' && b.id !== newBid.id) updates[`${s.key}/status`] = 'outbid'; });
       if (Object.keys(updates).length > 0) await update(bidsRef, updates);
     }
-
     return newBid;
-  } catch (error) {
-    console.error('Error placing bid on item:', error);
-    throw error;
-  }
+  } catch (error) { console.error('Error placing bid on item:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Get all bids for an auction
-// ---------------------------------------------------------------------------
 export const getAuctionBids = async (auctionId, options = {}) => {
   try {
-    const bidsRef = ref(database, `bids/${auctionId}`);
-    const snapshot = await get(bidsRef);
-
-    if (!snapshot.exists()) {
-      return [];
-    }
-
+    const snapshot = await get(ref(database, `bids/${auctionId}`));
+    if (!snapshot.exists()) return [];
     let bids = [];
-    snapshot.forEach((childSnapshot) => {
-      bids.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val(),
-      });
-    });
-
-    // Apply filters
-    if (options.playerId) {
-      bids = bids.filter(b => b.playerId === options.playerId);
-    }
-    if (options.bidderId) {
-      bids = bids.filter(b => b.bidderId === options.bidderId);
-    }
-    if (options.status) {
-      bids = bids.filter(b => b.status === options.status);
-    }
-
-    // Sort by timestamp (newest first)
+    snapshot.forEach((c) => { bids.push({ id: c.key, ...c.val() }); });
+    if (options.playerId) bids = bids.filter(b => b.playerId === options.playerId);
+    if (options.bidderId) bids = bids.filter(b => b.bidderId === options.bidderId);
+    if (options.status) bids = bids.filter(b => b.status === options.status);
     bids.sort((a, b) => b.timestamp - a.timestamp);
-
-    // Apply limit
-    if (options.limit) {
-      bids = bids.slice(0, options.limit);
-    }
-
+    if (options.limit) bids = bids.slice(0, options.limit);
     return bids;
-  } catch (error) {
-    console.error('Error getting auction bids:', error);
-    throw error;
-  }
+  } catch (error) { console.error('Error getting auction bids:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Get bids for a specific player
-// ---------------------------------------------------------------------------
-export const getPlayerBids = async (auctionId, playerId) => {
-  try {
-    return await getAuctionBids(auctionId, { playerId });
-  } catch (error) {
-    console.error('Error getting player bids:', error);
-    throw error;
-  }
-};
+export const getPlayerBids = async (auctionId, playerId) => getAuctionBids(auctionId, { playerId });
 
-// ---------------------------------------------------------------------------
-// Get all bids by current user
-// ---------------------------------------------------------------------------
 export const getMyBids = async () => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
-
-    const allBidsRef = ref(database, 'bids');
-    const snapshot = await get(allBidsRef);
-
-    if (!snapshot.exists()) {
-      return [];
-    }
-
+    const snapshot = await get(ref(database, 'bids'));
+    if (!snapshot.exists()) return [];
     const allBids = [];
-
     snapshot.forEach((auctionSnapshot) => {
       const auctionId = auctionSnapshot.key;
-      
-      auctionSnapshot.forEach((bidSnapshot) => {
-        const bid = bidSnapshot.val();
-        if (bid.bidderId === user.uid) {
-          allBids.push({
-            id: bidSnapshot.key,
-            auctionId,
-            ...bid,
-          });
-        }
-      });
+      auctionSnapshot.forEach((bidSnapshot) => { const bid = bidSnapshot.val(); if (bid.bidderId === user.uid) allBids.push({ id: bidSnapshot.key, auctionId, ...bid }); });
     });
-
-    // Sort by timestamp (newest first)
     allBids.sort((a, b) => b.timestamp - a.timestamp);
-
-    // Get auction titles
-    const auctionsRef = ref(database, 'auctions');
-    const auctionsSnapshot = await get(auctionsRef);
-
+    const auctionsSnapshot = await get(ref(database, 'auctions'));
     if (auctionsSnapshot.exists()) {
-      // Build a plain lookup map — DataSnapshot has no .child() in the modular SDK
-      const auctionsMap = {};
-      auctionsSnapshot.forEach((snap) => {
-        auctionsMap[snap.key] = snap.val();
-      });
-      allBids.forEach(bid => {
-        const auction = auctionsMap[bid.auctionId];
-        if (auction) {
-          bid.auctionTitle = auction.title;
-        }
-      });
+      const map = {}; auctionsSnapshot.forEach((s) => { map[s.key] = s.val(); });
+      allBids.forEach(bid => { const a = map[bid.auctionId]; if (a) bid.auctionTitle = a.title; });
     }
-
     return allBids;
-  } catch (error) {
-    console.error('Error getting my bids:', error);
-    throw error;
-  }
+  } catch (error) { console.error('Error getting my bids:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Get active bids by current user
-// ---------------------------------------------------------------------------
-export const getMyActiveBids = async () => {
-  try {
-    const allBids = await getMyBids();
-    return allBids.filter(bid => bid.status === 'active');
-  } catch (error) {
-    console.error('Error getting my active bids:', error);
-    throw error;
-  }
-};
+export const getMyActiveBids = async () => (await getMyBids()).filter(b => b.status === 'active');
+export const getMyWinningBids = async () => (await getMyBids()).filter(b => b.status === 'won');
+export const updateBidStatus = async (auctionId, bidId, status) => { await update(ref(database, `bids/${auctionId}/${bidId}`), { status }); return { success: true }; };
 
-// ---------------------------------------------------------------------------
-// Get winning bids by current user
-// ---------------------------------------------------------------------------
-export const getMyWinningBids = async () => {
-  try {
-    const allBids = await getMyBids();
-    return allBids.filter(bid => bid.status === 'won');
-  } catch (error) {
-    console.error('Error getting my winning bids:', error);
-    throw error;
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Update bid status
-// ---------------------------------------------------------------------------
-export const updateBidStatus = async (auctionId, bidId, status) => {
-  try {
-    const bidRef = ref(database, `bids/${auctionId}/${bidId}`);
-    await update(bidRef, { status });
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating bid status:', error);
-    throw error;
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Finalize auction bids
-// ---------------------------------------------------------------------------
 export const finalizeAuctionBids = async (auctionId) => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
-
-    // Verify ownership
-    const auctionRef = ref(database, `auctions/${auctionId}`);
-    const auctionSnapshot = await get(auctionRef);
-
-    if (!auctionSnapshot.exists()) {
-      throw new Error('Auction not found');
-    }
-
-    const auction = auctionSnapshot.val();
-    if (auction.createdBy !== user.uid) {
-      throw new Error('Unauthorized: Only auction creator can finalize bids');
-    }
-
-    // Get all bids
-    const bidsRef = ref(database, `bids/${auctionId}`);
-    const bidsSnapshot = await get(bidsRef);
-
-    if (!bidsSnapshot.exists()) {
-      return { success: true, winningBids: 0 };
-    }
-
-    const updates = {};
-    let winningCount = 0;
-
-    bidsSnapshot.forEach((bidSnapshot) => {
-      const bid = bidSnapshot.val();
-      if (bid.status === 'active') {
-        updates[`${bidSnapshot.key}/status`] = 'won';
-        winningCount++;
-      } else if (bid.status === 'outbid') {
-        updates[`${bidSnapshot.key}/status`] = 'lost';
-      }
-    });
-
-    await update(bidsRef, updates);
-
+    const auctionSnapshot = await get(ref(database, `auctions/${auctionId}`));
+    if (!auctionSnapshot.exists()) throw new Error('Auction not found');
+    if (auctionSnapshot.val().createdBy !== user.uid) throw new Error('Unauthorized');
+    const bidsSnapshot = await get(ref(database, `bids/${auctionId}`));
+    if (!bidsSnapshot.exists()) return { success: true, winningBids: 0 };
+    const updates = {}; let winningCount = 0;
+    bidsSnapshot.forEach((s) => { const b = s.val(); if (b.status === 'active') { updates[`${s.key}/status`] = 'won'; winningCount++; } else if (b.status === 'outbid') updates[`${s.key}/status`] = 'lost'; });
+    await update(ref(database, `bids/${auctionId}`), updates);
     return { success: true, winningBids: winningCount };
-  } catch (error) {
-    console.error('Error finalizing auction bids:', error);
-    throw error;
-  }
+  } catch (error) { console.error('Error finalizing auction bids:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Get bid statistics for a user
-// ---------------------------------------------------------------------------
 export const getUserBidStats = async (userId = null) => {
   try {
     const targetUserId = userId || fireAuth.currentUser?.uid;
     if (!targetUserId) throw new Error('User not authenticated');
-
     const allBids = userId ? [] : await getMyBids();
-    
-    // If getting stats for another user, fetch their bids
-    if (userId) {
-      const allBidsRef = ref(database, 'bids');
-      const snapshot = await get(allBidsRef);
-
-      if (snapshot.exists()) {
-        snapshot.forEach((auctionSnapshot) => {
-          auctionSnapshot.forEach((bidSnapshot) => {
-            const bid = bidSnapshot.val();
-            if (bid.bidderId === userId) {
-              allBids.push(bid);
-            }
-          });
-        });
-      }
-    }
-
-    const stats = {
-      totalBids: allBids.length,
-      activeBids: allBids.filter(b => b.status === 'active').length,
-      wonBids: allBids.filter(b => b.status === 'won').length,
-      lostBids: allBids.filter(b => b.status === 'lost').length,
-      totalAmountBid: allBids.reduce((sum, bid) => sum + (bid.amount || 0), 0),
-      averageBid: allBids.length > 0 ? 
-        allBids.reduce((sum, bid) => sum + (bid.amount || 0), 0) / allBids.length : 0,
-      winRate: allBids.length > 0 ? 
-        (allBids.filter(b => b.status === 'won').length / allBids.length) * 100 : 0,
-    };
-
-    return stats;
-  } catch (error) {
-    console.error('Error getting user bid stats:', error);
-    throw error;
-  }
+    if (userId) { const snap = await get(ref(database, 'bids')); if (snap.exists()) snap.forEach((a) => a.forEach((b) => { const bid = b.val(); if (bid.bidderId === userId) allBids.push(bid); })); }
+    return { totalBids: allBids.length, activeBids: allBids.filter(b => b.status === 'active').length, wonBids: allBids.filter(b => b.status === 'won').length, lostBids: allBids.filter(b => b.status === 'lost').length, totalAmountBid: allBids.reduce((s, b) => s + (b.amount || 0), 0), averageBid: allBids.length > 0 ? allBids.reduce((s, b) => s + (b.amount || 0), 0) / allBids.length : 0, winRate: allBids.length > 0 ? (allBids.filter(b => b.status === 'won').length / allBids.length) * 100 : 0 };
+  } catch (error) { console.error('Error getting user bid stats:', error); throw error; }
 };
 
-// ---------------------------------------------------------------------------
-// Check if user has active bid on a player
-// ---------------------------------------------------------------------------
-export const hasActiveBidOnPlayer = async (auctionId, playerId) => {
-  try {
-    const user = fireAuth.currentUser;
-    if (!user) return false;
-
-    const bids = await getAuctionBids(auctionId, { 
-      playerId,
-      bidderId: user.uid,
-      status: 'active'
-    });
-
-    return bids.length > 0;
-  } catch (error) {
-    console.error('Error checking active bid:', error);
-    return false;
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Get highest bid for a player
-// ---------------------------------------------------------------------------
-export const getHighestBid = async (auctionId, playerId) => {
-  try {
-    const bids = await getPlayerBids(auctionId, playerId);
-    
-    if (bids.length === 0) return null;
-
-    return bids.reduce((highest, bid) => 
-      bid.amount > (highest?.amount || 0) ? bid : highest
-    , bids[0]);
-  } catch (error) {
-    console.error('Error getting highest bid:', error);
-    throw error;
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Get leaderboard
-// ---------------------------------------------------------------------------
+export const hasActiveBidOnPlayer = async (auctionId, playerId) => { try { const user = fireAuth.currentUser; if (!user) return false; return (await getAuctionBids(auctionId, { playerId, bidderId: user.uid, status: 'active' })).length > 0; } catch { return false; } };
+export const getHighestBid = async (auctionId, playerId) => { const bids = await getPlayerBids(auctionId, playerId); if (!bids.length) return null; return bids.reduce((h, b) => b.amount > (h?.amount || 0) ? b : h, bids[0]); };
 export const getBidLeaderboard = async (auctionId, sortBy = 'amount') => {
-  try {
-    const bids = await getAuctionBids(auctionId);
-
-    // Group by bidder
-    const bidderStats = {};
-    bids.forEach(bid => {
-      if (!bidderStats[bid.bidderId]) {
-        bidderStats[bid.bidderId] = {
-          bidderId: bid.bidderId,
-          bidderName: bid.bidderName,
-          totalAmount: 0,
-          bidCount: 0,
-          wonCount: 0,
-        };
-      }
-      bidderStats[bid.bidderId].totalAmount += bid.amount;
-      bidderStats[bid.bidderId].bidCount += 1;
-      if (bid.status === 'won') {
-        bidderStats[bid.bidderId].wonCount += 1;
-      }
-    });
-
-    // Convert to array and sort
-    const leaderboard = Object.values(bidderStats);
-    
-    if (sortBy === 'amount') {
-      leaderboard.sort((a, b) => b.totalAmount - a.totalAmount);
-    } else if (sortBy === 'count') {
-      leaderboard.sort((a, b) => b.bidCount - a.bidCount);
-    } else if (sortBy === 'won') {
-      leaderboard.sort((a, b) => b.wonCount - a.wonCount);
-    }
-
-    return leaderboard;
-  } catch (error) {
-    console.error('Error getting bid leaderboard:', error);
-    throw error;
-  }
+  const bids = await getAuctionBids(auctionId);
+  const stats = {};
+  bids.forEach(b => { if (!stats[b.bidderId]) stats[b.bidderId] = { bidderId: b.bidderId, bidderName: b.bidderName, totalAmount: 0, bidCount: 0, wonCount: 0 }; stats[b.bidderId].totalAmount += b.amount; stats[b.bidderId].bidCount++; if (b.status === 'won') stats[b.bidderId].wonCount++; });
+  const board = Object.values(stats);
+  if (sortBy === 'amount') board.sort((a, b) => b.totalAmount - a.totalAmount); else if (sortBy === 'count') board.sort((a, b) => b.bidCount - a.bidCount); else if (sortBy === 'won') board.sort((a, b) => b.wonCount - a.wonCount);
+  return board;
 };
 
-// ---------------------------------------------------------------------------
-// Listen to auction bids (real-time)
-// ---------------------------------------------------------------------------
-// FIX: Use only onValue for bid history — no onChildAdded.
-// The previous implementation had a race condition: onChildAdded started with an
-// empty local array and would overwrite the complete list delivered by onValue,
-// causing bid history to appear blank or show only the most recent single bid.
-// onValue alone handles both initial load and all subsequent changes (adds, updates).
 export const listenToAuctionBids = (auctionId, callback, onError) => {
-  const bidsRef = ref(database, `bids/${auctionId}`);
-
-  const handleError = (err) => {
-    if (typeof onError === 'function') {
-      onError(err);
-    } else {
-      console.error('listenToAuctionBids error:', err);
-    }
-  };
-
-  const unsubValue = onValue(
-    bidsRef,
-    (snapshot) => {
-      if (!snapshot.exists()) {
-        callback([]);
-        return;
-      }
-      const all = [];
-      snapshot.forEach((childSnapshot) => {
-        all.push({ id: childSnapshot.key, ...childSnapshot.val() });
-      });
-      // Sort newest first so BidHistory always shows latest at top
-      all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      callback(all);
-    },
-    handleError
-  );
-
-  return () => {
-    if (typeof unsubValue === 'function') unsubValue();
-  };
+  const handleError = (err) => { if (typeof onError === 'function') onError(err); else console.error('listenToAuctionBids error:', err); };
+  const unsub = onValue(ref(database, `bids/${auctionId}`), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    const all = []; snap.forEach((c) => { all.push({ id: c.key, ...c.val() }); });
+    all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    callback(all);
+  }, handleError);
+  return () => { if (typeof unsub === 'function') unsub(); };
 };
 
 // ---------------------------------------------------------------------------
-// CLIENT-SIDE AUTO-BID (replaces Cloud Function — works on Spark plan)
+// AUTO-BID
 // ---------------------------------------------------------------------------
 
 /**
- * Save an auto-bid config for the current user on a specific player.
- * Writes directly to autoBids/{auctionId}/{playerId}/{uid} in RTDB.
+ * Enable auto-bid: writes maxAmount + active:true to autoBids/{auctionId}/{entityId}/{uid}
  */
-export const setAutoBid = async (auctionId, playerId, maxAmount) => {
+export const setAutoBid = async (auctionId, entityId, maxAmount) => {
   const user = fireAuth.currentUser;
   if (!user) throw new Error('User not authenticated');
-
   const max = Number(maxAmount);
-  if (!Number.isFinite(max) || max <= 0) {
-    throw new Error('Invalid auto-bid amount');
-  }
-
-  const autoBidRef = ref(database, `autoBids/${auctionId}/${playerId}/${user.uid}`);
-  await set(autoBidRef, {
-    maxAmount: max,
-    active: true,
-    createdAt: Date.now(),
-  });
-
+  if (!Number.isFinite(max) || max <= 0) throw new Error('Invalid auto-bid amount');
+  await set(ref(database, `autoBids/${auctionId}/${entityId}/${user.uid}`), { maxAmount: max, active: true, createdAt: Date.now() });
   return { success: true };
 };
 
 /**
- * Cancel an auto-bid for the current user on a specific player.
+ * Disable auto-bid: sets active:false
  */
-export const cancelAutoBid = async (auctionId, playerId) => {
+export const cancelAutoBid = async (auctionId, entityId) => {
   const user = fireAuth.currentUser;
   if (!user) throw new Error('User not authenticated');
-
-  const autoBidRef = ref(database, `autoBids/${auctionId}/${playerId}/${user.uid}`);
-  await update(autoBidRef, { active: false });
+  await update(ref(database, `autoBids/${auctionId}/${entityId}/${user.uid}`), { active: false });
   return { success: true };
 };
 
 /**
- * Run auto-bid logic after a new bid is placed.
- * Called client-side by the auctioneer's browser (which stays open during live auction).
- *
- * Checks all autoBid configs for this player and places a counter-bid for the
- * highest eligible auto-bidder (excluding the current bid's owner).
- *
- * @param {string} auctionId
- * @param {string} playerId
- * @param {number} currentBidAmount - the amount of the bid that just landed
- * @param {string} currentBidderId  - uid of the person who just bid
+ * Real-time listener — tells the UI whether auto-bid is enabled for the current
+ * user on a specific entity (player or item). Calls back { active, maxAmount } or null.
+ * Returns cleanup function.
  */
-export const runAutoBidCheck = async (auctionId, playerId, currentBidAmount, currentBidderId) => {
+export const listenToMyAutoBid = (auctionId, entityId, callback) => {
+  const user = fireAuth.currentUser;
+  if (!user) { callback(null); return () => {}; }
+  const unsub = onValue(ref(database, `autoBids/${auctionId}/${entityId}/${user.uid}`), (snap) => {
+    if (!snap.exists()) { callback(null); return; }
+    const v = snap.val();
+    callback({ active: v.active === true, maxAmount: Number(v.maxAmount) || 0 });
+  });
+  return () => { if (typeof unsub === 'function') unsub(); };
+};
+
+/**
+ * Auto-bid engine.
+ * Works for both sports (isSports=true, players path) and item auctions (isSports=false).
+ * Safe to call from any user's tab — uses runTransaction to avoid duplicate bids.
+ * Recursively chains if the person who just got outbid also has auto-bid set.
+ */
+export const runAutoBidCheck = async (
+  auctionId, entityId, currentBidAmount, currentBidderId, isSports = true, depth = 0
+) => {
+  if (depth > 20) { console.warn('[AutoBid] Chain depth limit reached.'); return; }
   try {
-    // Load auction for minIncrement
     const auctionSnap = await get(ref(database, `auctions/${auctionId}`));
     if (!auctionSnap.exists()) return;
     const auction = auctionSnap.val();
     if (auction.locked || auction.status !== 'live') return;
-    const minIncrement = Number(auction.minIncrement) || 100000;
+    const minIncrement = Number(auction.minIncrement) || (isSports ? 100000 : 100);
+    const entityPath = isSports
+      ? `auctions/${auctionId}/players/${entityId}`
+      : `auctions/${auctionId}/items/${entityId}`;
+    const entitySnap = await get(ref(database, entityPath));
+    if (!entitySnap.exists()) return;
+    const entity = entitySnap.val();
+    if (entity.status && entity.status !== 'available') return;
 
-    // Load player — make sure it's still available
-    const playerSnap = await get(ref(database, `auctions/${auctionId}/players/${playerId}`));
-    if (!playerSnap.exists()) return;
-    const player = playerSnap.val();
-    if (player.status && player.status !== 'available') return;
-
-    // Load all auto-bid configs for this player
-    const autoBidsSnap = await get(ref(database, `autoBids/${auctionId}/${playerId}`));
+    const autoBidsSnap = await get(ref(database, `autoBids/${auctionId}/${entityId}`));
     if (!autoBidsSnap.exists()) return;
 
-    // Find the best eligible auto-bidder:
-    // - must be active
-    // - must NOT be the person who just bid
-    // - their maxAmount must cover currentBid + minIncrement
+    const nextAmount = currentBidAmount + minIncrement;
     let best = null;
     autoBidsSnap.forEach((child) => {
-      const cfg = child.val();
-      const uid = child.key;
+      const cfg = child.val(); const uid = child.key;
       if (!cfg || cfg.active === false) return;
-      if (uid === currentBidderId) return; // don't auto-bid against own bid
+      if (uid === currentBidderId) return;
       const maxAmt = Number(cfg.maxAmount || 0);
-      if (!Number.isFinite(maxAmt)) return;
-      const nextAmount = currentBidAmount + minIncrement;
-      if (maxAmt < nextAmount) return; // can't afford next increment
-      if (!best || maxAmt > best.maxAmount) {
-        best = { uid, maxAmount: maxAmt };
-      }
+      if (!Number.isFinite(maxAmt) || maxAmt < nextAmount) return;
+      if (!best || maxAmt > best.maxAmount) best = { uid, maxAmount: maxAmt };
     });
-
     if (!best) return;
 
-    const nextAmount = currentBidAmount + minIncrement;
-    if (nextAmount > best.maxAmount) return;
-
-    // Resolve auto-bidder display name
     let autoBidderName = 'Auto-bidder';
-    try {
-      const userSnap = await get(ref(database, `users/${best.uid}`));
-      if (userSnap.exists()) {
-        autoBidderName = userSnap.val().username || userSnap.val().displayName || autoBidderName;
-      }
-    } catch (_) { /* ignore */ }
+    try { const s = await get(ref(database, `users/${best.uid}`)); if (s.exists()) autoBidderName = s.val().username || s.val().displayName || autoBidderName; } catch (_) {}
 
-    // Resolve auto-bidder team name
     let autoBidderTeamName = null;
-    try {
-      const repSnap = await get(ref(database, `sportsAuctions/${auctionId}/representatives/${best.uid}`));
-      if (repSnap.exists()) {
-        const v = repSnap.val();
-        autoBidderTeamName = typeof v === 'string' ? v : (v && v.teamName) || null;
-      }
-    } catch (_) { /* ignore */ }
+    if (isSports) {
+      try { const s = await get(ref(database, `sportsAuctions/${auctionId}/representatives/${best.uid}`)); if (s.exists()) { const v = s.val(); autoBidderTeamName = typeof v === 'string' ? v : (v && v.teamName) || null; } } catch (_) {}
+    }
 
-    // Update player node with new auto-bid
-    const playerRef = ref(database, `auctions/${auctionId}/players/${playerId}`);
-    const playerUpdate = {
-      currentBid: nextAmount,
-      currentBidderId: best.uid,
-      currentBidderName: autoBidderName,
-      lastBidAt: Date.now(),
-    };
-    if (autoBidderTeamName) playerUpdate.currentBidderTeamName = autoBidderTeamName;
-    await update(playerRef, playerUpdate);
+    const entityRef = ref(database, entityPath);
+    let placed = false;
+    await runTransaction(entityRef, (current) => {
+      if (!current) return current;
+      if (current.status && current.status !== 'available') return current;
+      const liveBid = Number(current.currentBid || current.basePrice || current.base_price || 0);
+      if (current.currentBidderId === best.uid) return current; // already leading
+      if (liveBid >= nextAmount) return current;               // already outbid by someone else
+      current.currentBid = nextAmount;
+      current.currentBidderId = best.uid;
+      current.currentBidderName = autoBidderName;
+      if (isSports && autoBidderTeamName) current.currentBidderTeamName = autoBidderTeamName;
+      current.lastBidAt = Date.now();
+      placed = true;
+      return current;
+    });
+    if (!placed) return;
 
-    // Mark all previous active bids for this player as outbid
     const bidsRef = ref(database, `bids/${auctionId}`);
     const allBidsSnap = await get(bidsRef);
     if (allBidsSnap.exists()) {
       const outbidUpdates = {};
-      allBidsSnap.forEach((child) => {
-        const b = child.val();
-        if (b && b.playerId === playerId && b.status === 'active') {
-          outbidUpdates[`${child.key}/status`] = 'outbid';
-        }
-      });
-      if (Object.keys(outbidUpdates).length > 0) {
-        await update(bidsRef, outbidUpdates);
-      }
+      allBidsSnap.forEach((c) => { const b = c.val(); if (b && b.playerId === entityId && b.status === 'active') outbidUpdates[`${c.key}/status`] = 'outbid'; });
+      if (Object.keys(outbidUpdates).length > 0) await update(bidsRef, outbidUpdates);
     }
 
-    // Write the new auto-bid record
     const newBidRef = push(bidsRef);
-    await set(newBidRef, {
-      id: newBidRef.key,
-      auctionId,
-      playerId,
-      playerName: player.name || null,
-      bidderId: best.uid,
-      bidderName: autoBidderName,
-      teamName: autoBidderTeamName || null,
-      amount: nextAmount,
-      timestamp: Date.now(),
-      status: 'active',
-      autoBid: true,
-    });
+    await set(newBidRef, { id: newBidRef.key, auctionId, playerId: entityId, playerName: entity.name || null, bidderId: best.uid, bidderName: autoBidderName, teamName: autoBidderTeamName || null, amount: nextAmount, timestamp: Date.now(), status: 'active', autoBid: true });
+    console.log(`[AutoBid] depth=${depth} ₹${nextAmount.toLocaleString()} for "${autoBidderName}" on "${entity.name || entityId}"`);
 
-    console.log(`[AutoBid] Placed ₹${nextAmount} for ${autoBidderName} on player ${playerId}`);
-  } catch (err) {
-    console.error('[AutoBid] runAutoBidCheck error:', err);
-  }
+    // Chain — check if the outbid user also has auto-bid
+    setTimeout(() => { runAutoBidCheck(auctionId, entityId, nextAmount, best.uid, isSports, depth + 1); }, 600);
+  } catch (err) { console.error('[AutoBid] runAutoBidCheck error:', err); }
 };
 
 export default {
-  placeBid,
-  placeBidForItem,
-  getAuctionBids,
-  getPlayerBids,
-  getMyBids,
-  getMyActiveBids,
-  getMyWinningBids,
-  updateBidStatus,
-  finalizeAuctionBids,
-  getUserBidStats,
-  hasActiveBidOnPlayer,
-  getHighestBid,
-  getBidLeaderboard,
-  listenToAuctionBids,
-  setAutoBid,
-  cancelAutoBid,
-  runAutoBidCheck,
+  placeBid, placeBidForItem, getAuctionBids, getPlayerBids, getMyBids,
+  getMyActiveBids, getMyWinningBids, updateBidStatus, finalizeAuctionBids,
+  getUserBidStats, hasActiveBidOnPlayer, getHighestBid, getBidLeaderboard,
+  listenToAuctionBids, setAutoBid, cancelAutoBid, listenToMyAutoBid, runAutoBidCheck,
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
@@ -52,6 +52,16 @@ const LiveAuction = () => {
 
   // ── FEATURE 3: Team roster state ──────────────────────────────────────────
   const [showTeamRoster, setShowTeamRoster] = useState(false);
+
+  // ── AUTO-BID STATE ──────────────────────────────────────────────────────────
+  // { active: bool, maxAmount: number } | null  — real-time from Firebase
+  const [autoBidState, setAutoBidState] = useState(null);
+  const [autoBidInput, setAutoBidInput] = useState('');
+  const [autoBidLoading, setAutoBidLoading] = useState(false);
+  const [justOutbid, setJustOutbid] = useState(false);
+  const currentItemRef = useRef(null);
+  const autoBidListenerCleanupRef = useRef(null);
+  useEffect(() => { currentItemRef.current = currentItem; }, [currentItem]);
 
   const shouldSuppressListenerError = (err) => {
     const msg = String(err?.message || err || '').toLowerCase();
@@ -224,6 +234,105 @@ const LiveAuction = () => {
 
     loadContacts();
   }, [auction?.status, id]);
+
+  // ── AUTO-BID: Real-time per-entity listener ──────────────────────────────
+  // Re-attaches whenever the viewed entity changes so the button reflects the
+  // correct enabled/disabled state for exactly this player or item.
+  useEffect(() => {
+    if (typeof autoBidListenerCleanupRef.current === 'function') {
+      autoBidListenerCleanupRef.current();
+      autoBidListenerCleanupRef.current = null;
+    }
+    if (!currentItem?.id || !user || isAuctioneer) {
+      setAutoBidState(null);
+      return;
+    }
+    const cleanup = bidService.listenToMyAutoBid(id, currentItem.id, (state) => {
+      setAutoBidState(state);
+    });
+    autoBidListenerCleanupRef.current = cleanup;
+    return () => {
+      if (typeof autoBidListenerCleanupRef.current === 'function') {
+        autoBidListenerCleanupRef.current();
+        autoBidListenerCleanupRef.current = null;
+      }
+    };
+  }, [currentItem?.id, user, id, isAuctioneer]);
+
+  // ── AUTO-BID: Outbid watcher — fires counter-bid from THIS user's tab ─────
+  // Every bidder watches the items/players node. When their auto-bid is active
+  // and they detect they've been outbid, they immediately trigger runAutoBidCheck.
+  useEffect(() => {
+    if (!id || !user || isAuctioneer || !auction) return;
+    if (auction.status !== 'live') return;
+    const auctionType = auction?.auction_type || auction?.auctionType;
+    const isItemAuction = auctionType === 'item';
+    const path = isItemAuction ? `auctions/${id}/items` : `auctions/${id}/players`;
+    const unsub = onValue(ref(database, path), async (snap) => {
+      if (!snap.exists()) return;
+      snap.forEach(async (child) => {
+        const entity = child.val();
+        if (!entity) return;
+        if (entity.status && entity.status !== 'available') return;
+        const entityId = child.key;
+        const leaderId = entity.currentBidderId;
+        if (leaderId === user.uid) return; // we're already leading
+        const autoBidSnap = await get(ref(database, `autoBids/${id}/${entityId}/${user.uid}`)).catch(() => null);
+        if (!autoBidSnap || !autoBidSnap.exists()) return;
+        const cfg = autoBidSnap.val();
+        if (!cfg || cfg.active === false) return;
+        const currentBid = Number(entity.currentBid ?? entity.current_price ?? entity.basePrice ?? entity.base_price ?? 0);
+        const maxAmt = Number(cfg.maxAmount || 0);
+        const minIncrement = Number(auction.minIncrement) || (isItemAuction ? 100 : 100000);
+        if (currentBid + minIncrement <= maxAmt) {
+          if (currentItemRef.current?.id === entityId) {
+            setJustOutbid(true);
+            setTimeout(() => setJustOutbid(false), 3000);
+          }
+          await bidService.runAutoBidCheck(id, entityId, currentBid, leaderId || '', !isItemAuction);
+        }
+      });
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.uid, isAuctioneer, auction?.status, auction?.auction_type, auction?.auctionType]);
+
+  // ── AUTO-BID: Enable handler ────────────────────────────────────────────────
+  const handleEnableAutoBid = async () => {
+    setError('');
+    if (!currentItem) { setError('Select a player or item first.'); return; }
+    const max = parseFloat(autoBidInput);
+    if (!Number.isFinite(max) || max <= 0) { setError('Enter a valid maximum auto-bid amount.'); return; }
+    const currentPrice = currentItem.current_price ?? currentItem.currentBid ?? currentItem.base_price ?? currentItem.basePrice ?? 0;
+    if (max <= currentPrice) { setError('Max auto-bid must be higher than the current price.'); return; }
+    setAutoBidLoading(true);
+    try {
+      await bidService.setAutoBid(id, currentItem.id, max);
+      setAutoBidInput('');
+      addNotification({ type: 'success', title: '🤖 Auto-bid enabled', message: `Auto-bid up to ${formatCurrency(max)} is active for ${currentItem.name}.`, link: `/auction/live/${id}` });
+      // Immediately fire a check — maybe we should already be bidding
+      const leaderId = currentItem.currentBidderId;
+      if (leaderId !== user?.uid) {
+        const auctionType = auction?.auction_type || auction?.auctionType;
+        setTimeout(() => bidService.runAutoBidCheck(id, currentItem.id, Number(currentPrice), leaderId || '', auctionType !== 'item'), 400);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to enable auto-bid');
+    } finally { setAutoBidLoading(false); }
+  };
+
+  // ── AUTO-BID: Disable handler ───────────────────────────────────────────────
+  const handleDisableAutoBid = async () => {
+    setError('');
+    if (!currentItem) return;
+    setAutoBidLoading(true);
+    try {
+      await bidService.cancelAutoBid(id, currentItem.id);
+      addNotification({ type: 'info', title: '🤖 Auto-bid disabled', message: `Auto-bid for ${currentItem.name} has been turned off.`, link: `/auction/live/${id}` });
+    } catch (err) {
+      setError(err.message || 'Failed to disable auto-bid');
+    } finally { setAutoBidLoading(false); }
+  };
 
   // Auctioneer-side sports lot controller
   useEffect(() => {
@@ -441,7 +550,11 @@ const LiveAuction = () => {
 
       if (!isItemAuction) {
         setTimeout(() => {
-          bidService.runAutoBidCheck(id, currentItem.id, amount, user?.uid);
+          bidService.runAutoBidCheck(id, currentItem.id, amount, user?.uid, true);
+        }, 800);
+      } else {
+        setTimeout(() => {
+          bidService.runAutoBidCheck(id, currentItem.id, amount, user?.uid, false);
         }, 800);
       }
     } catch (err) {
@@ -836,25 +949,70 @@ const LiveAuction = () => {
                         />
                       </div>
 
-                      <div className="form-group">
-                        <label>Max Auto-Bid Amount (optional)</label>
-                        <div className="auto-bid-row">
-                          <input
-                            type="number"
-                            value={autoBidMax}
-                            onChange={(e) => setAutoBidMax(e.target.value)}
-                            placeholder="Set maximum auto-bid"
-                            step="100000"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-outline"
-                            onClick={handleSetAutoBid}
-                          >
-                            Enable Auto-Bid
-                          </button>
+                      {/* ── AUTO-BID PANEL ── */}
+                      <div className={`autobid-panel${autoBidState?.active ? ' autobid-panel-active' : ''}`}>
+                        <div className="autobid-header">
+                          <div className="autobid-title-row">
+                            <span className="autobid-icon">🤖</span>
+                            <span className="autobid-title">Auto-Bid</span>
+                            <span className={`autobid-status-badge${autoBidState?.active ? ' autobid-status-on' : ' autobid-status-off'}`}>
+                              {autoBidState?.active ? 'ON' : 'OFF'}
+                            </span>
+                          </div>
+                          {autoBidState?.active && autoBidState?.maxAmount && (
+                            <span className="autobid-limit-display">
+                              Max: {formatCurrency(autoBidState.maxAmount)}
+                            </span>
+                          )}
                         </div>
+
+                        {autoBidState?.active ? (
+                          <div className="autobid-enabled-body">
+                            {justOutbid && (
+                              <div className="alert alert-warning autobid-outbid-alert">
+                                ⚡ You were outbid — auto-bid is countering!
+                              </div>
+                            )}
+                            <p className="autobid-enabled-desc">
+                              Auto-bid is active. We&apos;ll automatically outbid any competitor up to your limit of{' '}
+                              <strong>{formatCurrency(autoBidState.maxAmount)}</strong>.
+                            </p>
+                            <button
+                              type="button"
+                              className="btn btn-danger w-full"
+                              onClick={handleDisableAutoBid}
+                              disabled={autoBidLoading}
+                            >
+                              {autoBidLoading ? 'Disabling…' : '🛑 Disable Auto-Bid'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="autobid-setup-body">
+                            <p className="autobid-setup-desc">
+                              Set a maximum and we&apos;ll bid for you automatically when outbid.
+                            </p>
+                            <div className="autobid-input-row">
+                              <input
+                                type="number"
+                                value={autoBidInput}
+                                onChange={(e) => setAutoBidInput(e.target.value)}
+                                placeholder="Max auto-bid amount"
+                                step="100000"
+                                min="0"
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-success"
+                                onClick={handleEnableAutoBid}
+                                disabled={autoBidLoading || !autoBidInput}
+                              >
+                                {autoBidLoading ? 'Enabling…' : '✅ Enable'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                      {/* ── END AUTO-BID PANEL ── */}
 
                       <button type="submit" className="btn btn-primary w-full">
                         Place Bid

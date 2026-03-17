@@ -845,4 +845,206 @@
   margin-top: 0.2rem;
   font-weight: 500;
 }
+/* ============================================================
+   AUTO-BID PANEL  — append to bottom of LiveAuction.css
+   ============================================================ */
 
+/* Container — sits below the manual bid input inside .bid-form */
+.autobid-panel {
+  background: var(--bg-secondary, #12121e);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+  border-radius: var(--radius-md, 8px);
+  padding: 1rem 1.25rem;
+  transition: border-color 0.25s, background 0.25s;
+}
+
+.autobid-panel.autobid-panel-active {
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+/* Header row */
+.autobid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.autobid-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.autobid-icon { font-size: 1.1rem; }
+
+.autobid-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary, #f0f0f0);
+}
+
+/* ON / OFF badge */
+.autobid-status-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.autobid-status-on {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.autobid-status-off {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted, #6b6b8a);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+}
+
+/* Current max-amount display */
+.autobid-limit-display {
+  font-size: 0.8rem;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* ── Enabled body ── */
+.autobid-enabled-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.autobid-enabled-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #a0a0b8);
+  line-height: 1.5;
+}
+
+.autobid-enabled-desc strong {
+  color: #22c55e;
+}
+
+/* Outbid flash alert */
+.autobid-outbid-alert {
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: outbidPulse 0.4s ease-out;
+}
+
+@keyframes outbidPulse {
+  0%   { opacity: 0; transform: scale(0.95); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Orange pulse on the card when auto-bid fires */
+.current-item-card.outbid-pulse {
+  animation: cardOutbidPulse 0.5s ease-out;
+}
+
+@keyframes cardOutbidPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.6); }
+  70%  { box-shadow: 0 0 0 14px rgba(234, 179, 8, 0); }
+  100% { box-shadow: none; }
+}
+
+/* ── Setup body (disabled state) ── */
+.autobid-setup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.autobid-setup-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b6b8a);
+}
+
+.autobid-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.autobid-input-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--bg-primary, #1e1e2e);
+  border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-primary, #f0f0f0);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.autobid-input-row input:focus {
+  border-color: #22c55e;
+}
+
+/* Disable button */
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-danger:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Success enable button */
+.btn-success {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm, 6px);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+.btn-success:hover:not(:disabled) { background: #16a34a; }
+.btn-success:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Current leader row (below price section) */
+.current-leader-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary, #12121e);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.85rem;
+}
+
+.current-leader-label {
+  color: var(--text-muted, #6b6b8a);
+  flex-shrink: 0;
+}
+
+.current-leader-name {
+  color: var(--text-primary, #f0f0f0);
+  font-weight: 600;
+}
+
+.current-leader-you {
+  color: #22c55e;
+}

@@ -528,26 +528,62 @@ const AuctionDetails = () => {
               })}
             </div>
 
-            {/* Auction Result – shared contact details */}
-            {auction.status === 'completed' && (
+            {/* Auction Result – shared contact details (auctioneer only) */}
+            {auction.status === 'completed' && canManage && (
               <div className="auction-result-contact card">
-                <h3>Auction Result – Contact Details</h3>
+                <h3>Auction Result – Winner Contact Details</h3>
                 {sharedContactsError && (
                   <p className="results-subtitle text-error">{sharedContactsError}</p>
                 )}
                 {!sharedContacts && !sharedContactsError && (
                   <p className="results-subtitle">
-                    Contact details are not yet available for this auction.
+                    Winner contact details are not yet available for this auction.
                   </p>
                 )}
-                {sharedContacts && (
+
+                {/* ── Item auction: single winner ── */}
+                {sharedContacts && sharedContacts.type === 'item' && (
                   <div className="contact-details-grid">
                     <div className="contact-card">
-                      <h4>Auctioneer Contact</h4>
+                      <h4>Winner Contact</h4>
+                      <p><strong>Name:</strong> {sharedContacts.winnerContact?.name || '—'}</p>
+                      <p><strong>Email:</strong> {sharedContacts.winnerContact?.email || '—'}</p>
+                      <p><strong>Phone:</strong> {sharedContacts.winnerContact?.phone || '—'}</p>
+                    </div>
+                    <div className="contact-card">
+                      <h4>Your (Auctioneer) Contact on Record</h4>
                       <p><strong>Name:</strong> {sharedContacts.auctioneerContact?.name || '—'}</p>
                       <p><strong>Email:</strong> {sharedContacts.auctioneerContact?.email || '—'}</p>
                       <p><strong>Phone:</strong> {sharedContacts.auctioneerContact?.phone || '—'}</p>
                     </div>
+                  </div>
+                )}
+
+                {/* ── Sports auction: multiple winners ── */}
+                {sharedContacts && sharedContacts.type === 'sports' && sharedContacts.winners && (
+                  <div className="contact-details-grid">
+                    {Object.values(sharedContacts.winners).map((winner) => (
+                      <div key={winner.userId} className="contact-card">
+                        <h4>
+                          {winner.teamName ? `Team: ${winner.teamName}` : `Winner: ${winner.userId}`}
+                        </h4>
+                        <p><strong>Name:</strong> {winner.winnerContact?.name || '—'}</p>
+                        <p><strong>Email:</strong> {winner.winnerContact?.email || '—'}</p>
+                        <p><strong>Phone:</strong> {winner.winnerContact?.phone || '—'}</p>
+                        {winner.players && winner.players.length > 0 && (
+                          <p className="winner-players">
+                            <strong>Players won:</strong>{' '}
+                            {winner.players.map(p => p.playerName || p.playerId).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Fallback: legacy structure without type field ── */}
+                {sharedContacts && !sharedContacts.type && (
+                  <div className="contact-details-grid">
                     <div className="contact-card">
                       <h4>Winner Contact</h4>
                       <p><strong>Name:</strong> {sharedContacts.winnerContact?.name || '—'}</p>

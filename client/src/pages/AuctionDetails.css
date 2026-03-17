@@ -496,3 +496,41 @@
     flex-direction: column;
   }
 }
+
+/* ── Winner contact details (auctioneer view) ── */
+.auction-result-contact {
+  margin-top: 1.5rem;
+}
+
+.contact-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.contact-card {
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.contact-card h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text-primary, #111827);
+}
+
+.contact-card p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #374151);
+  word-break: break-word;
+}
+
+.winner-players {
+  margin-top: 0.5rem !important;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  padding-top: 0.5rem;
+}

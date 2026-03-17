@@ -73,7 +73,6 @@ export const createAuction = async (auctionData) => {
       ...(joinCode && { joinCode }),
     };
 
-    // Firebase Realtime Database rejects undefined; omit any keys with undefined value
     const auctionForFirebase = Object.fromEntries(
       Object.entries(auction).filter(([, v]) => v !== undefined)
     );
@@ -99,7 +98,6 @@ export const getAuction = async (auctionId) => {
     }
 
     const data = snapshot.val();
-    // Normalize for UI (start_time, end_time, creator_id, status names)
     return {
       ...data,
       creator_id: data.createdBy,
@@ -114,7 +112,6 @@ export const getAuction = async (auctionId) => {
   }
 };
 
-/** Alias for components that use getAuctionById */
 export const getAuctionById = getAuction;
 
 // ---------------------------------------------------------------------------
@@ -158,7 +155,6 @@ export const getAllAuctions = async (filters = {}) => {
       });
     });
 
-    // Apply client-side filters
     if (filters.status) {
       auctions = auctions.filter(a => a.status === filters.status);
     }
@@ -169,10 +165,8 @@ export const getAllAuctions = async (filters = {}) => {
       auctions = auctions.filter(a => a.createdBy === filters.createdBy);
     }
 
-    // Sort by start date (newest first)
     auctions.sort((a, b) => b.startDate - a.startDate);
 
-    // Apply limit
     if (filters.limit) {
       auctions = auctions.slice(0, filters.limit);
     }
@@ -184,14 +178,10 @@ export const getAllAuctions = async (filters = {}) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Get auctions created by current user
-// ---------------------------------------------------------------------------
 export const getMyAuctions = async () => {
   try {
     const user = fireAuth.currentUser;
     if (!user) throw new Error('User not authenticated');
-
     return await getAllAuctions({ createdBy: user.uid });
   } catch (error) {
     console.error('Error getting my auctions:', error);
@@ -199,9 +189,6 @@ export const getMyAuctions = async () => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Get live auctions
-// ---------------------------------------------------------------------------
 export const getLiveAuctions = async () => {
   try {
     return await getAllAuctions({ status: 'live' });
@@ -228,7 +215,6 @@ export const updateAuction = async (auctionId, updates) => {
 
     const auction = snapshot.val();
 
-    // Check if the current user is an admin (same pattern as deleteAuction)
     const userRef = ref(database, `users/${user.uid}`);
     const userSnapshot = await get(userRef);
     const isAdmin = userSnapshot.exists() && userSnapshot.val().role === 'admin';
@@ -237,7 +223,6 @@ export const updateAuction = async (auctionId, updates) => {
       throw new Error('Unauthorized: You can only update your own auctions');
     }
 
-    // Convert dates if present
     const updateData = { ...updates };
     if (updates.startDate) {
       updateData.startDate = new Date(updates.startDate).getTime();
@@ -259,9 +244,6 @@ export const updateAuction = async (auctionId, updates) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Update auction status
-// ---------------------------------------------------------------------------
 export const updateAuctionStatus = async (auctionId, status) => {
   try {
     return await updateAuction(auctionId, { status });
@@ -271,9 +253,6 @@ export const updateAuctionStatus = async (auctionId, status) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Start an auction
-// ---------------------------------------------------------------------------
 export const startAuction = async (auctionId) => {
   try {
     return await updateAuctionStatus(auctionId, 'live');
@@ -326,9 +305,9 @@ export const endAuction = async (auctionId) => {
       }
     }
 
-    // After items are marked sold / unsold, share winner & auctioneer contact details
+    // ── FEATURE 2: Share winner & auctioneer contact details ─────────────
     try {
-      await shareWinnerAndAuctioneerContact(auctionId);
+      await shareWinnerAndAuctioneerContact(auctionId, isSports);
     } catch (contactError) {
       console.error('Error sharing contact details for auction:', contactError);
     }
@@ -341,9 +320,16 @@ export const endAuction = async (auctionId) => {
 };
 
 // ---------------------------------------------------------------------------
-// Share winner & auctioneer contact details after auction completion
+// ── FEATURE 2: Share winner & auctioneer contact details after auction end ──
+//
+// Strategy:
+//   • For ITEM auctions  → the "winner" is whoever has the highest 'won' bid.
+//   • For SPORTS auctions → there may be many winners (one per player sold).
+//     We store one entry per winner under sharedContacts/{winnerUserId}.
+//     Each winner sees only the auctioneer's contact; the auctioneer sees all
+//     winners under auctions/{id}/sharedContacts.
 // ---------------------------------------------------------------------------
-const shareWinnerAndAuctioneerContact = async (auctionId) => {
+const shareWinnerAndAuctioneerContact = async (auctionId, isSports) => {
   const auctionRef = ref(database, `auctions/${auctionId}`);
   const auctionSnap = await get(auctionRef);
   if (!auctionSnap.exists()) return;
@@ -352,54 +338,108 @@ const shareWinnerAndAuctioneerContact = async (auctionId) => {
   const auctioneerUserId = auction.createdBy;
   if (!auctioneerUserId) return;
 
-  // Find the single highest winning bid for this auction
-  const bidsRef = ref(database, `bids/${auctionId}`);
-  const bidsSnap = await get(bidsRef);
-  if (!bidsSnap.exists()) return;
-
-  let topWinningBid = null;
-  bidsSnap.forEach((child) => {
-    const bid = child.val();
-    if (bid.status === 'won') {
-      if (!topWinningBid || (bid.amount || 0) > (topWinningBid.amount || 0)) {
-        topWinningBid = bid;
-      }
-    }
-  });
-
-  if (!topWinningBid) return;
-
-  const winnerUserId = topWinningBid.bidderId;
-  if (!winnerUserId) return;
-
-  // Fetch contact details for both users
-  const winnerContactRef = ref(database, `users/${winnerUserId}/contactDetails`);
-  const auctioneerContactRef = ref(database, `users/${auctioneerUserId}/contactDetails`);
-
-  const [winnerContactSnap, auctioneerContactSnap] = await Promise.all([
-    get(winnerContactRef),
-    get(auctioneerContactRef),
-  ]);
-
-  const winnerContact = winnerContactSnap.exists() ? winnerContactSnap.val() : null;
+  // Fetch auctioneer contact once
+  const auctioneerContactSnap = await get(ref(database, `users/${auctioneerUserId}/contactDetails`));
   const auctioneerContact = auctioneerContactSnap.exists() ? auctioneerContactSnap.val() : null;
 
-  // Store shared contacts under auctions/{auctionId}/sharedContacts
   const sharedContactsRef = ref(database, `auctions/${auctionId}/sharedContacts`);
-  await set(sharedContactsRef, {
-    winnerUserId,
-    auctioneerUserId,
-    winnerContact: winnerContact || null,
-    auctioneerContact: auctioneerContact || null,
-    sharedAt: Date.now(),
-  });
+
+  if (isSports) {
+    // ── Sports auction: collect all unique winners from sold players ────────
+    const playersSnap = await get(ref(database, `auctions/${auctionId}/players`));
+    if (!playersSnap.exists()) return;
+
+    // Build a map: winnerUserId → { teamName, players: [] }
+    const winnersMap = {};
+    playersSnap.forEach((child) => {
+      const p = child.val();
+      if (!p || p.status !== 'sold' || !p.currentBidderId) return;
+      const uid = p.currentBidderId;
+      if (!winnersMap[uid]) {
+        winnersMap[uid] = {
+          userId: uid,
+          teamName: p.currentBidderTeamName || p.currentBidderName || null,
+          players: [],
+        };
+      }
+      winnersMap[uid].players.push({
+        playerId: child.key,
+        playerName: p.name || null,
+        soldPrice: p.currentBid || p.soldPrice || 0,
+      });
+    });
+
+    if (Object.keys(winnersMap).length === 0) return;
+
+    // Fetch winner contacts and build the shared contacts payload
+    const winnersPayload = {};
+    await Promise.all(
+      Object.values(winnersMap).map(async (winner) => {
+        const winnerContactSnap = await get(
+          ref(database, `users/${winner.userId}/contactDetails`)
+        );
+        const winnerContact = winnerContactSnap.exists() ? winnerContactSnap.val() : null;
+
+        winnersPayload[winner.userId] = {
+          userId: winner.userId,
+          teamName: winner.teamName,
+          players: winner.players,
+          winnerContact: winnerContact || null,
+          auctioneerContact: auctioneerContact || null,
+          auctioneerUserId,
+          sharedAt: Date.now(),
+        };
+      })
+    );
+
+    await set(sharedContactsRef, {
+      type: 'sports',
+      auctioneerUserId,
+      auctioneerContact: auctioneerContact || null,
+      winners: winnersPayload,
+      sharedAt: Date.now(),
+    });
+
+  } else {
+    // ── Item auction: single highest winner from 'won' bids ─────────────────
+    const bidsRef = ref(database, `bids/${auctionId}`);
+    const bidsSnap = await get(bidsRef);
+    if (!bidsSnap.exists()) return;
+
+    let topWinningBid = null;
+    bidsSnap.forEach((child) => {
+      const bid = child.val();
+      if (bid.status === 'won') {
+        if (!topWinningBid || (bid.amount || 0) > (topWinningBid.amount || 0)) {
+          topWinningBid = bid;
+        }
+      }
+    });
+
+    if (!topWinningBid) return;
+
+    const winnerUserId = topWinningBid.bidderId;
+    if (!winnerUserId) return;
+
+    const winnerContactSnap = await get(ref(database, `users/${winnerUserId}/contactDetails`));
+    const winnerContact = winnerContactSnap.exists() ? winnerContactSnap.val() : null;
+
+    await set(sharedContactsRef, {
+      type: 'item',
+      winnerUserId,
+      auctioneerUserId,
+      winnerContact: winnerContact || null,
+      auctioneerContact: auctioneerContact || null,
+      sharedAt: Date.now(),
+    });
+  }
 
   const flagRef = ref(database, `auctions/${auctionId}/winnerContactShared`);
   await set(flagRef, true);
 };
 
 // ---------------------------------------------------------------------------
-// Register a team for a sports auction (enforces uniqueness & single rep)
+// Register a team for a sports auction
 // ---------------------------------------------------------------------------
 export const registerTeamForSportsAuction = async (auctionId, teamName) => {
   const user = fireAuth.currentUser;
@@ -407,7 +447,6 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
   const trimmedName = (teamName || '').trim();
   if (!trimmedName) throw new Error('Team name is required');
 
-  // Resolve a human‑friendly representative name (username > displayName > email)
   let representativeName = user.displayName || user.email || '';
   try {
     const userRef = ref(database, `users/${user.uid}`);
@@ -427,19 +466,16 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
     next.teams = next.teams || {};
     next.representatives = next.representatives || {};
 
-    // Enforce: a user can represent only one team per auction
     const existingTeamForUser = next.representatives[user.uid];
     if (existingTeamForUser && existingTeamForUser !== trimmedName) {
       throw new Error('You are already representing a team in this auction.');
     }
 
-    // Enforce: a team can have only one representative
     const teamEntry = next.teams[trimmedName];
     if (teamEntry && teamEntry.representativeUserId !== user.uid) {
       throw new Error('Team name already taken.');
     }
 
-    // Register / confirm this team mapping
     next.teams[trimmedName] = {
       representativeUserId: user.uid,
       representativeName,
@@ -449,7 +485,6 @@ export const registerTeamForSportsAuction = async (auctionId, teamName) => {
     return next;
   });
 
-  // Also keep a simple list of teams on the main auction node for UI display
   const auctionTeamsRef = ref(database, `auctions/${auctionId}/teams`);
   const teamsSnap = await get(auctionTeamsRef);
   let teamsList = [];
@@ -542,13 +577,11 @@ export const deleteAuction = async (auctionId) => {
     }
 
     const auction = snapshot.val();
-    
-    // Check if user is admin
+
     const userRef = ref(database, `users/${user.uid}`);
     const userSnapshot = await get(userRef);
     const isAdmin = userSnapshot.exists() && userSnapshot.val().role === 'admin';
-    
-    // Allow deletion if user is the creator OR if user is admin
+
     if (auction.createdBy !== user.uid && !isAdmin) {
       throw new Error('Unauthorized: You can only delete your own auctions');
     }
@@ -583,7 +616,6 @@ export const addPlayerToAuction = async (auctionId, playerData) => {
 
     await set(newPlayerRef, player);
 
-    // Update player count in auction
     const auctionRef = ref(database, `auctions/${auctionId}`);
     const auctionSnapshot = await get(auctionRef);
     const currentCount = auctionSnapshot.val()?.playerCount || 0;
@@ -625,13 +657,11 @@ export const getAuctionPlayers = async (auctionId) => {
 
 // ---------------------------------------------------------------------------
 // Get items in an auction (item auctions) or map players to item shape (sports)
-// When auctionType is provided, use that path only so sports always uses players.
 // ---------------------------------------------------------------------------
 export const getAuctionItems = async (auctionId, options = {}) => {
   try {
     const { auctionType } = options;
 
-    // Sports auction: always use players path so placeBid finds auctions/.../players/id
     if (auctionType === 'sports_player') {
       const players = await getAuctionPlayers(auctionId);
       return players.map((p) => ({
@@ -642,6 +672,7 @@ export const getAuctionItems = async (auctionId, options = {}) => {
         current_price: p.currentBid ?? p.basePrice,
         status: p.status || 'available',
         current_bidder_name: p.currentBidderName || null,
+        soldToTeamName: p.soldToTeamName || null,
         player_details: JSON.stringify({
           role: p.role,
           age: p.age,
@@ -673,7 +704,6 @@ export const getAuctionItems = async (auctionId, options = {}) => {
       return items;
     }
 
-    // Fallback when no auctionType: if no items, use players (legacy sports)
     const players = await getAuctionPlayers(auctionId);
     return players.map((p) => ({
       id: p.id,
@@ -683,6 +713,7 @@ export const getAuctionItems = async (auctionId, options = {}) => {
       current_price: p.currentBid ?? p.basePrice,
       status: p.status || 'available',
       current_bidder_name: p.currentBidderName || null,
+      soldToTeamName: p.soldToTeamName || null,
       player_details: JSON.stringify({
         role: p.role,
         age: p.age,
@@ -737,7 +768,6 @@ export const addItemToAuction = async (auctionId, itemData) => {
   }
 };
 
-/** Alias for UI that calls addItem({ auctionId, ... }) */
 export const addItem = async (payload) => {
   const { auctionId, name, description, basePrice, base_price, category, imageUrl, playerDetails, condition } = payload;
   const price = basePrice ?? base_price;
@@ -767,7 +797,6 @@ export const addItem = async (payload) => {
 export const searchAuctions = async (searchTerm) => {
   try {
     const allAuctions = await getAllAuctions();
-    
     const lowerSearchTerm = searchTerm.toLowerCase();
     return allAuctions.filter((auction) => {
       return (
@@ -789,7 +818,7 @@ export const getAuctionStats = async (auctionId) => {
   try {
     const auction = await getAuction(auctionId);
     const players = await getAuctionPlayers(auctionId);
-    
+
     const bidsRef = ref(database, `bids/${auctionId}`);
     const bidsSnapshot = await get(bidsRef);
 
@@ -823,15 +852,11 @@ export const getAuctionStats = async (auctionId) => {
 // ---------------------------------------------------------------------------
 export const listenToAuction = (auctionId, callback) => {
   const auctionRef = ref(database, `auctions/${auctionId}`);
-
-  // onValue returns a specific unsubscribe function for THIS listener only.
-  // Using off(auctionRef) instead would detach ALL listeners on the ref.
   const unsubscribe = onValue(auctionRef, (snapshot) => {
     if (snapshot.exists()) {
       callback(snapshot.val());
     }
   });
-
   return unsubscribe;
 };
 

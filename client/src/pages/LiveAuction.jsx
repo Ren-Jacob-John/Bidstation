@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
@@ -27,7 +27,7 @@ const LiveAuction = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-  
+
   const [auction, setAuction] = useState(null);
   const [items, setItems] = useState([]);
   const [currentItem, setCurrentItem] = useState(null);
@@ -39,12 +39,20 @@ const LiveAuction = () => {
   const [now, setNow] = useState(() => Date.now());
   const [controllerRunning, setControllerRunning] = useState(false);
   const [controllerLastTickAt, setControllerLastTickAt] = useState(null);
-  // FIX (Bug 2): per-player lot countdown
-  const LOT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes — must match inactivityMs in tick
+  const LOT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
   const [lotLastBidAt, setLotLastBidAt] = useState(null);
 
-  // FIX (Bug 4): Only suppress permission_denied for background real-time listeners,
-  // NOT for user-triggered bid actions (those should surface real errors).
+  // ── FEATURE 1: Player auto-advance notification state ──────────────────────
+  const [playerTransition, setPlayerTransition] = useState(null); // { prevName, nextName }
+  const prevCurrentItemIdRef = useRef(null);
+
+  // ── FEATURE 2: Shared contact details state ────────────────────────────────
+  const [sharedContacts, setSharedContacts] = useState(null);
+  const [sharedContactsLoading, setSharedContactsLoading] = useState(false);
+
+  // ── FEATURE 3: Team roster state ──────────────────────────────────────────
+  const [showTeamRoster, setShowTeamRoster] = useState(false);
+
   const shouldSuppressListenerError = (err) => {
     const msg = String(err?.message || err || '').toLowerCase();
     return msg.includes('permission_denied') || msg.includes('permission denied');
@@ -64,10 +72,9 @@ const LiveAuction = () => {
     return Boolean(user?.uid && auctioneerId && user.uid === auctioneerId);
   }, [auction?.auctioneerUserId, auction?.createdBy, auction?.creator_id, user?.uid]);
 
-  // Real-time auction + item/player updates (keeps UI in sync, incl. auto-bids)
+  // Real-time auction updates
   useEffect(() => {
     if (!id) return;
-
     setLoading(true);
     setError('');
 
@@ -81,6 +88,7 @@ const LiveAuction = () => {
     };
   }, [id]);
 
+  // Real-time items/players updates
   useEffect(() => {
     if (!id || !auction) return;
 
@@ -104,7 +112,6 @@ const LiveAuction = () => {
         });
       }
 
-      // Map to the item shape the UI expects
       const mapped = isSportsAuction
         ? list.map((p) => ({
             id: p.id,
@@ -116,6 +123,7 @@ const LiveAuction = () => {
             current_bidder_name: p.currentBidderName || null,
             currentBid: p.currentBid ?? null,
             currentBidderId: p.currentBidderId || null,
+            soldToTeamName: p.soldToTeamName || null,
             lastBidAt: p.lastBidAt || null,
             player_details: JSON.stringify({
               role: p.role,
@@ -132,8 +140,6 @@ const LiveAuction = () => {
 
       setItems(mapped);
 
-      // Select current lot.
-      // For sports auctions, selection is server-authoritative via auction.currentPlayerId.
       if (mapped.length === 0) {
         setCurrentItem(null);
         return;
@@ -143,7 +149,6 @@ const LiveAuction = () => {
         const currentId = auction?.currentPlayerId;
         const current = currentId ? mapped.find((it) => it.id === currentId) : null;
         setCurrentItem(current || null);
-        // FIX (Bug 2): track when the last bid on current lot happened
         if (current && current.lastBidAt) {
           setLotLastBidAt(current.lastBidAt);
         } else if (auction?.currentLotLastBidAt) {
@@ -163,8 +168,64 @@ const LiveAuction = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, auction?.auction_type, auction?.auctionType]);
 
-  // Spark-plan fallback: auctioneer drives "one player at a time" sports lots.
-  // All users follow auction.currentPlayerId in real time.
+  // ── FEATURE 1: Detect player change and show transition toast ────────────
+  useEffect(() => {
+    if (!isSportsAuction || !auction?.currentPlayerId) return;
+
+    const prevId = prevCurrentItemIdRef.current;
+    const nextId = auction.currentPlayerId;
+
+    if (prevId && prevId !== nextId) {
+      // Find names from items list
+      const prevPlayer = items.find((it) => it.id === prevId);
+      const nextPlayer = items.find((it) => it.id === nextId);
+      if (nextPlayer) {
+        setPlayerTransition({
+          prevName: prevPlayer?.name || 'Previous player',
+          nextName: nextPlayer.name,
+        });
+        // Auto-dismiss after 5 seconds
+        const timer = setTimeout(() => setPlayerTransition(null), 5000);
+        return () => clearTimeout(timer);
+      }
+    }
+    prevCurrentItemIdRef.current = nextId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auction?.currentPlayerId, isSportsAuction]);
+
+  // Keep prevCurrentItemIdRef in sync on first load
+  useEffect(() => {
+    if (auction?.currentPlayerId && !prevCurrentItemIdRef.current) {
+      prevCurrentItemIdRef.current = auction.currentPlayerId;
+    }
+  }, [auction?.currentPlayerId]);
+
+  // ── FEATURE 2: Load shared contacts when auction is completed ─────────────
+  useEffect(() => {
+    if (!auction || auction.status !== 'completed') {
+      setSharedContacts(null);
+      return;
+    }
+
+    const loadContacts = async () => {
+      setSharedContactsLoading(true);
+      try {
+        const contactsRef = ref(database, `auctions/${id}/sharedContacts`);
+        const snap = await get(contactsRef);
+        if (snap.exists()) {
+          setSharedContacts(snap.val());
+        }
+      } catch (err) {
+        console.error('Error loading shared contacts:', err);
+      } finally {
+        setSharedContactsLoading(false);
+      }
+    };
+
+    loadContacts();
+  }, [auction?.status, id]);
+
+  // Auctioneer-side sports lot controller
   useEffect(() => {
     if (!id || !auction || !isSportsAuction) return;
     if (auction.status !== 'live' || auction.locked) return;
@@ -174,8 +235,6 @@ const LiveAuction = () => {
     let stopped = false;
     setControllerRunning(true);
 
-    // FIX (Bug 1): Read players fresh from DB inside tick — don't rely on stale
-    // closed-over `items` state which causes random selection to stop working.
     const pickRandomAvailable = async () => {
       const playersSnap = await get(ref(database, `auctions/${id}/players`));
       if (!playersSnap.exists()) return null;
@@ -200,7 +259,6 @@ const LiveAuction = () => {
         const a = auctionSnap.val();
         if (!a || a.status !== 'live' || a.locked) return;
 
-        // Ensure there is a current player
         if (!a.currentPlayerId) {
           const next = await pickRandomAvailable();
           if (!next) {
@@ -255,7 +313,7 @@ const LiveAuction = () => {
           });
         }
 
-        // Mark bids for this player (active -> won, outbid -> lost)
+        // Mark bids for this player
         try {
           const bidsRef = ref(database, `bids/${id}`);
           const bidsSnap = await get(bidsRef);
@@ -275,7 +333,7 @@ const LiveAuction = () => {
           console.error('Error updating bid statuses:', bidStatusErr);
         }
 
-        // Pick next player (FIX Bug 1: await fresh DB read)
+        // ── FEATURE 1: Pick next player and announce transition ─────────────
         const next = await pickRandomAvailable();
         if (!next) {
           await update(auctionRef, { status: 'completed', locked: true, currentPlayerId: null });
@@ -285,6 +343,11 @@ const LiveAuction = () => {
           currentPlayerId: next.id,
           currentLotStartedAt: Date.now(),
           currentLotLastBidAt: Date.now(),
+          // Store previous player name for transition announcement
+          lastClosedPlayerName: p.name || null,
+          lastClosedPlayerStatus: soldToId ? 'sold' : 'unsold',
+          lastClosedPlayerSoldTo: soldToTeam || soldToName || null,
+          lastClosedPlayerSoldPrice: soldPrice || null,
         });
       } catch (e) {
         console.error('Sports lot tick error:', e);
@@ -301,7 +364,7 @@ const LiveAuction = () => {
     };
   }, [id, auction?.status, auction?.locked, isSportsAuction, isAuctioneer, items]);
 
-  // Timer tick for sports auction (elapsed + countdown)
+  // Timer tick
   useEffect(() => {
     if (!auction || auction.status !== 'live') return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -376,8 +439,6 @@ const LiveAuction = () => {
         link: `/auction/live/${id}`,
       });
 
-      // CLIENT-SIDE AUTO-BID: check if any auto-bidder should respond.
-      // Run after a short delay so the player node update settles first.
       if (!isItemAuction) {
         setTimeout(() => {
           bidService.runAutoBidCheck(id, currentItem.id, amount, user?.uid);
@@ -388,8 +449,6 @@ const LiveAuction = () => {
     }
   };
 
-  // Keep suggested bid amount aligned with the live current price.
-  // Don’t override if user already typed a higher amount.
   useEffect(() => {
     if (!currentItem) return;
     const increment = Number(auction?.minIncrement) || (isSportsAuction ? 100000 : 100);
@@ -425,7 +484,6 @@ const LiveAuction = () => {
       return;
     }
     try {
-      // CLIENT-SIDE: write directly to RTDB — no Cloud Function needed
       await bidService.setAutoBid(id, currentItem.id, max);
       setAutoBidMax('');
       addNotification({
@@ -443,7 +501,7 @@ const LiveAuction = () => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -453,7 +511,6 @@ const LiveAuction = () => {
   const remainingSeconds = endMs != null ? Math.max(0, (endMs - now) / 1000) : null;
   const elapsedDisplay = elapsedSeconds != null ? formatTimeUnits(elapsedSeconds).text : '--:--';
   const remainingDisplay = remainingSeconds != null ? formatTimeUnits(remainingSeconds).text : '--:--';
-  // FIX (Bug 2): Compute per-player lot countdown
   const lotRemainingSeconds = isSportsAuction && lotLastBidAt != null
     ? Math.max(0, (LOT_TIMEOUT_MS - (now - lotLastBidAt)) / 1000)
     : null;
@@ -466,6 +523,24 @@ const LiveAuction = () => {
   const soldCount = items.filter((i) => i.status === 'sold').length;
   const totalCount = items.length;
   const progressPercent = totalCount > 0 ? Math.round((soldCount / totalCount) * 100) : 0;
+
+  // ── FEATURE 3: Build team roster from sold players ────────────────────────
+  const teamRoster = useMemo(() => {
+    if (!isSportsAuction) return {};
+    const roster = {};
+    items.forEach((item) => {
+      if (item.status === 'sold' && item.soldToTeamName) {
+        if (!roster[item.soldToTeamName]) roster[item.soldToTeamName] = [];
+        roster[item.soldToTeamName].push(item);
+      }
+    });
+    return roster;
+  }, [items, isSportsAuction]);
+
+  // ── FEATURE 2: Check if current user is a relevant party for contacts ─────
+  const isWinner = sharedContacts && sharedContacts.winnerUserId === user?.uid;
+  const isAuctioneerForContacts = sharedContacts && sharedContacts.auctioneerUserId === user?.uid;
+  const canSeeContacts = isWinner || isAuctioneerForContacts;
 
   if (loading) {
     return (
@@ -495,6 +570,29 @@ const LiveAuction = () => {
   return (
     <div className="live-auction-page">
       <div className="container">
+
+        {/* ── FEATURE 1: Player transition toast ─────────────────────────── */}
+        {playerTransition && (
+          <div className="player-transition-toast" role="status" aria-live="polite">
+            <div className="player-transition-inner">
+              <span className="player-transition-icon">🔄</span>
+              <div className="player-transition-text">
+                <strong>Next Player Up!</strong>
+                <span>
+                  {playerTransition.prevName} → <span className="player-transition-next">{playerTransition.nextName}</span>
+                </span>
+              </div>
+              <button
+                className="player-transition-close"
+                onClick={() => setPlayerTransition(null)}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Auction Header */}
         <div className="auction-header-section card">
           <div className="auction-title-area">
@@ -517,7 +615,7 @@ const LiveAuction = () => {
           </div>
           <p>{auction.description}</p>
 
-          {/* Timer + Progress bar (live auction) */}
+          {/* Timer + Progress bar */}
           {auction.status === 'live' && (
             <div className="live-auction-bar">
               <div className="live-timer-row">
@@ -558,7 +656,6 @@ const LiveAuction = () => {
                   <div className="live-now-bidding">
                     <span className="live-now-label">Now bidding on:</span>
                     <span className="live-now-name">{currentItem.name}</span>
-                    {/* FIX (Bug 2): Per-player lot timeout countdown */}
                     {isSportsAuction && lotRemainingDisplay && (
                       <span
                         className={`lot-countdown${lotUrgent ? ' lot-countdown-urgent' : ''}`}
@@ -593,6 +690,91 @@ const LiveAuction = () => {
           )}
         </div>
 
+        {/* ── FEATURE 2: Shared contact details (completed auction) ──────── */}
+        {auction.status === 'completed' && (
+          <div className="shared-contacts-section card">
+            {sharedContactsLoading ? (
+              <p className="shared-contacts-loading">Loading contact details…</p>
+            ) : canSeeContacts && sharedContacts ? (
+              <>
+                <h3 className="shared-contacts-title">📬 Contact Details</h3>
+                <p className="shared-contacts-subtitle">
+                  Shared between winner and auctioneer to complete this transaction.
+                </p>
+                <div className="shared-contacts-grid">
+                  {/* Show winner's contact to the auctioneer */}
+                  {isAuctioneerForContacts && sharedContacts.winnerContact && (
+                    <div className="shared-contact-card shared-contact-winner">
+                      <div className="shared-contact-role">🏆 Winner's Contact</div>
+                      <ContactFields contact={sharedContacts.winnerContact} />
+                    </div>
+                  )}
+                  {/* Show auctioneer's contact to the winner */}
+                  {isWinner && sharedContacts.auctioneerContact && (
+                    <div className="shared-contact-card shared-contact-auctioneer">
+                      <div className="shared-contact-role">🎙️ Auctioneer's Contact</div>
+                      <ContactFields contact={sharedContacts.auctioneerContact} />
+                    </div>
+                  )}
+                  {/* Fallback if contact details not filled */}
+                  {((isAuctioneerForContacts && !sharedContacts.winnerContact) ||
+                    (isWinner && !sharedContacts.auctioneerContact)) && (
+                    <p className="shared-contacts-missing">
+                      Contact details not available — the other party has not filled in their profile contact details.
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : auction.status === 'completed' && !sharedContactsLoading && !canSeeContacts ? (
+              <p className="shared-contacts-na">
+                This auction has ended. Contact details are only visible to the winner and the auctioneer.
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── FEATURE 3: Team Roster (sports auction, completed or live) ─── */}
+        {isSportsAuction && Object.keys(teamRoster).length > 0 && (
+          <div className="team-roster-section card">
+            <div className="team-roster-header">
+              <h3>🏟️ Team Rosters</h3>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowTeamRoster((v) => !v)}
+              >
+                {showTeamRoster ? 'Hide Rosters' : 'Show Rosters'}
+              </button>
+            </div>
+            {showTeamRoster && (
+              <div className="team-roster-grid">
+                {Object.entries(teamRoster).map(([teamName, players]) => (
+                  <div key={teamName} className="team-roster-card">
+                    <div className="team-roster-name">{teamName}</div>
+                    <div className="team-roster-count">{players.length} player{players.length !== 1 ? 's' : ''}</div>
+                    <ul className="team-roster-list">
+                      {players.map((p) => {
+                        const details = (() => {
+                          try { return p.player_details ? JSON.parse(p.player_details) : {}; } catch { return {}; }
+                        })();
+                        return (
+                          <li key={p.id} className="team-roster-player">
+                            <span className="roster-player-name">{p.name}</span>
+                            {details.role && (
+                              <span className="roster-player-role">{details.role}</span>
+                            )}
+                            <span className="roster-player-price">{formatCurrency(p.current_price || p.base_price)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="auction-content">
           {/* Current Item Section */}
           <div className="current-item-section">
@@ -601,10 +783,10 @@ const LiveAuction = () => {
                 <div className="item-badge">
                   {auction.auction_type === 'sports_player' ? '⚽ Player' : '🛍️ Item'}
                 </div>
-                
+
                 <h2>{currentItem.name}</h2>
                 <p className="item-description">{currentItem.description}</p>
-                
+
                 {auction.auction_type === 'sports_player' && currentItem.player_details && (
                   <div className="player-stats">
                     {JSON.parse(currentItem.player_details).role && (
@@ -633,53 +815,57 @@ const LiveAuction = () => {
 
                 {(() => {
                   const auctionCreatorId = auction?.createdBy ?? auction?.creator_id;
-                  const isAuctioneer = user && auctionCreatorId && user.uid === auctionCreatorId;
-                  return auction.status === 'live' && user && !isAuctioneer && (
-                  <form onSubmit={handlePlaceBid} className="bid-form">
-                    {error && (
-                      <div className="alert alert-error">
-                        {error}
-                      </div>
-                    )}
+                  const isAuc = user && auctionCreatorId && user.uid === auctionCreatorId;
+                  return auction.status === 'live' && user && !isAuc && (
+                    <form onSubmit={handlePlaceBid} className="bid-form">
+                      {error && (
+                        <div className="alert alert-error">
+                          {error}
+                        </div>
+                      )}
 
-                    <div className="form-group">
-                      <label>Your Bid Amount</label>
-                      <input
-                        type="number"
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        placeholder="Enter bid amount"
-                        step="100000"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Max Auto-Bid Amount (optional)</label>
-                      <div className="auto-bid-row">
+                      <div className="form-group">
+                        <label>Your Bid Amount</label>
                         <input
                           type="number"
-                          value={autoBidMax}
-                          onChange={(e) => setAutoBidMax(e.target.value)}
-                          placeholder="Set maximum auto-bid"
+                          value={bidAmount}
+                          onChange={(e) => setBidAmount(e.target.value)}
+                          placeholder="Enter bid amount"
                           step="100000"
+                          required
                         />
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          onClick={handleSetAutoBid}
-                        >
-                          Enable Auto-Bid
-                        </button>
                       </div>
-                    </div>
 
-                    <button type="submit" className="btn btn-primary w-full">
-                      Place Bid
-                    </button>
-                  </form>
+                      <div className="form-group">
+                        <label>Max Auto-Bid Amount (optional)</label>
+                        <div className="auto-bid-row">
+                          <input
+                            type="number"
+                            value={autoBidMax}
+                            onChange={(e) => setAutoBidMax(e.target.value)}
+                            placeholder="Set maximum auto-bid"
+                            step="100000"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            onClick={handleSetAutoBid}
+                          >
+                            Enable Auto-Bid
+                          </button>
+                        </div>
+                      </div>
+
+                      <button type="submit" className="btn btn-primary w-full">
+                        Place Bid
+                      </button>
+                    </form>
                   );
                 })()}
+              </div>
+            ) : auction.status === 'completed' ? (
+              <div className="card">
+                <p className="text-center">🏁 Auction has ended.</p>
               </div>
             ) : (
               <div className="card">
@@ -687,7 +873,6 @@ const LiveAuction = () => {
               </div>
             )}
 
-            {/* Bid History — FIX: scoped to the currently active player/item */}
             <BidHistory
               auctionId={id}
               playerId={currentItem?.id ?? null}
@@ -701,8 +886,6 @@ const LiveAuction = () => {
               <h3>All Items ({items.length})</h3>
               <div className="items-scroll">
                 {items.map(item => {
-                  // FIX: For sports auctions, only the auctioneer can change the active lot.
-                  // Bidders see a read-only list — clicking does nothing for them.
                   const isClickable = !isSportsAuction || isAuctioneer;
                   const isCurrentLot = currentItem?.id === item.id;
                   return (
@@ -728,6 +911,10 @@ const LiveAuction = () => {
                       <div className="item-price">
                         {formatCurrency(item.current_price || item.base_price)}
                       </div>
+                      {/* Show team name for sold players */}
+                      {isSportsAuction && item.status === 'sold' && item.soldToTeamName && (
+                        <div className="item-sold-team">✅ {item.soldToTeamName}</div>
+                      )}
                       <span className={`item-status ${item.status}`}>
                         {item.status === 'available' && isCurrentLot && isSportsAuction
                           ? 'bidding'
@@ -742,6 +929,31 @@ const LiveAuction = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// ── Helper component for contact fields ──────────────────────────────────────
+const ContactFields = ({ contact }) => {
+  if (!contact || typeof contact !== 'object') return <p className="no-contact">No details provided.</p>;
+
+  const fields = [
+    { label: 'Name', key: 'name' },
+    { label: 'Email', key: 'email' },
+    { label: 'Phone', key: 'phone' },
+    { label: 'Address', key: 'address' },
+  ];
+
+  return (
+    <dl className="contact-fields">
+      {fields.map(({ label, key }) =>
+        contact[key] ? (
+          <div key={key} className="contact-field-row">
+            <dt>{label}</dt>
+            <dd>{contact[key]}</dd>
+          </div>
+        ) : null
+      )}
+    </dl>
   );
 };
 
